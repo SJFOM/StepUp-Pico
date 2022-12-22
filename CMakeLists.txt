@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 
 # Set project data
-set(PROJECT_NAME "RP2040_FREERTOS_PROJECT")
+set(PROJECT_NAME "STEPUP_PICO")
 set(BUILD_NUMBER "0")
 
 # Set app name(s) and version(s)
@@ -45,8 +45,8 @@ include(pico_sdk_import.cmake)
 
 # Name the project
 project(${PROJECT_NAME}
-        LANGUAGES C CXX ASM
-        DESCRIPTION "FreeRTOS-based RP2040 applications"
+    LANGUAGES C CXX ASM
+    DESCRIPTION "FreeRTOS-based RP2040 applications"
 )
 
 # Initialise the Pico SDK
@@ -73,6 +73,8 @@ target_include_directories(FreeRTOS PUBLIC
 
 # Include the apps' source code
 add_subdirectory(${APP_1_SRC_DIRECTORY})
-add_subdirectory(${APP_2_SRC_DIRECTORY})
-add_subdirectory(${APP_3_SRC_DIRECTORY})
-add_subdirectory(${APP_4_SRC_DIRECTORY})
+
+# add_subdirectory(${APP_2_SRC_DIRECTORY})
+
+# add_subdirectory(${APP_3_SRC_DIRECTORY})
+# add_subdirectory(${APP_4_SRC_DIRECTORY})

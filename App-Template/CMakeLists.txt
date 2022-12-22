@@ -16,7 +16,8 @@ add_compile_definitions(BUILD_NUM=${BUILD_NUMBER})
 
 # Include app source code file(s)
 add_executable(${APP_1_NAME}
-    ${APP_1_SRC_DIRECTORY}/main.c
+    ${APP_1_SRC_DIRECTORY}/main.cpp
+    ${COMMON_CODE_DIRECTORY}/utils.cpp
 )
 
 # Link to built libraries
