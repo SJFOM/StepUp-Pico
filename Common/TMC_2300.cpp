@@ -5,20 +5,19 @@
  *      Author: LK
  */
 
-// #include "Arduino.h"
 #include "CRC.h"
 #include "HardwareSerial.h"
 #include "TMC2300.h"
 
 #define TMCSerial Serial1
 
-//#define DEBUG
+ //#define DEBUG
 #define DBGSerial Serial
 
 // => UART wrapper
-void tmc2300_readWriteArray(uint8_t *data,
-                            size_t writeLength,
-                            size_t readLength)
+void tmc2300_readWriteArray(uint8_t* data,
+    size_t writeLength,
+    size_t readLength)
 {
     TMCSerial.write(data, writeLength);
 
@@ -41,7 +40,7 @@ void tmc2300_readWriteArray(uint8_t *data,
 // <= UART wrapper
 
 // => CRC wrapper
-extern uint8_t tmc2300_CRC8(uint8_t *data, size_t length);
+extern uint8_t tmc2300_CRC8(uint8_t* data, size_t length);
 // <= CRC wrapper
 
 void tmc2300_writeInt(uint8_t address, int32_t value)
@@ -54,7 +53,7 @@ void tmc2300_writeInt(uint8_t address, int32_t value)
     data[3] = (value >> 24) & 0xFF;
     data[4] = (value >> 16) & 0xFF;
     data[5] = (value >> 8) & 0xFF;
-    data[6] = (value)&0xFF;
+    data[6] = (value) & 0xFF;
     data[7] = tmc_CRC8(data, 7, 0);
 
     tmc2300_readWriteArray(&data[0], 8, 0);
@@ -62,7 +61,7 @@ void tmc2300_writeInt(uint8_t address, int32_t value)
 
 int32_t tmc2300_readInt(uint8_t address)
 {
-    uint8_t data[8] = {0};
+    uint8_t data[8] = { 0 };
 
     address = TMC_ADDRESS(address);
 
