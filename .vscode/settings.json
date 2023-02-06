@@ -1,0 +1,6 @@
+{
+  "prettier.configPath": "",
+  "prettier.enable": false,
+  "editor.defaultFormatter": null,
+  "C_Cpp.formatting": "vcFormat"
+}
