@@ -25,6 +25,9 @@ const TickType_t ms_delay = 500 / portTICK_PERIOD_MS;
 TaskHandle_t gpio_task_handle = NULL;
 TaskHandle_t pico_task_handle = NULL;
 
+// Create class instances of control interfaces
+TMCControl tmc_control;
+
 /*
  * SETUP FUNCTIONS
  */
@@ -34,7 +37,7 @@ TaskHandle_t pico_task_handle = NULL;
   */
 void setup() {
     setup_led();
-    // setup_tmc2300();
+    tmc_control.init();
 }
 
 

@@ -28,11 +28,8 @@
 #include "pico/binary_info.h"
 // App
 #include "../../../Common/utils.h"
-// TMC2300 includes
-#include "../../Libraries/TMC_API/helpers/CRC.h"
-#include "../../Libraries/TMC_API/helpers/Functions.h"
-#include "../../Libraries/TMC_API/ic/TMC2300.h"
-
+// Control includes
+#include "tmc_control.h"
 
 #ifdef __cplusplus
 extern "C"

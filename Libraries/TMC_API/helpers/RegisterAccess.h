@@ -3,6 +3,8 @@
  *
  *  Created on: 12.07.2017
  *      Author: LK
+ *  Modified on 11.02.2023
+ *      Author: SJFOM
  *
  *  The permission system aims to allow a general-purpose implementation for
  *  all common hardware register usages. This includes:
@@ -60,8 +62,8 @@
 // obtain by reading them due to the register not being read-back.
 typedef struct
 {
-    uint8_t address;
-    uint32_t value;
+  uint8_t address;
+  uint32_t value;
 } TMCRegisterConstant;
 
 // Helper define:
