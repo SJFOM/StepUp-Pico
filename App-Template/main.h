@@ -9,7 +9,7 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-// FreeRTOS
+ // FreeRTOS
 #include <FreeRTOS.h>
 #include <task.h>
 #include <queue.h>
@@ -29,23 +29,24 @@
 // App
 #include "../Common/utils.h"
 // TMC2300 includes
-#include "../Common/CRC.h"
-#include "../Common/Functions.h"
-#include "../Common/TMC2300.h"
+#include "../Common/TMC_API/helpers/CRC.h"
+#include "../Common/TMC_API/helpers/Functions.h"
+#include "../Common/TMC_API/ic/TMC2300.h"
+
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-/**
- * CONSTANTS
- */
+    /**
+     * CONSTANTS
+     */
 #define RED_LED_PIN 20
 
-    /**
-     * PROTOTYPES
-     */
+     /**
+      * PROTOTYPES
+      */
     void setup();
     void setup_led();
     void setup_tmc2300();
@@ -54,9 +55,9 @@ extern "C"
     void led_off();
     void led_set(bool state = true);
 
-    void led_task_pico(void *unused_arg);
-    void led_task_gpio(void *unused_arg);
-    void log_debug(const char *msg);
+    void led_task_pico(void* unused_arg);
+    void led_task_gpio(void* unused_arg);
+    void log_debug(const char* msg);
     void log_device_info(void);
 
 #ifdef __cplusplus

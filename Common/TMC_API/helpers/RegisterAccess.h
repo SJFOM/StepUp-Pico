@@ -20,18 +20,18 @@
 #ifndef TMC_HELPERS_REGISTERACCESS_H
 #define TMC_HELPERS_REGISTERACCESS_H
 
-// Register access bits
-/* Lower nibble is used for read/write, higher nibble is used for
- * special case registers. This makes it easy to identify the read/write
- * part of the permissions in a hexadecimal permission number.
- * The dirty bit will only ever be set at runtime, so we keep the easily
- * readable lower nibble.
- */
+ // Register access bits
+ /* Lower nibble is used for read/write, higher nibble is used for
+  * special case registers. This makes it easy to identify the read/write
+  * part of the permissions in a hexadecimal permission number.
+  * The dirty bit will only ever be set at runtime, so we keep the easily
+  * readable lower nibble.
+  */
 #define TMC_ACCESS_NONE        0x00
 
 #define TMC_ACCESS_READ        0x01
 #define TMC_ACCESS_WRITE       0x02
-                            // 0x04 is currently unused
+  // 0x04 is currently unused
 #define TMC_ACCESS_DIRTY       0x08  // Register has been written since reset -> shadow register is valid for restore
 
 // Special Register bits
@@ -60,8 +60,8 @@
 // obtain by reading them due to the register not being read-back.
 typedef struct
 {
-	uint8_t address;
-	int32_t value;
+    uint8_t address;
+    int32_t value;
 } TMCRegisterConstant;
 
 // Helper define:
