@@ -2,5 +2,6 @@
   "prettier.configPath": "",
   "prettier.enable": false,
   "editor.defaultFormatter": null,
-  "C_Cpp.formatting": "vcFormat"
+  "C_Cpp.formatting": "vcFormat",
+  "git.ignoredRepositories": ["pico-sdk","FreeRTOS-Kernel"]
 }
