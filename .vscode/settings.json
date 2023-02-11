@@ -3,5 +3,6 @@
   "prettier.enable": false,
   "editor.defaultFormatter": null,
   "C_Cpp.formatting": "vcFormat",
+  "git.autoRepositoryDetection": "openEditors",
   "git.ignoredRepositories": ["pico-sdk","FreeRTOS-Kernel"]
 }
