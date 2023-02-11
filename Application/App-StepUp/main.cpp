@@ -6,7 +6,7 @@
  * @licence   MIT
  *
  */
-#include "main.h"
+#include "include/main.h"
 
 using std::string;
 using std::stringstream;
