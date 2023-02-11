@@ -26,6 +26,10 @@ set(APP_4_SRC_DIRECTORY "${CMAKE_SOURCE_DIR}/Application/App-Timers")
 # FROM 1.3.0 -- Move common source code to a separate directory
 set(COMMON_CODE_DIRECTORY "${CMAKE_SOURCE_DIR}/Common")
 
+# Sam - create references to additional folders
+set(TMC_API_CODE_DIRECTORY "${CMAKE_SOURCE_DIR}/Libraries/TMC_API")
+set(INTERFACE_CODE_DIRECTORY "${CMAKE_SOURCE_DIR}/INTERFACE")
+
 # Set app-side debugging "ON" or "OFF"
 set(DO_DEBUG "ON")
 
