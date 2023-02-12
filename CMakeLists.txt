@@ -28,7 +28,7 @@ set(COMMON_CODE_DIRECTORY "${CMAKE_SOURCE_DIR}/Common")
 
 # Sam - create references to additional folders
 set(TMC_API_CODE_DIRECTORY "${CMAKE_SOURCE_DIR}/Libraries/TMC_API")
-set(INTERFACE_CODE_DIRECTORY "${CMAKE_SOURCE_DIR}/INTERFACE")
+set(INTERFACE_CODE_DIRECTORY "${CMAKE_SOURCE_DIR}/Interface")
 
 # Set app-side debugging "ON" or "OFF"
 set(DO_DEBUG "ON")
