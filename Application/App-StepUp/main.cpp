@@ -20,10 +20,12 @@ volatile QueueHandle_t queue = NULL;
 
 // Set a delay time of exactly 500ms
 const TickType_t ms_delay = 500 / portTICK_PERIOD_MS;
+const TickType_t tmc_job_delay = 1000 / portTICK_PERIOD_MS;
 
 // FROM 1.0.1 Record references to the tasks
 TaskHandle_t gpio_task_handle = NULL;
 TaskHandle_t pico_task_handle = NULL;
+TaskHandle_t tmc_task_handle = NULL;
 
 // Create class instances of control interfaces
 TMCControl tmc_control;
@@ -33,11 +35,16 @@ TMCControl tmc_control;
  */
 
  /**
-  * @brief Umbrella hardware setup routine.
+  * @brief Hardware setup routine.
   */
 void setup() {
     setup_led();
-    tmc_control.init();
+
+    // If this fails on a call to writing to TMC then it will be blocking!
+    if (false == tmc_control.init())
+    {
+        Utils::log_debug("ERROR:TMC failed to initialise!");
+    }
 }
 
 
@@ -72,6 +79,7 @@ void led_set(bool state) { gpio_put(PICO_DEFAULT_LED_PIN, state); }
 /*
  * TASK FUNCTIONS
  */
+
 
  /**
   * @brief Repeatedly flash the Pico's built-in LED.
@@ -129,6 +137,36 @@ void led_task_gpio(void* unused_arg) {
     }
 }
 
+/**
+ * @brief Repeatedly flash the Pico's built-in LED.
+ */
+void tmc_process_job(void* unused_arg) {
+    // Store the Pico LED state
+    uint8_t pico_led_state = 0;
+
+    // Configure the Pico's on-board LED
+    gpio_init(PICO_DEFAULT_LED_PIN);
+    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+
+    while (true) {
+        // Turn Pico LED on an add the LED state
+        // to the FreeRTOS xQUEUE
+        Utils::log_debug("TMC PROCESS JOB");
+        pico_led_state = 1;
+        tmc_control.processJob();
+        gpio_put(PICO_DEFAULT_LED_PIN, pico_led_state);
+        xQueueSendToBack(queue, &pico_led_state, 0);
+        vTaskDelay(tmc_job_delay);
+
+        // Turn Pico LED off an add the LED state
+        // to the FreeRTOS xQUEUE
+        pico_led_state = 0;
+        gpio_put(PICO_DEFAULT_LED_PIN, pico_led_state);
+        xQueueSendToBack(queue, &pico_led_state, 0);
+        vTaskDelay(tmc_job_delay);
+    }
+}
+
 /*
  * RUNTIME START
  */
@@ -141,7 +179,9 @@ int main() {
     sleep_ms(2000);
 #endif
 
+    Utils::log_debug("Setting up peripherals...");
     setup();
+    Utils::log_debug("OK!");
 
     // Set up two tasks
     // FROM 1.0.1 Store handles referencing the tasks; get return values
@@ -150,6 +190,8 @@ int main() {
         NULL, 1, &pico_task_handle);
     BaseType_t gpio_status = xTaskCreate(led_task_gpio, "GPIO_LED_TASK", 128,
         NULL, 1, &gpio_task_handle);
+    // BaseType_t tmc_status = xTaskCreate(tmc_process_job, "TMC_JOB_TASK", 128,
+    //     NULL, 1, &tmc_task_handle);
 
     // Set up the event queue
     queue = xQueueCreate(4, sizeof(uint8_t));
@@ -159,7 +201,7 @@ int main() {
 
     // Start the FreeRTOS scheduler
     // FROM 1.0.1: Only proceed with valid tasks
-    if (pico_status == pdPASS || gpio_status == pdPASS) {
+    if (gpio_status == pdPASS || pico_status == pdPASS) {
         vTaskStartScheduler();
     }
 

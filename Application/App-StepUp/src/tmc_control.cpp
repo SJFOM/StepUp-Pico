@@ -90,7 +90,7 @@ void TMCControl::deinit()
 
 void TMCControl::processJob()
 {
-    // tmc2300_periodicJob(tmc2300, channel);
+    tmc2300_periodicJob(tmc2300, channel);
 }
 
 extern "C"
