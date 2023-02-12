@@ -18,8 +18,9 @@ add_compile_definitions(BUILD_NUM=${BUILD_NUMBER})
 add_executable(${APP_1_NAME}
     ${APP_1_SRC_DIRECTORY}/main.cpp
     ${APP_1_SRC_DIRECTORY}/src/tmc_control.cpp
-    ${TMC_API_CODE_DIRECTORY}/ic/TMC2300.c
     ${COMMON_CODE_DIRECTORY}/utils.cpp
+    ${TMC_API_CODE_DIRECTORY}/ic/TMC2300.c
+    ${TMC_API_CODE_DIRECTORY}/helpers/CRC.c
 )
 
 # Link to built libraries

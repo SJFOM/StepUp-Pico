@@ -15,11 +15,11 @@
 class ControlInterface {
 public:
     virtual bool init() = 0;
+    virtual void deinit() = 0;
     virtual void processJob() = 0;
 protected:
 private:
-    // virtual void* callBack
-    unsigned interface_count;
+    bool m_init_success;
 };
 
 #endif // CONTROL_INTERFACE_H_
