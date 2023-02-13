@@ -11,9 +11,10 @@
 
 #include "../include/tmc_control.h"
 
+
 TMC2300TypeDef* tmc2300;
 ConfigurationTypeDef* tmc2300_config;
-uint8_t channel = 0;
+uint8_t channel = 3;
 
 TMCControl::TMCControl() {
     m_init_success = false;
@@ -33,6 +34,7 @@ bool TMCControl::init() {
         // Initialize CRC calculation for TMC2300 UART datagrams
         if (!(tmc_fillCRC8Table(0x07, true, 0) == 1))
         {
+            Utils::log_debug("Error: Fill CRC");
             _init_routine_success &= false;
         }
 
@@ -40,23 +42,31 @@ bool TMCControl::init() {
         (void)tmc2300_init(tmc2300, channel, tmc2300_config, tmc2300_defaultRegisterResetState);
 
         // Set up our UART with the required speed.   
-        if (!(uart_init(UART_ID, BAUD_RATE) == BAUD_RATE))
+        uint _baud = uart_init(UART_ID, BAUD_RATE);
+        if (!(_baud == BAUD_RATE))
         {
+            Utils::log_debug("Error: UART init");
+            Utils::log_debug(std::to_string(_baud));
             _init_routine_success &= false;
         }
 
-        // Set the TX and RX pins by using the function select on the GPIO
-        // Set datasheet for more information on function select
+        // // Set the TX and RX pins by using the function select on the GPIO
+        // // Set datasheet for more information on function select
         (void)gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
         (void)gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
 
 
         // Check we have established a connection with the TMC2300 by reading its serial number
-        uint8_t tmc_version = tmc2300_readInt(tmc2300, TMC2300_IOIN & TMC2300_VERSION_MASK) >> TMC2300_VERSION_SHIFT;
+        int32_t tmc_version = (int32_t)(((int32_t)tmc2300_readInt(tmc2300, TMC2300_IOIN) & TMC2300_VERSION_MASK) >> TMC2300_VERSION_SHIFT);
+        Utils::log_debug(std::to_string(tmc2300_readInt(tmc2300, TMC2300_IOIN)));
         if (!(tmc_version >= 0x40))
         {
+            Utils::log_debug("Error: TMC version");
             _init_routine_success &= false;
         }
+
+        Utils::log_debug("TMC version: ");
+        Utils::log_debug(std::to_string(tmc_version));
 
         // Complete checks and store init routine success value
         m_init_success = _init_routine_success;
@@ -111,6 +121,7 @@ extern "C"
         if (readLength == 0) return;
 
         // Wait for the reply data to be received
+        // TODO: Potentially remove this?
         while (uart_is_readable(UART_ID) < readLength)
         {
             ;
