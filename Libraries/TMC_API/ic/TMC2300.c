@@ -83,7 +83,7 @@ int32_t tmc2300_readInt(TMC2300TypeDef* tmc2300, uint8_t address)
 void tmc2300_init(TMC2300TypeDef* tmc2300, uint8_t channel, ConfigurationTypeDef* tmc2300_config, const int32_t* registerResetState)
 {
     tmc2300->config = tmc2300_config;
-    tmc2300->config->callback = NULL;
+    // tmc2300->config->callback = NULL; // Sam: program does not run if this is included
     tmc2300->config->channel = channel;
     tmc2300->config->configIndex = 0;
     tmc2300->config->state = CONFIG_READY;
