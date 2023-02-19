@@ -16,7 +16,7 @@ class ControlInterface {
 public:
     virtual bool init() = 0;
     virtual void deinit() = 0;
-    virtual void processJob() = 0;
+    virtual void processJob(uint32_t tick_count) = 0;
 protected:
 private:
     bool m_init_success;
