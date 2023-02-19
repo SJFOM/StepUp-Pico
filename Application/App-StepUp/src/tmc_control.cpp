@@ -130,57 +130,53 @@ void TMCControl::processJob()
     tmc2300_periodicJob(&tmc2300, channel);
 }
 
-extern "C"
+extern "C" void tmc2300_readWriteArray(uint8_t channel, uint8_t * data, size_t writeLength, size_t readLength)
 {
-    void tmc2300_readWriteArray(uint8_t channel, uint8_t* data, size_t writeLength, size_t readLength)
+    printf("rw array - channel: %d - read: %d - write: %d\n", channel, readLength, writeLength);
+    // TMCSerial.write(data, writeLength);
+    uart_write_blocking(UART_ID, data, writeLength);
+    printf("RWA - 1\n");
+
+    // Wait for the written data to be received and discard it.
+    // This is the echo of our tx caused by using a single wire UART.
+    // while (TMCSerial.available() < writeLength)
+    //     ;
+    // TMCSerial.readBytes(data, writeLength);
+    // uart_read_blocking(UART_ID, data, writeLength);
+    printf("RWA - 2\n");
+
+    // If no reply data is expected abort here
+    if (readLength == 0) return;
+    printf("RWA - 3\n");
+
+    // Wait for the reply data to be received
+    // TODO: Potentially remove this?
+    // while (uart_is_readable(UART_ID) < readLength)
+    // {
+    //     ;
+    // }
+
+    // Read the reply data
+    // TMCSerial.readBytes(data, readLength);
+    for (int i = 0; i < writeLength; i++)
     {
-        printf("rw array - channel: %d - read: %d - write: %d\n", channel, readLength, writeLength);
-        // TMCSerial.write(data, writeLength);
-        uart_write_blocking(UART_ID, data, writeLength);
-        printf("RWA - 1\n");
-
-        // Wait for the written data to be received and discard it.
-        // This is the echo of our tx caused by using a single wire UART.
-        // while (TMCSerial.available() < writeLength)
-        //     ;
-        // TMCSerial.readBytes(data, writeLength);
-        // uart_read_blocking(UART_ID, data, writeLength);
-        printf("RWA - 2\n");
-
-        // If no reply data is expected abort here
-        if (readLength == 0) return;
-        printf("RWA - 3\n");
-
-        // Wait for the reply data to be received
-        // TODO: Potentially remove this?
-        // while (uart_is_readable(UART_ID) < readLength)
-        // {
-        //     ;
-        // }
-
-        // Read the reply data
-        // TMCSerial.readBytes(data, readLength);
-        for (int i = 0; i < writeLength; i++)
-        {
-            uart_read_blocking(UART_ID, &data[i], 1);
-            printf("read - %d - 0x%02x\n", i, data[i]);
-        }
-        printf("\n\n");
-        for (int i = 0; i < readLength; i++)
-        {
-            uart_read_blocking(UART_ID, &data[i], 1);
-            printf("read - %d - 0x%02x\n", i, data[i]);
-        }
-        // uart_read_blocking(UART_ID, data, readLength);
-        printf("RWA - 4\n");
-
+        uart_read_blocking(UART_ID, &data[i], 1);
+        printf("read - %d - 0x%02x\n", i, data[i]);
     }
-
-    uint8_t tmc2300_CRC8(uint8_t* data, size_t length)
+    printf("\n\n");
+    for (int i = 0; i < readLength; i++)
     {
-        // tmc_CRC8 is a generic library method so will need to be mapped 
-        // to the tmc2300_CRC8 extern method.
-        return tmc_CRC8(data, length, 0);
+        uart_read_blocking(UART_ID, &data[i], 1);
+        printf("read - %d - 0x%02x\n", i, data[i]);
     }
+    // uart_read_blocking(UART_ID, data, readLength);
+    printf("RWA - 4\n");
 
-} // extern "C"
+}
+
+extern "C" uint8_t tmc2300_CRC8(uint8_t * data, size_t length)
+{
+    // tmc_CRC8 is a generic library method so will need to be mapped 
+    // to the tmc2300_CRC8 extern method.
+    return tmc_CRC8(data, length, 0);
+}
