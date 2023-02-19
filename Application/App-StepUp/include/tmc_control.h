@@ -8,10 +8,13 @@
 #include "../../../Common/utils.h"
 
 // TMC-API
+extern "C"
+{
 #include "../../../Interfaces/ControlInterface.h"
 #include "../../../Libraries/TMC_API/ic/TMC2300.h"
 #include "../../../Libraries/TMC_API/helpers/CRC.h"
 #include "../../../Libraries/TMC_API/helpers/Config.h"
+}
 
 // printf can default to using uart0 so use uart1 instead
 #define UART_ID uart1

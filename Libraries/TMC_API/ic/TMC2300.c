@@ -6,6 +6,7 @@
  */
 
 #include "TMC2300.h"
+#include "stdio.h"
 
  // => UART wrapper
 extern void tmc2300_readWriteArray(uint8_t channel, uint8_t* data, size_t writeLength, size_t readLength);
