@@ -49,10 +49,14 @@ int32_t tmc2300_readInt(TMC2300TypeDef* tmc2300, uint8_t address)
 
     address = TMC_ADDRESS(address);
 
+    printf("rI - 1\n");
+
     // When the chip is in standby or when accessing a write-only register
     // use the shadow register content instead.
     if (tmc2300->standbyEnabled || !TMC_IS_READABLE(tmc2300->registerAccess[address]))
         return tmc2300->config->shadowRegister[address];
+
+    printf("rI - 2\n");
 
     data[0] = 0x05;
     data[1] = tmc2300->slaveAddress;
@@ -61,21 +65,36 @@ int32_t tmc2300_readInt(TMC2300TypeDef* tmc2300, uint8_t address)
 
     tmc2300_readWriteArray(tmc2300->config->channel, data, 4, 8);
 
+    printf("rI - 3\n");
+
     // Byte 0: Sync nibble correct?
     if (data[0] != 0x05)
+    {
+        printf("data[0]: 0x%02x\n", data[0]);
         return 0;
+    }
 
     // Byte 1: Master address correct?
     if (data[1] != 0xFF)
+    {
+        printf("data[1]: 0x%02x\n", data[1]);
         return 0;
+    }
 
     // Byte 2: Address correct?
     if (data[2] != address)
+    {
+        printf("data[2]: 0x%02x\n", data[2]);
         return 0;
+    }
 
     // Byte 7: CRC correct?
     if (data[7] != tmc2300_CRC8(data, 7))
+    {
+        printf("data[7]: 0x%02x\n", data[7]);
+        printf("CRC: 0x%02x\n", tmc2300_CRC8(data, 7));
         return 0;
+    }
 
     return ((uint32_t)data[3] << 24) | ((uint32_t)data[4] << 16) | (data[5] << 8) | data[6];
 }
@@ -83,7 +102,7 @@ int32_t tmc2300_readInt(TMC2300TypeDef* tmc2300, uint8_t address)
 void tmc2300_init(TMC2300TypeDef* tmc2300, uint8_t channel, ConfigurationTypeDef* tmc2300_config, const int32_t* registerResetState)
 {
     tmc2300->config = tmc2300_config;
-    // tmc2300->config->callback = NULL; // Sam: program does not run if this is included
+    tmc2300->config->callback = NULL;
     tmc2300->config->channel = channel;
     tmc2300->config->configIndex = 0;
     tmc2300->config->state = CONFIG_READY;
