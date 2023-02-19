@@ -20,7 +20,7 @@ volatile QueueHandle_t queue = NULL;
 
 // Set a delay time of exactly 500ms
 const TickType_t ms_delay = 500 / portTICK_PERIOD_MS;
-const TickType_t tmc_job_delay = 1000 / portTICK_PERIOD_MS;
+const TickType_t tmc_job_delay = 100 / portTICK_PERIOD_MS;
 
 // FROM 1.0.1 Record references to the tasks
 TaskHandle_t gpio_task_handle = NULL;
@@ -153,7 +153,7 @@ void tmc_process_job(void* unused_arg) {
         // to the FreeRTOS xQUEUE
         Utils::log_debug("TMC PROCESS JOB");
         pico_led_state = 1;
-        tmc_control.processJob();
+        tmc_control.processJob(xTaskGetTickCount());
         gpio_put(PICO_DEFAULT_LED_PIN, pico_led_state);
         xQueueSendToBack(queue, &pico_led_state, 0);
         vTaskDelay(tmc_job_delay);
@@ -186,24 +186,46 @@ int main() {
     // Set up two tasks
     // FROM 1.0.1 Store handles referencing the tasks; get return values
     // NOTE Arg 3 is the stack depth -- in words, not bytes
-    BaseType_t pico_status = xTaskCreate(led_task_pico, "PICO_LED_TASK", 128,
-        NULL, 1, &pico_task_handle);
-    BaseType_t gpio_status = xTaskCreate(led_task_gpio, "GPIO_LED_TASK", 128,
-        NULL, 1, &gpio_task_handle);
+    // BaseType_t pico_status = xTaskCreate(led_task_pico, "PICO_LED_TASK", 128,
+        // NULL, 1, &pico_task_handle);
+    // BaseType_t gpio_status = xTaskCreate(led_task_gpio, "GPIO_LED_TASK", 128,
+    //     NULL, 1, &gpio_task_handle);
     // BaseType_t tmc_status = xTaskCreate(tmc_process_job, "TMC_JOB_TASK", 128,
     //     NULL, 1, &tmc_task_handle);
 
     // Set up the event queue
-    queue = xQueueCreate(4, sizeof(uint8_t));
+    // queue = xQueueCreate(4, sizeof(uint8_t));
 
     // Log app info
     Utils::log_device_info();
 
+    unsigned long c = 0;
+    while (true)
+    {
+        Utils::log_debug("ticky ticker: ");
+        Utils::log_debug(std::to_string(c));
+        tmc_control.processJob(c);
+        if (c == 20)
+        {
+            tmc_control.enableDriver(true);
+        }
+        if (c == 40)
+        {
+            (void)tmc_control.getChipID();
+        }
+        if (c == 60)
+        {
+            (void)tmc_control.testFunction();
+        }
+        sleep_ms(200);
+        c++;
+    }
+
     // Start the FreeRTOS scheduler
     // FROM 1.0.1: Only proceed with valid tasks
-    if (gpio_status == pdPASS || pico_status == pdPASS) {
-        vTaskStartScheduler();
-    }
+    // if (gpio_status == pdPASS && tmc_status == pdPASS) {
+    //     vTaskStartScheduler();
+    // }
 
     // We should never get here, but just in case...
     while (true) {

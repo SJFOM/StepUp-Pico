@@ -8,11 +8,6 @@
 #ifndef TMC_IC_TMC2300_H_
 #define TMC_IC_TMC2300_H_
 
- // #ifdef __cplusplus
- // extern "C"
- // {
- // #endif
-
 #include "../helpers/Constants.h"
 #include "../helpers/API_Header.h"
 #include "TMC2300_Constants.h"
@@ -20,7 +15,7 @@
 #include "TMC2300_Fields.h"
 
 
-	// Helper macros
+ // Helper macros
 #define TMC2300_FIELD_READ(tdef, address, mask, shift) \
 	FIELD_GET(tmc2300_readInt(tdef, address), mask, shift)
 #define TMC2300_FIELD_WRITE(tdef, address, mask, shift, value) \
@@ -102,9 +97,5 @@ void tmc2300_setSlaveAddress(TMC2300TypeDef* tmc2300, uint8_t slaveAddress);
 
 uint8_t tmc2300_getStandby(TMC2300TypeDef* tmc2300);
 void tmc2300_setStandby(TMC2300TypeDef* tmc2300, uint8_t standbyState);
-
-// #ifdef __cplusplus
-// } // extern "C"
-// #endif
 
 #endif /* TMC_IC_TMC2300_H_ */

@@ -25,6 +25,10 @@ extern "C"
 #define UART_TX_PIN 4U
 #define UART_RX_PIN 5U
 
+// Motor control pins
+#define PIN_TMC_ENABLE 14U
+#define PIN_TMC_STANDBY 15U
+
 class TMCControl: ControlInterface
 {
 public:
@@ -32,10 +36,15 @@ public:
     ~TMCControl();
     bool init();
     void deinit();
-    void processJob();
+    void processJob(uint32_t tick_count);
+    void enableUartPins(bool enablePins);
+    void setStandby(bool enableStandby);
+    void enableDriver(bool enableDriver);
+    uint8_t getChipID();
+    void testFunction();
 protected:
 private:
-    bool m_init_success;
+    bool m_init_success, m_uart_pins_enabled;
 };
 
 #endif // TMC_CONTROL_H_
