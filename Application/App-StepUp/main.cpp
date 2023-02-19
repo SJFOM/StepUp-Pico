@@ -95,7 +95,7 @@ void led_task_pico(void* unused_arg) {
     while (true) {
         // Turn Pico LED on an add the LED state
         // to the FreeRTOS xQUEUE
-        Utils::log_debug("PICO LED FLASH");
+        // Utils::log_debug("PICO LED FLASH");
         pico_led_state = 1;
         gpio_put(PICO_DEFAULT_LED_PIN, pico_led_state);
         xQueueSendToBack(queue, &pico_led_state, 0);
@@ -130,7 +130,7 @@ void led_task_gpio(void* unused_arg) {
             // (NOT the sent value)
             if (passed_value_buffer)
             {
-                Utils::log_debug("GPIO LED FLASH");
+                // Utils::log_debug("GPIO LED FLASH");
             }
             gpio_put(RED_LED_PIN, passed_value_buffer == 1 ? 0 : 1);
         }

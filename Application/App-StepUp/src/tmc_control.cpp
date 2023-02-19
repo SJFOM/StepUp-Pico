@@ -12,9 +12,17 @@
 #include "../include/tmc_control.h"
 
 
-TMC2300TypeDef* tmc2300;
-ConfigurationTypeDef* tmc2300_config;
-uint8_t channel = 3;
+static TMC2300TypeDef tmc2300;
+static ConfigurationTypeDef tmc2300_config;
+uint8_t channel = 0;
+uint8_t slave_address = 3;
+volatile bool callback_complete = false;
+
+void callback(TMC2300TypeDef* tmc2300, ConfigState cfg_state)
+{
+    printf("\ncallback - config complete!\n");
+    callback_complete = true;
+}
 
 TMCControl::TMCControl() {
     m_init_success = false;
@@ -39,7 +47,11 @@ bool TMCControl::init() {
         }
 
         // Configure TMC2300 IC and default register states
-        (void)tmc2300_init(tmc2300, channel, tmc2300_config, tmc2300_defaultRegisterResetState);
+        tmc2300_init(&tmc2300, channel, &tmc2300_config, tmc2300_defaultRegisterResetState);
+
+        tmc2300_setSlaveAddress(&tmc2300, slave_address);
+
+        tmc2300_setCallback(&tmc2300, callback);
 
         // Set up our UART with the required speed.   
         uint _baud = uart_init(UART_ID, BAUD_RATE);
@@ -50,21 +62,36 @@ bool TMCControl::init() {
             _init_routine_success &= false;
         }
 
-        // // Set the TX and RX pins by using the function select on the GPIO
-        // // Set datasheet for more information on function select
+        // Set the TX and RX pins by using the function select on the GPIO
+        // Set datasheet for more information on function select
         (void)gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
         (void)gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
 
+        tmc2300_setStandby(&tmc2300, 0);
+        uint8_t gS = tmc2300_getStandby(&tmc2300);
+        printf("get standby: %d\n", gS);
+
+        int count = 0;
+        while (!callback_complete)
+        {
+            printf("count: %d\n", count++);
+            tmc2300_periodicJob(&tmc2300, count);
+            sleep_ms(10);
+        }
+        callback_complete = false;
+
+        printf("\n\nNext step\n\n");
 
         // Check we have established a connection with the TMC2300 by reading its serial number
-        int32_t tmc_version = (int32_t)(((int32_t)tmc2300_readInt(tmc2300, TMC2300_IOIN) & TMC2300_VERSION_MASK) >> TMC2300_VERSION_SHIFT);
-        Utils::log_debug(std::to_string(tmc2300_readInt(tmc2300, TMC2300_IOIN)));
+        int32_t tmc_version = tmc2300_readInt(&tmc2300, TMC2300_IOIN);
+        tmc_version = ((tmc_version & TMC2300_VERSION_MASK) >> TMC2300_VERSION_SHIFT);
         if (!(tmc_version >= 0x40))
         {
             Utils::log_debug("Error: TMC version");
             _init_routine_success &= false;
         }
 
+        printf("TMC version: 0x%02x\n", tmc_version);
         Utils::log_debug("TMC version: ");
         Utils::log_debug(std::to_string(tmc_version));
 
@@ -78,7 +105,7 @@ bool TMCControl::init() {
 void TMCControl::deinit()
 {
     // Reset the tmc2300 to its default values and state
-    tmc2300_reset(tmc2300);
+    tmc2300_reset(&tmc2300);
 
     // De-initialise the uart peripheral
     uart_deinit(UART_ID);
@@ -100,36 +127,52 @@ void TMCControl::deinit()
 
 void TMCControl::processJob()
 {
-    tmc2300_periodicJob(tmc2300, channel);
+    tmc2300_periodicJob(&tmc2300, channel);
 }
 
 extern "C"
 {
     void tmc2300_readWriteArray(uint8_t channel, uint8_t* data, size_t writeLength, size_t readLength)
     {
+        printf("rw array - channel: %d - read: %d - write: %d\n", channel, readLength, writeLength);
         // TMCSerial.write(data, writeLength);
         uart_write_blocking(UART_ID, data, writeLength);
+        printf("RWA - 1\n");
 
         // Wait for the written data to be received and discard it.
         // This is the echo of our tx caused by using a single wire UART.
         // while (TMCSerial.available() < writeLength)
         //     ;
         // TMCSerial.readBytes(data, writeLength);
-        uart_read_blocking(UART_ID, data, writeLength);
+        // uart_read_blocking(UART_ID, data, writeLength);
+        printf("RWA - 2\n");
 
         // If no reply data is expected abort here
         if (readLength == 0) return;
+        printf("RWA - 3\n");
 
         // Wait for the reply data to be received
         // TODO: Potentially remove this?
-        while (uart_is_readable(UART_ID) < readLength)
-        {
-            ;
-        }
+        // while (uart_is_readable(UART_ID) < readLength)
+        // {
+        //     ;
+        // }
 
         // Read the reply data
         // TMCSerial.readBytes(data, readLength);
-        uart_read_blocking(UART_ID, data, readLength);
+        for (int i = 0; i < writeLength; i++)
+        {
+            uart_read_blocking(UART_ID, &data[i], 1);
+            printf("read - %d - 0x%02x\n", i, data[i]);
+        }
+        printf("\n\n");
+        for (int i = 0; i < readLength; i++)
+        {
+            uart_read_blocking(UART_ID, &data[i], 1);
+            printf("read - %d - 0x%02x\n", i, data[i]);
+        }
+        // uart_read_blocking(UART_ID, data, readLength);
+        printf("RWA - 4\n");
 
     }
 
