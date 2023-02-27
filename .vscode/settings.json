@@ -19,5 +19,7 @@
     "type_traits": "c",
     "utility": "c",
     "tmc2300.h": "c"
-  }
+  },
+  "cortex-debug.openocdPath.osx": "${workspaceRoot}/openocd/src/openocd",
+  "cortex-debug.gdbPath": "arm-none-eabi-gdb",
 }
