@@ -199,9 +199,16 @@ int main() {
     // Log app info
     Utils::log_device_info();
 
+    // Configure the Pico's on-board LED
+    gpio_init(PICO_DEFAULT_LED_PIN);
+    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+
     unsigned long c = 0;
+    uint8_t pico_led_state = 0;
     while (true)
     {
+        pico_led_state = !pico_led_state;
+        gpio_put(PICO_DEFAULT_LED_PIN, pico_led_state);
         Utils::log_debug("ticky ticker: ");
         Utils::log_debug(std::to_string(c));
         tmc_control.processJob(c);
@@ -217,7 +224,7 @@ int main() {
         {
             (void)tmc_control.testFunction();
         }
-        sleep_ms(200);
+        sleep_ms(400);
         c++;
     }
 
