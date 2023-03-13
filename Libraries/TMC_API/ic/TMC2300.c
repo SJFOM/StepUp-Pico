@@ -68,6 +68,11 @@ int32_t tmc2300_readInt(TMC2300TypeDef* tmc2300, uint8_t address)
 
     printf("rI - 3\n");
 
+    for (unsigned i = 0; i < 8; i++)
+    {
+        printf("%d - 0x%02x\n", i, data[i]);
+    }
+
     // Byte 0: Sync nibble correct?
     if (data[0] != 0x05)
     {

@@ -29,6 +29,8 @@ extern "C"
 #define PIN_TMC_ENABLE 14U
 #define PIN_TMC_STANDBY 15U
 
+#define TMC_UART_SLAVE_ADDRESS (3U)
+
 class TMCControl: ControlInterface
 {
 public:
