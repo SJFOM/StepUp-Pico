@@ -212,19 +212,19 @@ int main() {
         Utils::log_debug("ticky ticker: ");
         Utils::log_debug(std::to_string(c));
         tmc_control.processJob(c);
-        if (c == 20)
-        {
-            tmc_control.enableDriver(true);
-        }
-        if (c == 40)
+        // if (c == 20)
+        // {
+            // tmc_control.enableDriver(true);
+        // }
+        if (c >= 20)
         {
             (void)tmc_control.getChipID();
         }
-        if (c == 60)
-        {
-            (void)tmc_control.testFunction();
-        }
-        sleep_ms(400);
+        // if (c == 60)
+        // {
+            // (void)tmc_control.testFunction();
+        // }
+        sleep_ms(200);
         c++;
     }
 

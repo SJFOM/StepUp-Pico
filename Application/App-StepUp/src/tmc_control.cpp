@@ -15,7 +15,6 @@
 static TMC2300TypeDef tmc2300;
 static ConfigurationTypeDef tmc2300_config;
 uint8_t channel = 0;
-uint8_t slave_address = 3;
 volatile bool callback_complete = false;
 
 void callback(TMC2300TypeDef* tmc2300, ConfigState cfg_state)
@@ -76,7 +75,7 @@ bool TMCControl::init() {
         // Configure TMC2300 IC and default register states
         tmc2300_init(&tmc2300, channel, &tmc2300_config, tmc2300_defaultRegisterResetState);
 
-        tmc2300_setSlaveAddress(&tmc2300, slave_address);
+        tmc2300_setSlaveAddress(&tmc2300, TMC_UART_SLAVE_ADDRESS);
 
         tmc2300_setCallback(&tmc2300, callback);
 
@@ -135,6 +134,7 @@ uint8_t TMCControl::getChipID()
 {
     // Check we have established a connection with the TMC2300 by reading its serial number
     int32_t tmc_version = tmc2300_readInt(&tmc2300, TMC2300_IOIN);
+    printf("tmc_version: 0x%4x\n", tmc_version);
     tmc_version = ((tmc_version & TMC2300_VERSION_MASK) >> TMC2300_VERSION_SHIFT);
     if (!(tmc_version >= 0x40))
     {
@@ -192,6 +192,7 @@ void TMCControl::processJob(uint32_t tick_count)
 
 extern "C" void tmc2300_readWriteArray(uint8_t channel, uint8_t * data, size_t writeLength, size_t readLength)
 {
+    uint8_t tmp_buf[20] = { 0 };
     printf("rw array - channel: %d - read: %d - write: %d\n", channel, readLength, writeLength);
     // TMCSerial.write(data, writeLength);
     uart_write_blocking(UART_ID, data, writeLength);
@@ -218,17 +219,19 @@ extern "C" void tmc2300_readWriteArray(uint8_t channel, uint8_t * data, size_t w
 
     // Read the reply data
     // TMCSerial.readBytes(data, readLength);
-    for (int i = 0; i < writeLength; i++)
+    // for (int i = 0; i < writeLength; i++)
+    // {
+    //     uart_read_blocking(UART_ID, &data[i], 1);
+    //     printf("read - %d - 0x%02x\n", i, data[i]);
+    // }
+    // printf("\n\n");
+    uart_read_blocking(UART_ID, tmp_buf, readLength + writeLength);
+    for (int i = 0; i < readLength + writeLength; i++)
     {
-        uart_read_blocking(UART_ID, &data[i], 1);
-        printf("read - %d - 0x%02x\n", i, data[i]);
+        // uart_read_blocking(UART_ID, &tmp_buf[i], 1);
+        printf("read - %d - 0x%02x\n", i, tmp_buf[i]);
     }
-    printf("\n\n");
-    for (int i = 0; i < readLength; i++)
-    {
-        uart_read_blocking(UART_ID, &data[i], 1);
-        printf("read - %d - 0x%02x\n", i, data[i]);
-    }
+    memcpy(data, tmp_buf, readLength);
     // uart_read_blocking(UART_ID, data, readLength);
     printf("RWA - 4\n");
 
