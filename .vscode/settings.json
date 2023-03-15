@@ -70,5 +70,5 @@
     "vector": "cpp"
   },
   "cortex-debug.openocdPath.osx": "${workspaceRoot}/openocd/src/openocd",
-  "cortex-debug.gdbPath": "arm-none-eabi-gdb",
+  "cortex-debug.gdbPath": "arm-none-eabi-gdb"
 }

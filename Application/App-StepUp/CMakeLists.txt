@@ -29,7 +29,7 @@ target_link_libraries(${APP_1_NAME} LINK_PUBLIC
     FreeRTOS)
 
 # Enable/disable STDIO via USB and UART
-pico_enable_stdio_usb(${APP_1_NAME} 1)
+pico_enable_stdio_usb(${APP_1_NAME} 0)
 pico_enable_stdio_uart(${APP_1_NAME} 1)
 
 # Enable extra build products

@@ -173,8 +173,8 @@ void tmc_process_job(void* unused_arg) {
 int main() {
     // Enable STDIO
 #ifdef DEBUG
-    stdio_usb_init();
-    // stdio_init_all();
+    // stdio_usb_init();
+    stdio_init_all();
     // Utils::log_device_info();
     sleep_ms(2000);
 #endif
