@@ -45,7 +45,7 @@ update_build_number() {
 
 # RUNTIME START
 for arg in "$@"; do
-    check_arg=${arg,,}
+    # check_arg=${arg,,} // TODO: Put back in place, Sam
     if [[ "$check_arg" = "--help" || "$check_arg" = "-h" ]]; then
         show_help
         exit 0

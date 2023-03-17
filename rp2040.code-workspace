@@ -56,7 +56,8 @@
       "streambuf": "cpp",
       "cinttypes": "cpp",
       "typeinfo": "cpp",
-      "cstdbool": "cpp"
+      "cstdbool": "cpp",
+      "time.h": "c"
     }
   }
 }

@@ -1,2 +1,4 @@
 *.xcworkspace/xcuserdata/*.xcuserdatad
+utilities/bin
+pico-sdk.diff
 build
