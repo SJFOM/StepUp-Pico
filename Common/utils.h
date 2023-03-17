@@ -20,7 +20,7 @@
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
-// Pico SDK
+ // Pico SDK
 #include "pico/stdlib.h"
 #include "pico/binary_info.h"
 
@@ -40,7 +40,9 @@ namespace Utils {
     string          uppercase(string base);
     uint32_t        bcd(uint32_t base);
     void            log_device_info(void);
-    void            log_debug(const string msg);
+    void            log_info(const string msg);
+    void            log_warn(const string msg);
+    void            log_error(const string msg);
 }
 
 

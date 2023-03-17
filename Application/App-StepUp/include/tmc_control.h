@@ -18,7 +18,7 @@ extern "C"
 
 // printf can default to using uart0 so use uart1 instead
 #define UART_ID uart1
-#define BAUD_RATE ((uint)9600)
+#define BAUD_RATE ((uint)115200)
 
 // We are using pins 0 and 1, but see the GPIO function select table in the
 // datasheet for information on which other pins can be used.
@@ -27,9 +27,11 @@ extern "C"
 
 // Motor control pins
 #define PIN_TMC_ENABLE 14U
-#define PIN_TMC_STANDBY 15U
+#define PIN_TMC_N_STANDBY 15U
 
 #define TMC_UART_SLAVE_ADDRESS (3U)
+
+#define TMC_UART_CHANNEL (0) // Not as relevant for single IC use case
 
 class TMCControl: ControlInterface
 {

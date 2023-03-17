@@ -83,6 +83,6 @@ target_include_directories(FreeRTOS PUBLIC
 add_subdirectory(${APP_1_SRC_DIRECTORY}) # App-StepUp
 
 # add_subdirectory(${APP_2_SRC_DIRECTORY}) # App-Scheduling
-# add_subdirectory(${APP_3_SRC_DIRECTORY}) # App-IRQs 
+# add_subdirectory(${APP_3_SRC_DIRECTORY}) # App-IRQs
 # add_subdirectory(${APP_4_SRC_DIRECTORY}) # App-Timers
-add_subdirectory(${APP_5_SRC_DIRECTORY}) # App-Basic
+# add_subdirectory(${APP_5_SRC_DIRECTORY}) # App-Basic
