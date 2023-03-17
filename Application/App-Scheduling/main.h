@@ -10,7 +10,7 @@
 #define MAIN_H
 
 
-// FreeRTOS
+ // FreeRTOS
 #include <FreeRTOS.h>
 #include <task.h>
 #include <queue.h>
@@ -29,9 +29,6 @@
 #include "pico/binary_info.h"
 #include "hardware/i2c.h"
 // App
-#include "../Common/i2c_utils.h"
-#include "../Common/ht16k33.h"
-#include "../Common/mcp9808.h"
 #include "../Common/utils.h"
 
 
@@ -40,29 +37,24 @@ extern "C" {
 #endif
 
 
-/**
- * CONSTANTS
- */
+    /**
+     * CONSTANTS
+     */
 #define         RED_LED_PIN           20
 
 
-/**
- * PROTOTYPES
- */
-void setup();
-void setup_led();
-void setup_i2c();
+     /**
+      * PROTOTYPES
+      */
+    void setup();
+    void setup_led();
 
-void led_on();
-void led_off();
-void led_set(bool state = true);
+    void led_on();
+    void led_off();
+    void led_set(bool state = true);
 
-void led_task_pico(void* unused_arg);
-void led_task_gpio(void* unused_arg);
-void sensor_read_task(void* unused_arg);
-
-void display_int(int number);
-void display_tmp(double value);
+    void led_task_pico(void* unused_arg);
+    void led_task_gpio(void* unused_arg);
 
 
 #ifdef __cplusplus
