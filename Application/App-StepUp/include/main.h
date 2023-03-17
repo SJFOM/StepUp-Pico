@@ -54,7 +54,7 @@ extern "C"
 
   void led_task_pico(void* unused_arg);
   void led_task_gpio(void* unused_arg);
-  void log_debug(const char* msg);
+  void log_info(const char* msg);
   void log_device_info(void);
 
 #ifdef __cplusplus

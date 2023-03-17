@@ -39,14 +39,34 @@ TMCControl tmc_control;
   */
 void setup() {
     setup_led();
+    setup_tmc2300();
+}
 
+/**
+ * @brief Set the up TMC2300 IC
+ *
+ * @details Configure UART, power on IC, reset register state to defaults, verify silicon version
+ *
+ */
+void setup_tmc2300()
+{
     // If this fails on a call to writing to TMC then it will be blocking!
     if (false == tmc_control.init())
     {
-        Utils::log_debug("ERROR:TMC failed to initialise!");
+        Utils::log_info("ERROR:TMC failed to initialise!");
+    }
+
+    uint8_t tmc_version = tmc_control.getChipID();
+
+    if (tmc_version == TMC2300_VERSION_COMPATIBLE)
+    {
+        Utils::log_info("TMC2300 silicon version: 0x40");
+    }
+    else
+    {
+        Utils::log_error("TMC version: INVALID!");
     }
 }
-
 
 /*
  * LED FUNCTIONS
@@ -95,7 +115,7 @@ void led_task_pico(void* unused_arg) {
     while (true) {
         // Turn Pico LED on an add the LED state
         // to the FreeRTOS xQUEUE
-        // Utils::log_debug("PICO LED FLASH");
+        // Utils::log_info("PICO LED FLASH");
         pico_led_state = 1;
         gpio_put(PICO_DEFAULT_LED_PIN, pico_led_state);
         xQueueSendToBack(queue, &pico_led_state, 0);
@@ -130,7 +150,7 @@ void led_task_gpio(void* unused_arg) {
             // (NOT the sent value)
             if (passed_value_buffer)
             {
-                // Utils::log_debug("GPIO LED FLASH");
+                // Utils::log_info("GPIO LED FLASH");
             }
             gpio_put(RED_LED_PIN, passed_value_buffer == 1 ? 0 : 1);
         }
@@ -151,7 +171,7 @@ void tmc_process_job(void* unused_arg) {
     while (true) {
         // Turn Pico LED on an add the LED state
         // to the FreeRTOS xQUEUE
-        Utils::log_debug("TMC PROCESS JOB");
+        Utils::log_info("TMC PROCESS JOB");
         pico_led_state = 1;
         tmc_control.processJob(xTaskGetTickCount());
         gpio_put(PICO_DEFAULT_LED_PIN, pico_led_state);
@@ -175,64 +195,33 @@ int main() {
 #ifdef DEBUG
     // stdio_usb_init();
     stdio_init_all();
-    // Utils::log_device_info();
     sleep_ms(2000);
+    // Log app info
+    Utils::log_device_info();
 #endif
 
-    Utils::log_debug("Setting up peripherals...");
+    Utils::log_info("Setting up peripherals...");
     setup();
-    Utils::log_debug("OK!");
+    Utils::log_info("Setting up peripherals - OK!");
 
     // Set up two tasks
     // FROM 1.0.1 Store handles referencing the tasks; get return values
     // NOTE Arg 3 is the stack depth -- in words, not bytes
     // BaseType_t pico_status = xTaskCreate(led_task_pico, "PICO_LED_TASK", 128,
         // NULL, 1, &pico_task_handle);
-    // BaseType_t gpio_status = xTaskCreate(led_task_gpio, "GPIO_LED_TASK", 128,
-    //     NULL, 1, &gpio_task_handle);
-    // BaseType_t tmc_status = xTaskCreate(tmc_process_job, "TMC_JOB_TASK", 128,
-    //     NULL, 1, &tmc_task_handle);
+    BaseType_t gpio_status = xTaskCreate(led_task_gpio, "GPIO_LED_TASK", 128,
+        NULL, 1, &gpio_task_handle);
+    BaseType_t tmc_status = xTaskCreate(tmc_process_job, "TMC_JOB_TASK", 128,
+        NULL, 1, &tmc_task_handle);
 
     // Set up the event queue
-    // queue = xQueueCreate(4, sizeof(uint8_t));
-
-    // Log app info
-    Utils::log_device_info();
-
-    // Configure the Pico's on-board LED
-    gpio_init(PICO_DEFAULT_LED_PIN);
-    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
-
-    unsigned long c = 0;
-    uint8_t pico_led_state = 0;
-    while (true)
-    {
-        pico_led_state = !pico_led_state;
-        gpio_put(PICO_DEFAULT_LED_PIN, pico_led_state);
-        Utils::log_debug("ticky ticker: ");
-        Utils::log_debug(std::to_string(c));
-        tmc_control.processJob(c);
-        // if (c == 20)
-        // {
-            // tmc_control.enableDriver(true);
-        // }
-        if (c >= 20)
-        {
-            (void)tmc_control.getChipID();
-        }
-        // if (c == 60)
-        // {
-            // (void)tmc_control.testFunction();
-        // }
-        sleep_ms(200);
-        c++;
-    }
+    queue = xQueueCreate(4, sizeof(uint8_t));
 
     // Start the FreeRTOS scheduler
     // FROM 1.0.1: Only proceed with valid tasks
-    // if (gpio_status == pdPASS && tmc_status == pdPASS) {
-    //     vTaskStartScheduler();
-    // }
+    if (gpio_status == pdPASS && tmc_status == pdPASS) {
+        vTaskStartScheduler();
+    }
 
     // We should never get here, but just in case...
     while (true) {
