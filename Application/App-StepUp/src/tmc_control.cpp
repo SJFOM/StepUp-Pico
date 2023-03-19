@@ -9,7 +9,7 @@
  *
  */
 
-#include "../include/tmc_control.h"
+#include "../include/tmc_control.hpp"
 
 
 static TMC2300TypeDef tmc2300;
