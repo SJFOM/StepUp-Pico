@@ -2,3 +2,5 @@
 utilities/bin
 pico-sdk.diff
 build
+
+bazel-*
