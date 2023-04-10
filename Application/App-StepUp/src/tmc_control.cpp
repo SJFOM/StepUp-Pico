@@ -28,8 +28,17 @@ void callback(TMC2300TypeDef *tmc2300, ConfigState cfg_state)
         // Configuration reset completed
         // Change hardware preset registers here
 
+        // m_ihold_irun.ihold = 1;
+        // m_ihold_irun.irun = 4;
+        // m_ihold_irun.iholddelay = 2;
+
+        // // Lower the default run and standstill currents
+        // tmc2300_writeInt(tmc2300, m_ihold_irun.address, m_ihold_irun.sr);
+
+        // TODO: Update register values also to reflect state
         // Lower the default run and standstill currents
         tmc2300_writeInt(tmc2300, TMC2300_IHOLD_IRUN, 0x00010402);
+
     }
     else
     {
@@ -128,6 +137,111 @@ void TMCControl::deinit()
     uart_deinit(UART_ID);
 
     m_init_success = false;
+}
+
+void TMCControl::defaultConfiguration()
+{
+    // NOTE: Where possible, default Datasheet values have been applied to the registers below.
+
+    /* Register: GCONF 
+    * What: Global configuration flags
+    * User: Set these to determine high-level system function
+    */
+    m_gconf.sr = tmc2300_readInt(&tmc2300, m_gconf.address);
+    m_gconf.extcap = 1; // external capacitor available
+    m_gconf.shaft = 0; // don't invert motor direction
+    m_gconf.diag_index = 0; // DIAG output normal
+    m_gconf.diag_step = 0;  // DIAG output normal
+    m_gconf.multistep_filt = 1; // pulse generator optimized for higher speeds
+    m_gconf.test_mode = 0; // Normal operation
+    tmc2300_writeInt(&tmc2300, m_gconf.address, m_gconf.sr);
+
+    /* Register: GSTAT 
+    * What: Error flags reflection of IC's operating status (0 = OK, 1 = ERROR)
+    * Use: Read values to understand state, write to clear error flags
+    */
+    m_gstat.reset = 0; // Indicates the IC has been reset
+    m_gstat.drv_err = 0; // Indicates the driver has been shut down due to error, read DRV_STATUS for reason
+    m_gstat.u3v5 = 0; // Supply voltage sinks below 3.5V
+    m_gstat.sr = tmc2300_readInt(&tmc2300, m_gstat.address);
+
+    /* Register: IOIN_t
+    * What: Read state of available TMC2300 input pins
+    * Use: Read values to understand operating state of motor movements
+    */
+    m_ioin.en = 0; // EN pin (0=disable, 1=enable)
+    m_ioin.nstdby = 0; // NSTBY pin (0=standby, 1=enable)
+    m_ioin.ad0 = 0; // AD0 pin (UART address LSB)
+    m_ioin.ad1 = 0; // AD1 pin (UART address MSB)
+    m_ioin.diag = 0; // Diag pin
+    m_ioin.stepper = 0; // STEPPER pin (1: UART interface ON)
+    m_ioin.pdn_uart = 0; // PDN_UART pin
+    m_ioin.mode = 0; // MODE pin (0: UART controller operation)
+    m_ioin.step = 0; // STEP pin
+    m_ioin.dir = 0; // DIR pin 
+    m_ioin.comp_a1a2 = 0; // COMP_A1A2 pin: 1: during LS passive braking: A1 voltage > A2 voltage
+    m_ioin.comp_b1b2 = 0; // COMP_B1B2 pinL 1: during LS passive braking: B1 voltage > B2 voltage
+    m_ioin.sr = tmc2300_readInt(&tmc2300, m_ioin.address);
+
+    /* Register: IHOLD_IRUN
+    * What: Configure run and hold currents
+    * Use: Control motor power consumption and ability to drive loads
+    */
+    m_ihold_irun.sr = tmc2300_readInt(&tmc2300, m_ihold_irun.address);
+    m_ihold_irun.ihold = 0; // Standstill current
+    m_ihold_irun.irun = 2; // Motor run current
+    m_ihold_irun.iholddelay = 2; // Number of clock cycles for motor power down after standstill detected
+    tmc2300_writeInt(&tmc2300, m_ihold_irun.address, m_ihold_irun.sr);
+
+
+    /* Register: VACTUAL
+    * What: Motor velocity value in +-(2^23)-1 [μsteps / t]
+    * Use: Set to 0 for STEP/DIR operation, otherwise provide value for UART control to set motor velocity.
+    */
+    m_vactual.sr = 10000U;
+    tmc2300_writeInt(&tmc2300, m_vactual.address, m_vactual.sr);
+
+    /* Register: CHOPCONF
+    * What: Generic chopper algorithm configuration 
+    * Use: Configuring output stage power management and step resolution parameters
+    */
+    m_chopconf.sr = tmc2300_readInt(&tmc2300, m_chopconf.address);
+    m_chopconf.enabledrv = 1; // Driver enable (0=disable, 1=enable)
+    m_chopconf.tbl = 2; // Comparator blank time in clock-counts
+    m_chopconf.mres = 3; // Microstep setting (0=256 μsteps)
+    m_chopconf.intpol = 1; // Interpolation to 256 μsteps
+    m_chopconf.dedge = 0; // Enable double edge step pulses
+    m_chopconf.diss2g = 0; // Short to GND protection (0=enable, 1=disable)
+    m_chopconf.diss2vs = 0; // Low side short protection (0=enable, 1=disable)
+    tmc2300_writeInt(&tmc2300, m_chopconf.address, m_chopconf.sr);
+
+    /* Register: DRV_STATUS
+    * What: Driver status flags and current level read back 
+    * Use: Read electrical and temperature diagnostics of TMC2300 IC 
+    */
+    m_drv_status.sr = tmc2300_readInt(&tmc2300, m_drv_status.address);
+    
+    /* Register: DRV_STATUS
+    * What: Driver status flags and current level read back 
+    * Use: Read electrical and temperature diagnostics of TMC2300 IC 
+    */
+    m_pwmconf.sr = tmc2300_readInt(&tmc2300, m_pwmconf.address);
+    m_pwmconf.pwm_ofs = 36; // User defined PWM amplitude offset
+    m_pwmconf.pwm_grad = 16; // Velocity dependent gradient for PWM amplitude
+    m_pwmconf.pwm_freq = 0; // PWM frequency selection
+    m_pwmconf.pwm_autoscale = 0; // PWM automatic amplitude scaling
+    m_pwmconf.pwm_autograd = 0; // PWM automatic gradient adaptation
+    m_pwmconf.freewheel = 1; // Standstill option when motor current setting is 0
+    m_pwmconf.pwm_reg = 4; // Regulation loop gradient
+    m_pwmconf.pwm_lim = 12; // PWM automatic scale amplitude limit when switching on
+    tmc2300_writeInt(&tmc2300, m_pwmconf.address, m_pwmconf.sr);
+}
+
+
+void TMCControl::move(uint32_t velocity)
+{
+    m_vactual.sr = velocity;
+    tmc2300_writeInt(&tmc2300, m_vactual.address, m_vactual.sr);
 }
 
 
@@ -236,7 +350,3 @@ void TMCControl::enableDriver(bool enable_driver)
     sleep_ms(10);
 }
 
-void TMCControl::testFunction()
-{
-    tmc2300_reset(&tmc2300);
-}

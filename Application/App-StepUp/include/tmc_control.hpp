@@ -51,6 +51,8 @@ struct GCONF_t
                 multistep_filt : 1, test_mode : 1;
         };
     };
+    // Default constructor holds reset values  
+    GCONF_t() : extcap(0), multistep_filt(1){}
 };
 
 struct GSTAT_t
@@ -134,7 +136,7 @@ struct IHOLD_IRUN_t
         uint32_t sr : 20;
         struct
         {
-            uint8_t ihold : 5, : 3, irun : 5, : 3, iholddelay : 4;
+            uint8_t iholddelay : 5, : 3, irun : 5, : 3, ihold : 5;
         };
     };
 
@@ -268,7 +270,7 @@ struct CHOPCONF_t
     /* CHOPCONF: Chopper Configuration */
     union
     {
-        uint16_t sr;
+        uint32_t sr;
         struct
         {
             bool enabledrv : 1;
@@ -277,6 +279,8 @@ struct CHOPCONF_t
             bool intpol : 1, dedge : 1, diss2g : 1, diss2vs : 1;
         };
     };
+    // Default constructor holds reset value
+    CHOPCONF_t() : sr(0x13008001) {}
 };
 
 struct DRV_STATUS_t
@@ -316,6 +320,8 @@ struct PWMCONF_t
             uint8_t freewheel : 2, :2, pwm_reg:4, pwm_lim : 4;
         };
     };
+    // Default constructor holds reset value
+    PWMCONF_t() : sr(0xC40D1024) {}
 };
 
 struct PWM_SCALE_t
@@ -361,14 +367,24 @@ public:
     ~TMCControl();
     bool init();
     void deinit();
+    void defaultConfiguration();
     void processJob(uint32_t tick_count);
     void enableUartPins(bool enablePins);
     void setStandby(bool enableStandby);
     void enableDriver(bool enableDriver);
+    void move(uint32_t velocity);
     uint8_t getChipID();
-    void testFunction();
 
 protected:
+    GCONF_t m_gconf;
+    GSTAT_t m_gstat;
+    IOIN_t m_ioin;
+    IHOLD_IRUN_t m_ihold_irun;
+    VACTUAL_t m_vactual;
+    CHOPCONF_t m_chopconf;
+    DRV_STATUS_t m_drv_status;
+    PWMCONF_t m_pwmconf;
+
 private:
     bool m_init_success, m_uart_pins_enabled;
 };
