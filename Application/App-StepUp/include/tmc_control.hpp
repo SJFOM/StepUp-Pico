@@ -94,7 +94,7 @@ struct SLAVECONF_t
             uint8_t send_delay_bit_time : 4;
         };
     };
-}
+};
 
 struct IOIN_t
 {
@@ -282,7 +282,7 @@ struct CHOPCONF_t
 struct DRV_STATUS_t
 {
     // READ only register
-    constexpr static uint8_t addr ess = TMC2300_DRVSTATUS;
+    constexpr static uint8_t address = TMC2300_DRVSTATUS;
 
     /* DRV_STATUS Driver status flags and current level read back */
     union
@@ -370,7 +370,7 @@ public:
 
 protected:
 private:
-    bool m_init_success, m_uart_pins_enabled, m_driver_can_be_enabled;
+    bool m_init_success, m_uart_pins_enabled;
 };
 
 #endif  // TMC_CONTROL_H_
