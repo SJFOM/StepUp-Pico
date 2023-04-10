@@ -2,7 +2,7 @@
   "prettier.configPath": "",
   "prettier.enable": false,
   "editor.defaultFormatter": null,
-  "C_Cpp.formatting": "vcFormat",
+  "C_Cpp.formatting": "clangFormat",
   "git.autoRepositoryDetection": "openEditors",
   "git.ignoredRepositories": [
     "pico-sdk",
@@ -70,5 +70,7 @@
     "vector": "cpp"
   },
   "cortex-debug.openocdPath.osx": "${workspaceRoot}/openocd/src/openocd",
-  "cortex-debug.gdbPath": "arm-none-eabi-gdb"
+  "cortex-debug.gdbPath": "arm-none-eabi-gdb",
+  "C_Cpp.clang_format_fallbackStyle": "GNU",
+  "C_Cpp.clang_format_style": "file"
 }
