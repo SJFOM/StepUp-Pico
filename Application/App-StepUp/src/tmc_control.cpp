@@ -11,19 +11,20 @@
 
 #include "../include/tmc_control.hpp"
 
-
 static TMC2300TypeDef tmc2300;
 static ConfigurationTypeDef tmc2300_config;
 
 static volatile bool is_callback_complete = false;
 
+static bool driver_can_be_enabled = false;
 
-void callback(TMC2300TypeDef* tmc2300, ConfigState cfg_state)
+void callback(TMC2300TypeDef *tmc2300, ConfigState cfg_state)
 {
     UNUSED(tmc2300);
 
     if (cfg_state == CONFIG_RESET)
     {
+        driver_can_be_enabled = false;
         // Configuration reset completed
         // Change hardware preset registers here
 
@@ -35,21 +36,25 @@ void callback(TMC2300TypeDef* tmc2300, ConfigState cfg_state)
         // Configuration restore complete
         is_callback_complete = true;
         // The driver may only be enabled once the configuration is done
-        // enableDriver(DRIVER_USE_GLOBAL_ENABLE);
+        driver_can_be_enabled = true;
     }
 }
 
-TMCControl::TMCControl() {
+TMCControl::TMCControl()
+{
     m_init_success = false;
     m_uart_pins_enabled = false;
+    driver_can_be_enabled = false;
 }
-TMCControl::~TMCControl() {
+TMCControl::~TMCControl()
+{
     deinit();
 }
 
-bool TMCControl::init() {
-
-    // Avoid multiple calls to this method performing the same configuration steps
+bool TMCControl::init()
+{
+    // Avoid multiple calls to this method performing the same configuration
+    // steps
     if (false == m_init_success)
     {
         // Initially set as true
@@ -62,7 +67,6 @@ bool TMCControl::init() {
         gpio_init(PIN_TMC_N_STANDBY);
         gpio_set_dir(PIN_TMC_N_STANDBY, GPIO_OUT);
 
-
         // Initialize CRC calculation for TMC2300 UART datagrams
         if (!(tmc_fillCRC8Table(0x07, true, 0) == 1))
         {
@@ -71,19 +75,22 @@ bool TMCControl::init() {
         }
 
         // Configure TMC2300 IC and default register states
-        tmc2300_init(&tmc2300, TMC_UART_CHANNEL, &tmc2300_config, tmc2300_defaultRegisterResetState);
+        tmc2300_init(&tmc2300,
+                     TMC_UART_CHANNEL,
+                     &tmc2300_config,
+                     tmc2300_defaultRegisterResetState);
 
         tmc2300_setSlaveAddress(&tmc2300, TMC_UART_SLAVE_ADDRESS);
 
         tmc2300_setCallback(&tmc2300, callback);
 
-        // Set up our UART with the required speed.   
+        // Set up our UART with the required speed.
         enableUartPins(true);
         uint _baud = uart_init(UART_ID, BAUD_RATE);
         if (!(_baud >= BAUD_RATE))
         {
             Utils::log_warn("UART init");
-            Utils::log_warn((string)"Actual BAUD: " + std::to_string(_baud));
+            Utils::log_warn((string) "Actual BAUD: " + std::to_string(_baud));
             _init_routine_success &= false;
         }
 
@@ -94,7 +101,8 @@ bool TMCControl::init() {
         {
             if (callback_safe_count++ > 100)
             {
-                // Typical count is <10, we should have high conviction here that something is wrong.
+                // Typical count is <10, we should have high conviction here
+                // that something is wrong.
                 m_init_success = false;
                 break;
             }
@@ -122,11 +130,14 @@ void TMCControl::deinit()
     m_init_success = false;
 }
 
+
 uint8_t TMCControl::getChipID()
 {
-    // Check we have established a connection with the TMC2300 by reading its serial number
+    // Check we have established a connection with the TMC2300 by reading its
+    // serial number
     int32_t tmc_version = tmc2300_readInt(&tmc2300, TMC2300_IOIN);
-    tmc_version = ((tmc_version & TMC2300_VERSION_MASK) >> TMC2300_VERSION_SHIFT);
+    tmc_version =
+        ((tmc_version & TMC2300_VERSION_MASK) >> TMC2300_VERSION_SHIFT);
     return tmc_version;
 }
 
@@ -173,7 +184,10 @@ void TMCControl::processJob(uint32_t tick_count)
     tmc2300_periodicJob(&tmc2300, tick_count);
 }
 
-extern "C" void tmc2300_readWriteArray(uint8_t channel, uint8_t * data, size_t writeLength, size_t readLength)
+extern "C" void tmc2300_readWriteArray(uint8_t channel,
+                                       uint8_t *data,
+                                       size_t writeLength,
+                                       size_t readLength)
 {
     // Write data buffer
     uart_write_blocking(UART_ID, data, writeLength);
@@ -188,34 +202,35 @@ extern "C" void tmc2300_readWriteArray(uint8_t channel, uint8_t * data, size_t w
     uart_read_blocking(UART_ID, data, readLength);
 }
 
-extern "C" uint8_t tmc2300_CRC8(uint8_t * data, size_t length)
+extern "C" uint8_t tmc2300_CRC8(uint8_t *data, size_t length)
 {
-    // tmc_CRC8 is a generic library method so will need to be mapped 
+    // tmc_CRC8 is a generic library method so will need to be mapped
     // to the tmc2300_CRC8 extern method.
     return tmc_CRC8(data, length, 0);
 }
 
-void TMCControl::setStandby(bool enableStandby)
+void TMCControl::setStandby(bool enable_standby)
 {
     // En/disable the UART pins depending on standby state
-    enableUartPins(!enableStandby);
+    enableUartPins(!enable_standby);
 
-    if (enableStandby)
+    if (enable_standby)
     {
         // Just entered standby -> disable the driver
         enableDriver(false);
     }
 
     // Set the Standby pin state - after enable so we retain control over driver
-    gpio_put(PIN_TMC_N_STANDBY, enableStandby ? 0 : 1);
+    gpio_put(PIN_TMC_N_STANDBY, enable_standby ? 0 : 1);
 
     // Update the APIs internal standby state
-    tmc2300_setStandby(&tmc2300, enableStandby ? 1 : 0);
+    tmc2300_setStandby(&tmc2300, enable_standby ? 1 : 0);
 }
 
-void TMCControl::enableDriver(bool enableDriver)
+void TMCControl::enableDriver(bool enable_driver)
 {
-    gpio_put(PIN_TMC_ENABLE, enableDriver ? 1 : 0);
+    bool _enable_driver = (bool)(driver_can_be_enabled && enable_driver);
+    gpio_put(PIN_TMC_ENABLE, _enable_driver ? 1 : 0);
 
     // TODO: Check if necessary
     sleep_ms(10);
