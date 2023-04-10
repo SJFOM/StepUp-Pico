@@ -184,6 +184,10 @@ void tmc_process_job(void* unused_arg) {
         gpio_put(PICO_DEFAULT_LED_PIN, pico_led_state);
         xQueueSendToBack(queue, &pico_led_state, 0);
         vTaskDelay(tmc_job_delay);
+
+        // TODO: Add a state machine here, looping through init, configure and the
+        // various run options available - all the while, listening to messages 
+        // shared between threads to determine state
     }
 }
 
