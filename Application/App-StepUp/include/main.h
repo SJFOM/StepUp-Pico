@@ -29,7 +29,7 @@
 // App
 #include "../../../Common/utils.h"
 // Control includes
-#include "tmc_control.h"
+#include "tmc_control.hpp"
 
 #ifdef __cplusplus
 extern "C"
