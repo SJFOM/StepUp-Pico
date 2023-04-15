@@ -42,6 +42,7 @@ void callback(TMC2300TypeDef *tmc2300, ConfigState cfg_state)
     }
     else
     {
+        printf("TMC is ready for action!\n");
         // Configuration restore complete
         is_callback_complete = true;
         // The driver may only be enabled once the configuration is done
@@ -105,21 +106,6 @@ bool TMCControl::init()
 
         setStandby(false);
         enableDriver(false);
-        unsigned callback_safe_count = 0;
-        while (!is_callback_complete)
-        {
-            if (callback_safe_count++ > 100)
-            {
-                // Typical count is <10, we should have high conviction here
-                // that something is wrong.
-                m_init_success = false;
-                break;
-            }
-            // TODO: Potentially caught in this loop forever
-            tmc2300_periodicJob(&tmc2300, 0);
-            sleep_ms(10);
-        }
-        is_callback_complete = false;
 
         // Complete checks and store init routine success value
         m_init_success = _init_routine_success;
@@ -148,22 +134,26 @@ void TMCControl::defaultConfiguration()
     * User: Set these to determine high-level system function
     */
     m_gconf.sr = tmc2300_readInt(&tmc2300, m_gconf.address);
-    m_gconf.extcap = 1; // external capacitor available
-    m_gconf.shaft = 0; // don't invert motor direction
-    m_gconf.diag_index = 0; // DIAG output normal
-    m_gconf.diag_step = 0;  // DIAG output normal
-    m_gconf.multistep_filt = 1; // pulse generator optimized for higher speeds
-    m_gconf.test_mode = 0; // Normal operation
+    m_gconf.extcap = true; // external capacitor available
+    m_gconf.shaft = false; // don't invert motor direction
+    m_gconf.diag_index = false; // DIAG output normal
+    m_gconf.diag_step = false;  // DIAG output normal
+    m_gconf.multistep_filt = true; // pulse generator optimized for higher speeds
+    m_gconf.test_mode = false; // Normal operation
     tmc2300_writeInt(&tmc2300, m_gconf.address, m_gconf.sr);
 
     /* Register: GSTAT 
     * What: Error flags reflection of IC's operating status (0 = OK, 1 = ERROR)
     * Use: Read values to understand state, write to clear error flags
     */
-    m_gstat.reset = 0; // Indicates the IC has been reset
-    m_gstat.drv_err = 0; // Indicates the driver has been shut down due to error, read DRV_STATUS for reason
-    m_gstat.u3v5 = 0; // Supply voltage sinks below 3.5V
+    m_gstat.reset = false; // Indicates the IC has been reset
+    m_gstat.drv_err = false; // Indicates the driver has been shut down due to error, read DRV_STATUS for reason
+    m_gstat.u3v5 = false; // Supply voltage sinks below 3.5V
     m_gstat.sr = tmc2300_readInt(&tmc2300, m_gstat.address);
+    if(m_gstat.sr)
+    {
+        printf("TMC drive error detected!\n");
+    }
 
     /* Register: IOIN_t
     * What: Read state of available TMC2300 input pins
@@ -206,13 +196,13 @@ void TMCControl::defaultConfiguration()
     * Use: Configuring output stage power management and step resolution parameters
     */
     m_chopconf.sr = tmc2300_readInt(&tmc2300, m_chopconf.address);
-    m_chopconf.enabledrv = 1; // Driver enable (0=disable, 1=enable)
+    m_chopconf.enabledrv = true; // Driver enable (0=disable, 1=enable)
     m_chopconf.tbl = 2; // Comparator blank time in clock-counts
     m_chopconf.mres = 3; // Microstep setting (0=256 μsteps)
-    m_chopconf.intpol = 1; // Interpolation to 256 μsteps
-    m_chopconf.dedge = 0; // Enable double edge step pulses
-    m_chopconf.diss2g = 0; // Short to GND protection (0=enable, 1=disable)
-    m_chopconf.diss2vs = 0; // Low side short protection (0=enable, 1=disable)
+    m_chopconf.intpol = true; // Interpolation to 256 μsteps
+    m_chopconf.dedge = false; // Enable double edge step pulses
+    m_chopconf.diss2g = false; // Short to GND protection (0=enable, 1=disable)
+    m_chopconf.diss2vs = false; // Low side short protection (0=enable, 1=disable)
     tmc2300_writeInt(&tmc2300, m_chopconf.address, m_chopconf.sr);
 
     /* Register: DRV_STATUS
@@ -229,18 +219,37 @@ void TMCControl::defaultConfiguration()
     m_pwmconf.pwm_ofs = 36; // User defined PWM amplitude offset
     m_pwmconf.pwm_grad = 16; // Velocity dependent gradient for PWM amplitude
     m_pwmconf.pwm_freq = 0; // PWM frequency selection
-    m_pwmconf.pwm_autoscale = 0; // PWM automatic amplitude scaling
-    m_pwmconf.pwm_autograd = 0; // PWM automatic gradient adaptation
+    m_pwmconf.pwm_autoscale = true; // PWM automatic amplitude scaling
+    m_pwmconf.pwm_autograd = false; // PWM automatic gradient adaptation
     m_pwmconf.freewheel = 1; // Standstill option when motor current setting is 0
     m_pwmconf.pwm_reg = 4; // Regulation loop gradient
     m_pwmconf.pwm_lim = 12; // PWM automatic scale amplitude limit when switching on
     tmc2300_writeInt(&tmc2300, m_pwmconf.address, m_pwmconf.sr);
 }
 
+void TMCControl::setCurrent(uint8_t i_run, uint8_t i_hold)
+{
+    if(i_run > 31U)
+    {
+        printf("i_run value exceeded - limiting to 31\n");
+        i_run = 31U;
+    }   
+    if(i_hold > 31U)
+    {
+        printf("i_hold value exceeded - limiting to 31\n");
+        i_hold = 31U;
+    }   
+
+    m_ihold_irun.irun = i_run;
+    m_ihold_irun.ihold = i_hold;
+    tmc2300_writeInt(&tmc2300, m_ihold_irun.address, m_ihold_irun.sr);
+}
+
 
 void TMCControl::move(uint32_t velocity)
 {
     m_vactual.sr = velocity;
+    enableDriver(velocity > 0 ? true: false);
     tmc2300_writeInt(&tmc2300, m_vactual.address, m_vactual.sr);
 }
 
@@ -303,6 +312,11 @@ extern "C" void tmc2300_readWriteArray(uint8_t channel,
                                        size_t writeLength,
                                        size_t readLength)
 {
+    // This is needed to wait for the TMC2300 to be ready to receive and/or reply with data, 
+    // otherwise the Pico's UART peripheral has a hard time finding the data...
+    // FIXME: This can eventually become interrupt driven
+    sleep_ms(1);
+
     // Write data buffer
     uart_write_blocking(UART_ID, data, writeLength);
     // Read out echo'd data to a nullptr (don't care)
@@ -344,6 +358,8 @@ void TMCControl::setStandby(bool enable_standby)
 void TMCControl::enableDriver(bool enable_driver)
 {
     bool _enable_driver = (bool)(driver_can_be_enabled && enable_driver);
+
+    printf("enable driver: %d\n", _enable_driver);
     gpio_put(PIN_TMC_ENABLE, _enable_driver ? 1 : 0);
 
     // TODO: Check if necessary

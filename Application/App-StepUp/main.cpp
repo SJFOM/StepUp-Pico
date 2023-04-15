@@ -168,26 +168,47 @@ void tmc_process_job(void* unused_arg) {
     gpio_init(PICO_DEFAULT_LED_PIN);
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
 
+    printf("Set up default config\n");
+    tmc_control.defaultConfiguration();
+
+    unsigned long count = 0;
+
     while (true) {
         // Turn Pico LED on an add the LED state
         // to the FreeRTOS xQUEUE
-        Utils::log_info("TMC PROCESS JOB");
+        // Utils::log_info("TMC PROCESS JOB");
+        printf("count: %lu\n", count);
         pico_led_state = 1;
         tmc_control.processJob(xTaskGetTickCount());
         gpio_put(PICO_DEFAULT_LED_PIN, pico_led_state);
-        xQueueSendToBack(queue, &pico_led_state, 0);
+        // FIXME: This xQueue method will break code functionality :-(
+        // xQueueSendToBack(queue, &pico_led_state, 0);
         vTaskDelay(tmc_job_delay);
 
         // Turn Pico LED off an add the LED state
         // to the FreeRTOS xQUEUE
         pico_led_state = 0;
         gpio_put(PICO_DEFAULT_LED_PIN, pico_led_state);
-        xQueueSendToBack(queue, &pico_led_state, 0);
+        // xQueueSendToBack(queue, &pico_led_state, 0);
         vTaskDelay(tmc_job_delay);
 
         // TODO: Add a state machine here, looping through init, configure and the
         // various run options available - all the while, listening to messages 
         // shared between threads to determine state
+        count++;
+        if(count == 15)
+        {
+            tmc_control.setCurrent(5,0);
+            tmc_control.move(1000);
+        }
+        if(count == 30)
+        {
+            tmc_control.move(10000);
+        }
+        if(count == 50)
+        {
+            tmc_control.move(20000);
+        }
     }
 }
 

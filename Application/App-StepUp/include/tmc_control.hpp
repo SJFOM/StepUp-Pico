@@ -373,6 +373,7 @@ public:
     void setStandby(bool enableStandby);
     void enableDriver(bool enableDriver);
     void move(uint32_t velocity);
+    void setCurrent(uint8_t i_run, uint8_t i_hold);
     uint8_t getChipID();
 
 protected:
