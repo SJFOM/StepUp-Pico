@@ -30,6 +30,7 @@
 #include "../../../Common/utils.h"
 // Control includes
 #include "tmc_control.hpp"
+#include "joystick_control.hpp"
 
 #ifdef __cplusplus
 extern "C"
@@ -47,6 +48,7 @@ extern "C"
   void setup();
   void setup_led();
   void setup_tmc2300();
+  void setup_joystick();
 
   void led_on();
   void led_off();

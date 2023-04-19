@@ -6,11 +6,11 @@
 
 // Common
 #include "../../../Common/utils.h"
+#include "../../../Interfaces/ControlInterface.hpp"
 
 // TMC-API
 extern "C"
 {
-#include "../../../Interfaces/ControlInterface.hpp"
 #include "../../../Libraries/TMC_API/helpers/CRC.h"
 #include "../../../Libraries/TMC_API/helpers/Config.h"
 #include "../../../Libraries/TMC_API/ic/TMC2300.h"
@@ -360,7 +360,7 @@ struct PWM_AUTO_t
 /* Chopper Control Registers - END */
 /***********************************/
 
-class TMCControl : ControlInterface
+class TMCControl : public ControlInterface
 {
 public:
     TMCControl();
