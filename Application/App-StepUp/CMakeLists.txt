@@ -27,6 +27,7 @@ add_executable(${APP_1_NAME}
 # Link to built libraries
 target_link_libraries(${APP_1_NAME} LINK_PUBLIC
     pico_stdlib
+    hardware_adc
     FreeRTOS)
 
 # Enable/disable STDIO via USB and UART
