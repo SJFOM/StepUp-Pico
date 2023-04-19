@@ -29,6 +29,7 @@ TaskHandle_t tmc_task_handle = NULL;
 
 // Create class instances of control interfaces
 TMCControl tmc_control;
+JoystickControl joystick_control;
 
 /*
  * SETUP FUNCTIONS
@@ -40,6 +41,7 @@ TMCControl tmc_control;
 void setup() {
     setup_led();
     setup_tmc2300();
+    setup_joystick();
 }
 
 /**
@@ -65,6 +67,21 @@ void setup_tmc2300()
     else
     {
         Utils::log_error("TMC version: INVALID!");
+    }
+}
+
+/**
+ * @brief Set the up Josytick module
+ *
+ * @details // TODO: Fill in details
+ *
+ */
+void setup_joystick()
+{
+    // If this fails on a call to writing to TMC then it will be blocking!
+    if (false == joystick_control.init())
+    {
+        Utils::log_info("ERROR:Joystick failed to initialise!");
     }
 }
 
