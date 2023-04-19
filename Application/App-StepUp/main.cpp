@@ -81,6 +81,7 @@ void setup_joystick()
     // If this fails on a call to writing to TMC then it will be blocking!
     if (false == joystick_control.init())
     {
+        // This will be true if no joystick present OR the josytick is not centered
         Utils::log_info("ERROR:Joystick failed to initialise!");
     }
 }
