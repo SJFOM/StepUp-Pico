@@ -191,6 +191,8 @@ void tmc_process_job(void* unused_arg) {
 
     unsigned long count = 0;
 
+    // TODO: Setup better init routine
+
     while (true) {
         // Turn Pico LED on an add the LED state
         // to the FreeRTOS xQUEUE
@@ -217,15 +219,31 @@ void tmc_process_job(void* unused_arg) {
         if(count == 15)
         {
             tmc_control.setCurrent(5,0);
-            tmc_control.move(1000);
+            // tmc_control.move(1000);
         }
-        if(count == 30)
+        if(count > 15)
         {
-            tmc_control.move(10000);
-        }
-        if(count == 50)
-        {
-            tmc_control.move(20000);
+            joystick_control.processJob(xTaskGetTickCount());
+            uint32_t velocity = 0;
+            switch(joystick_control.getJoystickState())
+            {
+                case(JoystickState::JOYSTICK_STATE_IDLE):
+                    velocity = 0;
+                    break;
+                case(JoystickState::JOYSTICK_STATE_LOW):
+                    velocity = 1000;
+                    break;
+                case(JoystickState::JOYSTICK_STATE_MID):
+                    velocity = 5000;
+                    break;
+                case(JoystickState::JOYSTICK_STATE_HIGH):
+                    velocity = 10000;
+                    break;
+                default:
+                    velocity = 0;
+            }
+
+            tmc_control.move(velocity);
         }
     }
 }

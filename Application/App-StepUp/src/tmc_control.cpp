@@ -71,11 +71,11 @@ bool TMCControl::init()
         bool _init_routine_success = true;
 
         // Generic I/O setup
-        gpio_init(PIN_TMC_ENABLE);
-        gpio_set_dir(PIN_TMC_ENABLE, GPIO_OUT);
+        gpio_init(TMC_PIN_ENABLE);
+        gpio_set_dir(TMC_PIN_ENABLE, GPIO_OUT);
 
-        gpio_init(PIN_TMC_N_STANDBY);
-        gpio_set_dir(PIN_TMC_N_STANDBY, GPIO_OUT);
+        gpio_init(TMC_PIN_N_STANDBY);
+        gpio_set_dir(TMC_PIN_N_STANDBY, GPIO_OUT);
 
         // Initialize CRC calculation for TMC2300 UART datagrams
         if (!(tmc_fillCRC8Table(0x07, true, 0) == 1))
@@ -96,8 +96,8 @@ bool TMCControl::init()
 
         // Set up our UART with the required speed.
         enableUartPins(true);
-        uint _baud = uart_init(UART_ID, BAUD_RATE);
-        if (!(_baud >= BAUD_RATE))
+        uint _baud = uart_init(TMC_UART_ID, TMC_BAUD_RATE);
+        if (!(_baud >= TMC_BAUD_RATE))
         {
             Utils::log_warn("UART init");
             Utils::log_warn((string) "Actual BAUD: " + std::to_string(_baud));
@@ -120,7 +120,7 @@ void TMCControl::deinit()
     tmc2300_reset(&tmc2300);
 
     // De-initialise the uart peripheral
-    uart_deinit(UART_ID);
+    uart_deinit(TMC_UART_ID);
 
     m_init_success = false;
 }
@@ -271,12 +271,12 @@ void TMCControl::enableUartPins(bool enablePins)
         Utils::log_info("UART pins enable");
         // Set the TX and RX pins by using the function select on the GPIO
         // Set datasheet for more information on function select
-        gpio_init(UART_TX_PIN);
-        gpio_set_dir(UART_TX_PIN, GPIO_OUT);
-        gpio_init(UART_RX_PIN);
-        gpio_set_dir(UART_RX_PIN, GPIO_IN);
-        gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
-        gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
+        gpio_init(TMC_UART_TX_PIN);
+        gpio_set_dir(TMC_UART_TX_PIN, GPIO_OUT);
+        gpio_init(TMC_UART_RX_PIN);
+        gpio_set_dir(TMC_UART_RX_PIN, GPIO_IN);
+        gpio_set_function(TMC_UART_TX_PIN, GPIO_FUNC_UART);
+        gpio_set_function(TMC_UART_RX_PIN, GPIO_FUNC_UART);
 
         m_uart_pins_enabled = true;
     }
@@ -284,16 +284,16 @@ void TMCControl::enableUartPins(bool enablePins)
     {
         Utils::log_info("UART pins disable");
         // Set the UART pins as standard IO's
-        gpio_set_function(UART_TX_PIN, GPIO_FUNC_SIO);
-        gpio_set_function(UART_RX_PIN, GPIO_FUNC_SIO);
+        gpio_set_function(TMC_UART_TX_PIN, GPIO_FUNC_SIO);
+        gpio_set_function(TMC_UART_RX_PIN, GPIO_FUNC_SIO);
 
         // Disable any pull-ups/downs on the IO pins
-        gpio_disable_pulls(UART_TX_PIN);
-        gpio_disable_pulls(UART_RX_PIN);
+        gpio_disable_pulls(TMC_UART_TX_PIN);
+        gpio_disable_pulls(TMC_UART_RX_PIN);
 
         // Set the UART pins as inputs
-        gpio_set_input_enabled(UART_TX_PIN, true);
-        gpio_set_input_enabled(UART_RX_PIN, true);
+        gpio_set_input_enabled(TMC_UART_TX_PIN, true);
+        gpio_set_input_enabled(TMC_UART_RX_PIN, true);
 
         m_uart_pins_enabled = false;
     }
@@ -318,16 +318,16 @@ extern "C" void tmc2300_readWriteArray(uint8_t channel,
     sleep_ms(1);
 
     // Write data buffer
-    uart_write_blocking(UART_ID, data, writeLength);
+    uart_write_blocking(TMC_UART_ID, data, writeLength);
     // Read out echo'd data to a nullptr (don't care)
     // UART is using a fifo so need to clear it for every read event
-    uart_read_blocking(UART_ID, nullptr, writeLength);
+    uart_read_blocking(TMC_UART_ID, nullptr, writeLength);
 
     // If no reply data is expected abort here
     if (readLength == 0) return;
 
     // Read the reply data
-    uart_read_blocking(UART_ID, data, readLength);
+    uart_read_blocking(TMC_UART_ID, data, readLength);
 }
 
 extern "C" uint8_t tmc2300_CRC8(uint8_t *data, size_t length)
@@ -349,7 +349,7 @@ void TMCControl::setStandby(bool enable_standby)
     }
 
     // Set the Standby pin state - after enable so we retain control over driver
-    gpio_put(PIN_TMC_N_STANDBY, enable_standby ? 0 : 1);
+    gpio_put(TMC_PIN_N_STANDBY, enable_standby ? 0 : 1);
 
     // Update the APIs internal standby state
     tmc2300_setStandby(&tmc2300, enable_standby ? 1 : 0);
@@ -360,7 +360,7 @@ void TMCControl::enableDriver(bool enable_driver)
     bool _enable_driver = (bool)(driver_can_be_enabled && enable_driver);
 
     printf("enable driver: %d\n", _enable_driver);
-    gpio_put(PIN_TMC_ENABLE, _enable_driver ? 1 : 0);
+    gpio_put(TMC_PIN_ENABLE, _enable_driver ? 1 : 0);
 
     // TODO: Check if necessary
     sleep_ms(10);
