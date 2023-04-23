@@ -15,8 +15,14 @@
 // 12-bit conversion, assume max value == ADC_VREF == 3.3 V
 constexpr float adc_conversion_factor = 3.3f / (1 << 12);
 
+static volatile bool button_press_event = false;
+
+void joystick_button_callback(uint gpio, uint32_t events);
+
 JoystickControl::JoystickControl()
 {
+    m_joystick.state = JOYSTICK_STATE_IDLE;
+    m_joystick.button_is_pressed = false;
     m_init_success = false;
 }
 JoystickControl::~JoystickControl()
@@ -30,28 +36,40 @@ bool JoystickControl::init()
     // steps
     if (false == m_init_success)
     {
+
+        gpio_set_input_enabled(JOYSTICK_BUTTON_PIN, true);
+        gpio_pull_up(JOYSTICK_BUTTON_PIN);
+        // Set up the joystick button interrupt
+        gpio_set_irq_enabled_with_callback(JOYSTICK_BUTTON_PIN, GPIO_IRQ_EDGE_FALL , true, &joystick_button_callback);
+
         adc_init();
         
         // Make sure GPIO is high-impedance, no pullups etc
-        adc_gpio_init(ADC_PIN_JOYSTICK_X);
-        adc_gpio_init(ADC_PIN_JOYSTICK_Y); 
+        adc_gpio_init(JOYSTICK_ADC_PIN_X);
+        adc_gpio_init(JOYSTICK_ADC_PIN_Y); 
 
-        adc_select_input(0);
-        joystick_pos.x_offset = adc_read();
+        adc_select_input(JOYSTICK_ADC_CHANNEL_X);
+        m_joystick.x_stage.x_offset = adc_read();
         
-        adc_select_input(1);
-        joystick_pos.y_offset = adc_read();
+        adc_select_input(JOYSTICK_ADC_CHANNEL_Y);
+        m_joystick.y_stage.y_offset = adc_read();
 
-        printf("X - Raw value: 0x%03x, voltage: %f V\n", joystick_pos.x_offset, joystick_pos.x_offset * adc_conversion_factor);
-        printf("Y - Raw value: 0x%03x, voltage: %f V\n", joystick_pos.y_offset, joystick_pos.y_offset * adc_conversion_factor);
+        printf("X - Raw value: 0x%03x, voltage: %f V\n", m_joystick.x_stage.x_offset, m_joystick.x_stage.x_offset * adc_conversion_factor);
+        printf("Y - Raw value: 0x%03x, voltage: %f V\n", m_joystick.y_stage.y_offset, m_joystick.y_stage.y_offset * adc_conversion_factor);
 
-        if((joystick_pos.x_offset > ADC_LOWER_HOME_THRESHOLD_RAW && joystick_pos.x_offset < ADC_UPPER_HOME_THRESHOLD_RAW) 
-            && (joystick_pos.y_offset > ADC_LOWER_HOME_THRESHOLD_RAW && joystick_pos.y_offset < ADC_UPPER_HOME_THRESHOLD_RAW))
+        if((m_joystick.x_stage.x_offset > ADC_LOWER_HOME_THRESHOLD_RAW && m_joystick.x_stage.x_offset < ADC_UPPER_HOME_THRESHOLD_RAW) 
+            && (m_joystick.y_stage.y_offset > ADC_LOWER_HOME_THRESHOLD_RAW && m_joystick.y_stage.y_offset < ADC_UPPER_HOME_THRESHOLD_RAW))
         {
             // We assume that the joystick is roughly centered and so its current position must be its "home" position
-            joystick_pos.x = 0;
-            joystick_pos.y = 0;
+            m_joystick.x_stage.x_pos = 0;
+            m_joystick.y_stage.y_pos = 0;
             m_init_success = true;
+        }
+        else
+        {
+            printf("ADC lower bound = %d\n", ADC_LOWER_HOME_THRESHOLD_RAW);
+            printf("x stage offset = %d\n", m_joystick.x_stage.x_offset);
+            printf("y stage offset = %d\n", m_joystick.y_stage.y_offset);
         }
     }
     return m_init_success;
@@ -59,20 +77,64 @@ bool JoystickControl::init()
 
 void JoystickControl::deinit()
 {
-    // TODO: Reset the Joystick to its default values and state
-    ;
+    // Reset the Joystick to its default values and state
+    m_joystick.x_stage.x_pos = 0;
+    m_joystick.x_stage.x_offset = 0;
+    m_joystick.y_stage.y_pos = 0;
+    m_joystick.y_stage.y_offset = 0;
 
-    // TODO: De-initialise the ADC peripheral
-    ;
+    // De-initialise the joystick pins
+    gpio_disable_pulls(JOYSTICK_BUTTON_PIN);
 
     m_init_success = false;
 }
 
+enum JoystickState JoystickControl::getJoystickState()
+{
+    return m_joystick.state;
+}
 
 void JoystickControl::processJob(uint32_t tick_count)
 {
-    adc_select_input(0);
-    uint16_t adc_x_raw = adc_read();
-    adc_select_input(1);
-    uint16_t adc_y_raw = adc_read();
+    if(button_press_event)
+    {
+        // TODO: Implement some de-bounce mechanism
+        button_press_event = false;
+        m_joystick.button_is_pressed = true;
+    }
+
+    adc_select_input(JOYSTICK_ADC_CHANNEL_X);
+    // m_joystick.x_stage.x_pos = adc_read() - m_joystick.x_stage.x_offset;
+    m_joystick.x_stage.x_pos = adc_read();
+    printf("x stage before = %d\n", m_joystick.x_stage.x_pos);
+    m_joystick.x_stage.x_pos -= m_joystick.x_stage.x_offset;
+    printf("x stage after = %d\n", m_joystick.x_stage.x_pos);
+
+    adc_select_input(JOYSTICK_ADC_CHANNEL_Y);
+    m_joystick.y_stage.y_pos = adc_read() - m_joystick.x_stage.y_offset;
+
+    int8_t direction = (m_joystick.x_stage.x_pos>0) ? 1 : -1;
+
+    if(m_joystick.x_stage.x_pos >= 100 && m_joystick.x_stage.x_pos < 1000)
+    {
+        m_joystick.state = JoystickState::JOYSTICK_STATE_LOW;
+    }
+    else if(m_joystick.x_stage.x_pos > 1000 && m_joystick.x_stage.x_pos < 2000)
+    {
+        m_joystick.state = JoystickState::JOYSTICK_STATE_MID;
+    }
+    else if(m_joystick.x_stage.x_pos > 2000)
+    {
+        m_joystick.state = JoystickState::JOYSTICK_STATE_HIGH;
+    }
+    else
+    {
+        m_joystick.state = JoystickState::JOYSTICK_STATE_IDLE;
+    }
+
+}
+
+void joystick_button_callback(uint gpio, uint32_t events) {
+    button_press_event = true;
+    printf("GPIO %d %d\n", gpio, events);
 }
