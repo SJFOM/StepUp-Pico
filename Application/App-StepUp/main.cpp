@@ -17,6 +17,7 @@ using std::vector;
  */
  // This is the inter-task queue
 volatile QueueHandle_t queue = NULL;
+volatile QueueHandle_t queue_state_control = NULL;
 
 // Set a delay time of exactly 500ms
 const TickType_t ms_delay = 500 / portTICK_PERIOD_MS;
@@ -26,10 +27,12 @@ const TickType_t tmc_job_delay = 100 / portTICK_PERIOD_MS;
 TaskHandle_t gpio_task_handle = NULL;
 TaskHandle_t pico_task_handle = NULL;
 TaskHandle_t tmc_task_handle = NULL;
+TaskHandle_t joystick_task_handle = NULL;
 
 // Create class instances of control interfaces
 TMCControl tmc_control;
 JoystickControl joystick_control;
+
 
 /*
  * SETUP FUNCTIONS
@@ -155,7 +158,7 @@ void led_task_pico(void* unused_arg) {
 void led_task_gpio(void* unused_arg) {
     // This variable will take a copy of the value
     // added to the FreeRTOS xQueue
-    uint8_t passed_value_buffer = 0;
+    uint32_t passed_value_buffer = 0;
 
     // Configure the GPIO LED
     gpio_init(RED_LED_PIN);
@@ -179,6 +182,10 @@ void led_task_gpio(void* unused_arg) {
  * @brief Repeatedly flash the Pico's built-in LED.
  */
 void tmc_process_job(void* unused_arg) {
+    
+    ControllerState tmc_state = ControllerState::STATE_IDLE;
+    JoystickState joystick_state = JoystickState::JOYSTICK_STATE_IDLE; 
+    
     // Store the Pico LED state
     uint8_t pico_led_state = 0;
 
@@ -191,15 +198,13 @@ void tmc_process_job(void* unused_arg) {
 
     unsigned long count = 0;
 
-    // TODO: Setup better init routine
-
     while (true) {
         // Turn Pico LED on an add the LED state
         // to the FreeRTOS xQUEUE
         // Utils::log_info("TMC PROCESS JOB");
         printf("count: %lu\n", count);
         pico_led_state = 1;
-        tmc_control.processJob(xTaskGetTickCount());
+        
         gpio_put(PICO_DEFAULT_LED_PIN, pico_led_state);
         // FIXME: This xQueue method will break code functionality :-(
         // xQueueSendToBack(queue, &pico_led_state, 0);
@@ -212,38 +217,69 @@ void tmc_process_job(void* unused_arg) {
         // xQueueSendToBack(queue, &pico_led_state, 0);
         vTaskDelay(tmc_job_delay);
 
-        // TODO: Add a state machine here, looping through init, configure and the
-        // various run options available - all the while, listening to messages 
-        // shared between threads to determine state
-        count++;
-        if(count == 15)
-        {
-            tmc_control.setCurrent(5,0);
-            // tmc_control.move(1000);
-        }
-        if(count > 15)
-        {
-            joystick_control.processJob(xTaskGetTickCount());
-            uint32_t velocity = 0;
-            switch(joystick_control.getJoystickState())
-            {
-                case(JoystickState::JOYSTICK_STATE_IDLE):
-                    velocity = 0;
-                    break;
-                case(JoystickState::JOYSTICK_STATE_LOW):
-                    velocity = 1000;
-                    break;
-                case(JoystickState::JOYSTICK_STATE_MID):
-                    velocity = 5000;
-                    break;
-                case(JoystickState::JOYSTICK_STATE_HIGH):
-                    velocity = 10000;
-                    break;
-                default:
-                    velocity = 0;
-            }
+        tmc_state = tmc_control.processJob(xTaskGetTickCount());
 
-            tmc_control.move(velocity);
+        switch(tmc_state)
+        {
+            case ControllerState::STATE_IDLE:
+            {
+                // Only fall here if peripheral not yet initialised
+                break;
+            }
+            case ControllerState::STATE_READY:
+            {
+                // Check for an item in the FreeRTOS xQueue
+                if (xQueueReceive(queue_state_control, &joystick_state, portMAX_DELAY) == pdPASS) {
+
+                    unsigned velocity = 0;
+                    switch(joystick_state)
+                    {
+                        case(JoystickState::JOYSTICK_STATE_IDLE):
+                            velocity = 0;
+                            break;
+                        case(JoystickState::JOYSTICK_STATE_LOW):
+                            velocity = 1000;
+                            break;
+                        case(JoystickState::JOYSTICK_STATE_MID):
+                            velocity = 5000;
+                            break;
+                        case(JoystickState::JOYSTICK_STATE_HIGH):
+                            velocity = 10000;
+                            break;
+                        default:
+                            velocity = 0;
+                    }
+
+                    tmc_control.setCurrent(5,0);
+                    tmc_control.move(velocity);
+                }
+
+                break;
+            }
+            case ControllerState::STATE_NEW_DATA:
+            {
+                // tmc_control get State
+                break;
+            }
+            case ControllerState::STATE_BUSY:
+            default:
+                // Wait until the tmc2300 is configured
+                break;
+        }
+    }
+}
+
+
+void joystick_process_job(void *unused_arg)
+{
+    unsigned long count = 0;
+    enum JoystickState _joystick_state = JoystickState::JOYSTICK_STATE_IDLE;
+
+    while (true) {
+        if(joystick_control.processJob(xTaskGetTickCount()) == ControllerState::STATE_NEW_DATA)
+        {
+            _joystick_state = joystick_control.getJoystickState();
+            xQueueSendToBack(queue_state_control, &_joystick_state, 0);
         }
     }
 }
@@ -274,13 +310,16 @@ int main() {
         NULL, 1, &gpio_task_handle);
     BaseType_t tmc_status = xTaskCreate(tmc_process_job, "TMC_JOB_TASK", 128,
         NULL, 1, &tmc_task_handle);
+    BaseType_t joystick_status = xTaskCreate(joystick_process_job, "JOYSTICK_JOB_TASK", 128,
+        NULL, 1, &joystick_task_handle);
 
     // Set up the event queue
     queue = xQueueCreate(4, sizeof(uint8_t));
+    queue_state_control = xQueueCreate(4, sizeof(enum JoystickState));
 
     // Start the FreeRTOS scheduler
     // FROM 1.0.1: Only proceed with valid tasks
-    if (gpio_status == pdPASS && tmc_status == pdPASS) {
+    if (gpio_status == pdPASS && tmc_status == pdPASS && joystick_status == pdPASS) {
         vTaskStartScheduler();
     }
 

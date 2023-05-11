@@ -12,11 +12,18 @@
 #ifndef CONTROL_INTERFACE_H_
 #define CONTROL_INTERFACE_H_
 
+enum ControllerState
+{
+    STATE_IDLE = 0,
+    STATE_READY,
+    STATE_BUSY,
+    STATE_NEW_DATA,
+};
 class ControlInterface {
 public:
     virtual bool init() = 0;
     virtual void deinit() = 0;
-    virtual void processJob(uint32_t tick_count) = 0;
+    virtual enum ControllerState processJob(uint32_t tick_count) = 0;
 protected:
 private:
     bool m_init_success;

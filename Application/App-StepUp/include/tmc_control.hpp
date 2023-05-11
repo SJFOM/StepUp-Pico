@@ -356,6 +356,11 @@ struct PWM_AUTO_t
 /* Chopper Control Registers - END */
 /***********************************/
 
+struct TMCData
+{
+    ControllerState control_state;
+};
+
 class TMCControl : public ControlInterface
 {
 public:
@@ -364,7 +369,7 @@ public:
     bool init();
     void deinit();
     void defaultConfiguration();
-    void processJob(uint32_t tick_count);
+    enum ControllerState processJob(uint32_t tick_count);
     void enableUartPins(bool enablePins);
     void setStandby(bool enableStandby);
     void enableDriver(bool enableDriver);
@@ -382,8 +387,11 @@ protected:
     DRV_STATUS_t m_drv_status;
     PWMCONF_t m_pwmconf;
 
+    struct TMCData getTMCData();
+
 private:
     bool m_init_success, m_uart_pins_enabled;
+    struct TMCData m_tmc;
 };
 
 #endif  // TMC_CONTROL_H_
