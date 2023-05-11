@@ -21,7 +21,7 @@ void joystick_button_callback(uint gpio, uint32_t events);
 
 JoystickControl::JoystickControl()
 {
-    m_joystick.state = JOYSTICK_STATE_IDLE;
+    m_joystick.joystick_state = JOYSTICK_STATE_IDLE;
     m_joystick.button_is_pressed = false;
     m_init_success = false;
 }
@@ -72,6 +72,12 @@ bool JoystickControl::init()
             printf("y stage offset = %d\n", m_joystick.y_stage.y_offset);
         }
     }
+
+    if(m_init_success)
+    {
+        m_joystick.control_state = ControllerState::STATE_READY;
+    }
+
     return m_init_success;
 }
 
@@ -86,16 +92,20 @@ void JoystickControl::deinit()
     // De-initialise the joystick pins
     gpio_disable_pulls(JOYSTICK_BUTTON_PIN);
 
+    m_joystick.control_state = ControllerState::STATE_IDLE;
+
     m_init_success = false;
 }
 
 enum JoystickState JoystickControl::getJoystickState()
 {
-    return m_joystick.state;
+    m_joystick.control_state = ControllerState::STATE_READY;
+    return m_joystick.joystick_state;
 }
 
-void JoystickControl::processJob(uint32_t tick_count)
+enum ControllerState JoystickControl::processJob(uint32_t tick_count)
 {
+    enum JoystickState _joystick_state = m_joystick.joystick_state;
     if(button_press_event)
     {
         // TODO: Implement some de-bounce mechanism
@@ -117,21 +127,28 @@ void JoystickControl::processJob(uint32_t tick_count)
 
     if(m_joystick.x_stage.x_pos >= 100 && m_joystick.x_stage.x_pos < 1000)
     {
-        m_joystick.state = JoystickState::JOYSTICK_STATE_LOW;
+        m_joystick.joystick_state = JoystickState::JOYSTICK_STATE_LOW;
     }
     else if(m_joystick.x_stage.x_pos > 1000 && m_joystick.x_stage.x_pos < 2000)
     {
-        m_joystick.state = JoystickState::JOYSTICK_STATE_MID;
+        m_joystick.joystick_state = JoystickState::JOYSTICK_STATE_MID;
     }
     else if(m_joystick.x_stage.x_pos > 2000)
     {
-        m_joystick.state = JoystickState::JOYSTICK_STATE_HIGH;
+        m_joystick.joystick_state = JoystickState::JOYSTICK_STATE_HIGH;
     }
     else
     {
-        m_joystick.state = JoystickState::JOYSTICK_STATE_IDLE;
+        m_joystick.joystick_state = JoystickState::JOYSTICK_STATE_IDLE;
     }
 
+    if(_joystick_state != m_joystick.joystick_state || m_joystick.button_is_pressed)
+    {
+        // If there has been a change in state we want to return that new data is available
+        m_joystick.control_state = ControllerState::STATE_NEW_DATA;
+    }
+
+    return m_joystick.control_state;
 }
 
 void joystick_button_callback(uint gpio, uint32_t events) {

@@ -37,7 +37,8 @@ enum JoystickState
 struct JoystickData
 {
     JoystickPosition x_stage, y_stage;
-    enum JoystickState state;
+    enum JoystickState joystick_state;
+    enum ControllerState control_state;
     bool button_is_pressed;
 };
 
@@ -48,7 +49,7 @@ public:
     ~JoystickControl();
     bool init();
     void deinit();
-    void processJob(uint32_t tick_count);
+    enum ControllerState processJob(uint32_t tick_count);
     enum JoystickState getJoystickState();
 
 protected:
