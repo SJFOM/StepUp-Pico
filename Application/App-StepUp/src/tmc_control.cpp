@@ -55,6 +55,7 @@ TMCControl::TMCControl()
     m_init_success = false;
     m_uart_pins_enabled = false;
     driver_can_be_enabled = false;
+    m_tmc.control_state = ControllerState::STATE_IDLE;
 }
 TMCControl::~TMCControl()
 {
@@ -107,6 +108,8 @@ bool TMCControl::init()
         setStandby(false);
         enableDriver(false);
 
+        m_tmc.control_state = ControllerState::STATE_BUSY;
+
         // Complete checks and store init routine success value
         m_init_success = _init_routine_success;
     }
@@ -122,6 +125,7 @@ void TMCControl::deinit()
     // De-initialise the uart peripheral
     uart_deinit(TMC_UART_ID);
 
+    m_tmc.control_state = ControllerState::STATE_IDLE;
     m_init_success = false;
 }
 
@@ -302,9 +306,29 @@ void TMCControl::enableUartPins(bool enablePins)
     sleep_ms(10);
 }
 
-void TMCControl::processJob(uint32_t tick_count)
+struct TMCData TMCControl::getTMCData()
+{
+    m_tmc.control_state = ControllerState::STATE_READY;
+    return m_tmc;
+}
+
+enum ControllerState TMCControl::processJob(uint32_t tick_count)
 {
     tmc2300_periodicJob(&tmc2300, tick_count);
+
+    if(is_callback_complete && m_tmc.control_state == ControllerState::STATE_BUSY)
+    {
+        // TODO: Unsure if the callback is triggered for every TMC register write...
+        // If so, this logic needs re-writing
+        m_tmc.control_state = ControllerState::STATE_READY;
+    }
+
+    // if(DIAG_PIN changes state)
+    // {
+    //     m_tmc.control_state = ControllerState::STATE_NEW_DATA;
+    // }
+
+    return m_tmc.control_state;
 }
 
 extern "C" void tmc2300_readWriteArray(uint8_t channel,
