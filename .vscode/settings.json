@@ -1,7 +1,7 @@
 {
   "prettier.configPath": "",
   "prettier.enable": false,
-  "editor.defaultFormatter": null,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
   "C_Cpp.formatting": "clangFormat",
   "git.autoRepositoryDetection": "openEditors",
   "git.ignoredRepositories": [
@@ -72,9 +72,10 @@
   "cortex-debug.openocdPath.osx": "${workspaceRoot}/openocd/src/openocd",
   "cortex-debug.openocdPath.windows": "C:\\Program Files\\Raspberry Pi\\Pico SDK v1.5.0\\openocd\\openocd.exe",
   "cortex-debug.gdbPath": "arm-none-eabi-gdb",
-  "C_Cpp.clang_format_fallbackStyle": "GNU",
+  "C_Cpp.clang_format_fallbackStyle": "Visual Studio",
   "C_Cpp.clang_format_style": "file",
   "[jsonc]": {
     "editor.defaultFormatter": "vscode.json-language-features"
-  }
+  },
+  "editor.formatOnSave": true
 }
