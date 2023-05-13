@@ -162,6 +162,7 @@ void led_task_gpio(void* unused_arg) {
     uint8_t passed_value_buffer = 0;
 
     // Configure the GPIO LED
+    // FIXME: RED LED pin is external to Pico PCB
     gpio_init(RED_LED_PIN);
     gpio_set_dir(RED_LED_PIN, GPIO_OUT);
 
@@ -170,11 +171,6 @@ void led_task_gpio(void* unused_arg) {
         if (xQueueReceive(queue, &passed_value_buffer, portMAX_DELAY) == pdPASS) {
             // Received a value so flash the GPIO LED accordingly
             // (NOT the sent value)
-            if (passed_value_buffer)
-            {
-                // Utils::log_info("GPIO LED FLASH");
-                ;
-            }
             gpio_put(RED_LED_PIN, passed_value_buffer == 1 ? 0 : 1);
         }
     }
@@ -233,7 +229,7 @@ void tmc_process_job(void* unused_arg) {
                     default_config_sent = true;
                 }
                 // Check for an item in the FreeRTOS xQueue
-                if (xQueueReceive(queue_joystick_speed, &joystick_velocity, portMAX_DELAY) == pdPASS) 
+                if (xQueueReceive(queue_joystick_speed, &joystick_velocity, 0) == pdPASS) 
                 {
                     tmc_control.setCurrent(5,0);
                     tmc_control.move(joystick_velocity);
@@ -324,7 +320,7 @@ int main() {
         NULL, 3, &tmc_task_handle);
 
     // Set up the event queue
-    queue = xQueueCreate(1, sizeof(uint8_t));
+    queue = xQueueCreate(4, sizeof(uint8_t));
     queue_joystick_speed = xQueueCreate(2, sizeof(int32_t));
 
     // Start the FreeRTOS scheduler
