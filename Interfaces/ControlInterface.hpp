@@ -18,7 +18,16 @@ enum ControllerState
     STATE_READY,
     STATE_BUSY,
     STATE_NEW_DATA,
+    STATE_COUNT,
 };
+
+static const char *ControllerStateString[ControllerState::STATE_COUNT] = {
+    "STATE_IDLE",
+    "STATE_READY",
+    "STATE_BUSY",
+    "STATE_NEW_DATA",
+};
+
 class ControlInterface {
 public:
     virtual bool init() = 0;

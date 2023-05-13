@@ -17,11 +17,12 @@ using std::vector;
  */
  // This is the inter-task queue
 volatile QueueHandle_t queue = NULL;
-volatile QueueHandle_t queue_state_control = NULL;
+volatile QueueHandle_t queue_joystick_speed = NULL;
 
 // Set a delay time of exactly 500ms
 const TickType_t ms_delay = 500 / portTICK_PERIOD_MS;
-const TickType_t tmc_job_delay = 100 / portTICK_PERIOD_MS;
+const TickType_t tmc_job_delay = 200 / portTICK_PERIOD_MS;
+const TickType_t joystick_job_delay = 100 / portTICK_PERIOD_MS;
 
 // FROM 1.0.1 Record references to the tasks
 TaskHandle_t gpio_task_handle = NULL;
@@ -158,7 +159,7 @@ void led_task_pico(void* unused_arg) {
 void led_task_gpio(void* unused_arg) {
     // This variable will take a copy of the value
     // added to the FreeRTOS xQueue
-    uint32_t passed_value_buffer = 0;
+    uint8_t passed_value_buffer = 0;
 
     // Configure the GPIO LED
     gpio_init(RED_LED_PIN);
@@ -172,6 +173,7 @@ void led_task_gpio(void* unused_arg) {
             if (passed_value_buffer)
             {
                 // Utils::log_info("GPIO LED FLASH");
+                ;
             }
             gpio_put(RED_LED_PIN, passed_value_buffer == 1 ? 0 : 1);
         }
@@ -184,7 +186,9 @@ void led_task_gpio(void* unused_arg) {
 void tmc_process_job(void* unused_arg) {
     
     ControllerState tmc_state = ControllerState::STATE_IDLE;
-    JoystickState joystick_state = JoystickState::JOYSTICK_STATE_IDLE; 
+    // JoystickState joystick_state = JoystickState::JOYSTICK_STATE_IDLE; 
+
+    int32_t joystick_velocity = 0;
     
     // Store the Pico LED state
     uint8_t pico_led_state = 0;
@@ -193,31 +197,25 @@ void tmc_process_job(void* unused_arg) {
     gpio_init(PICO_DEFAULT_LED_PIN);
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
 
-    printf("Set up default config\n");
-    tmc_control.defaultConfiguration();
-
     unsigned long count = 0;
+
+    bool default_config_sent = false;
 
     while (true) {
         // Turn Pico LED on an add the LED state
         // to the FreeRTOS xQUEUE
         // Utils::log_info("TMC PROCESS JOB");
-        printf("count: %lu\n", count);
-        pico_led_state = 1;
+        printf("count: %lu\n", count++);
+        pico_led_state ^= 1;
+        printf("led state: %d\n", pico_led_state);
         
         gpio_put(PICO_DEFAULT_LED_PIN, pico_led_state);
-        // FIXME: This xQueue method will break code functionality :-(
-        // xQueueSendToBack(queue, &pico_led_state, 0);
-        vTaskDelay(tmc_job_delay);
-
-        // Turn Pico LED off an add the LED state
-        // to the FreeRTOS xQUEUE
-        pico_led_state = 0;
-        gpio_put(PICO_DEFAULT_LED_PIN, pico_led_state);
-        // xQueueSendToBack(queue, &pico_led_state, 0);
+        xQueueSendToBack(queue, &pico_led_state, 0);
         vTaskDelay(tmc_job_delay);
 
         tmc_state = tmc_control.processJob(xTaskGetTickCount());
+
+        printf("TMC state: %s\n", ControllerStateString[tmc_state]);
 
         switch(tmc_state)
         {
@@ -228,30 +226,17 @@ void tmc_process_job(void* unused_arg) {
             }
             case ControllerState::STATE_READY:
             {
+                if(!default_config_sent)
+                {
+                    printf("Set up default config\n");
+                    tmc_control.defaultConfiguration();
+                    default_config_sent = true;
+                }
                 // Check for an item in the FreeRTOS xQueue
-                if (xQueueReceive(queue_state_control, &joystick_state, portMAX_DELAY) == pdPASS) {
-
-                    unsigned velocity = 0;
-                    switch(joystick_state)
-                    {
-                        case(JoystickState::JOYSTICK_STATE_IDLE):
-                            velocity = 0;
-                            break;
-                        case(JoystickState::JOYSTICK_STATE_LOW):
-                            velocity = 1000;
-                            break;
-                        case(JoystickState::JOYSTICK_STATE_MID):
-                            velocity = 5000;
-                            break;
-                        case(JoystickState::JOYSTICK_STATE_HIGH):
-                            velocity = 10000;
-                            break;
-                        default:
-                            velocity = 0;
-                    }
-
+                if (xQueueReceive(queue_joystick_speed, &joystick_velocity, portMAX_DELAY) == pdPASS) 
+                {
                     tmc_control.setCurrent(5,0);
-                    tmc_control.move(velocity);
+                    tmc_control.move(joystick_velocity);
                 }
 
                 break;
@@ -273,14 +258,42 @@ void tmc_process_job(void* unused_arg) {
 void joystick_process_job(void *unused_arg)
 {
     unsigned long count = 0;
-    enum JoystickState _joystick_state = JoystickState::JOYSTICK_STATE_IDLE;
+    ControllerState joystick_controller_state = ControllerState::STATE_IDLE;
+    struct JoystickData joystick_data = {};
 
     while (true) {
-        if(joystick_control.processJob(xTaskGetTickCount()) == ControllerState::STATE_NEW_DATA)
+        joystick_controller_state = joystick_control.processJob(xTaskGetTickCount());
+        if(joystick_controller_state == ControllerState::STATE_NEW_DATA)
         {
-            _joystick_state = joystick_control.getJoystickState();
-            xQueueSendToBack(queue_state_control, &_joystick_state, 0);
+            joystick_data = joystick_control.getJoystickData();
+            int velocity = 0;
+            switch(joystick_data.joystick_state)
+            {
+                case(JoystickState::JOYSTICK_STATE_IDLE):
+                    velocity = 0;
+                    break;
+                case(JoystickState::JOYSTICK_STATE_LOW):
+                    velocity = 4000;
+                    break;
+                case(JoystickState::JOYSTICK_STATE_MID_1):
+                    velocity = 10000;
+                    break;
+                case(JoystickState::JOYSTICK_STATE_MID_2):
+                    velocity = 14000;
+                    break;
+                case(JoystickState::JOYSTICK_STATE_HIGH_1):
+                    velocity = 16000;
+                    break;
+                case(JoystickState::JOYSTICK_STATE_HIGH_2):
+                    velocity = 20000;
+                    break;
+                default:
+                    velocity = 0;
+            }
+            velocity *= (joystick_data.x_stage.x_pos > 0) ? 1 : -1;
+            xQueueSendToBack(queue_joystick_speed, &velocity, 0);
         }
+        vTaskDelay(joystick_job_delay);
     }
 }
 
@@ -301,21 +314,18 @@ int main() {
     setup();
     Utils::log_info("Setting up peripherals - OK!");
 
-    // Set up two tasks
     // FROM 1.0.1 Store handles referencing the tasks; get return values
     // NOTE Arg 3 is the stack depth -- in words, not bytes
-    // BaseType_t pico_status = xTaskCreate(led_task_pico, "PICO_LED_TASK", 128,
-        // NULL, 1, &pico_task_handle);
     BaseType_t gpio_status = xTaskCreate(led_task_gpio, "GPIO_LED_TASK", 128,
         NULL, 1, &gpio_task_handle);
-    BaseType_t tmc_status = xTaskCreate(tmc_process_job, "TMC_JOB_TASK", 128,
-        NULL, 1, &tmc_task_handle);
-    BaseType_t joystick_status = xTaskCreate(joystick_process_job, "JOYSTICK_JOB_TASK", 128,
-        NULL, 1, &joystick_task_handle);
+    BaseType_t joystick_status = xTaskCreate(joystick_process_job, "JOYSTICK_JOB_TASK", 512,
+        NULL, 2, &joystick_task_handle);
+    BaseType_t tmc_status = xTaskCreate(tmc_process_job, "TMC_JOB_TASK", 256,
+        NULL, 3, &tmc_task_handle);
 
     // Set up the event queue
-    queue = xQueueCreate(4, sizeof(uint8_t));
-    queue_state_control = xQueueCreate(4, sizeof(enum JoystickState));
+    queue = xQueueCreate(1, sizeof(uint8_t));
+    queue_joystick_speed = xQueueCreate(2, sizeof(int32_t));
 
     // Start the FreeRTOS scheduler
     // FROM 1.0.1: Only proceed with valid tasks

@@ -103,6 +103,12 @@ enum JoystickState JoystickControl::getJoystickState()
     return m_joystick.joystick_state;
 }
 
+struct JoystickData JoystickControl::getJoystickData()
+{
+    m_joystick.control_state = ControllerState::STATE_READY;
+    return m_joystick;
+}
+
 enum ControllerState JoystickControl::processJob(uint32_t tick_count)
 {
     enum JoystickState _joystick_state = m_joystick.joystick_state;
@@ -120,22 +126,32 @@ enum ControllerState JoystickControl::processJob(uint32_t tick_count)
     m_joystick.x_stage.x_pos -= m_joystick.x_stage.x_offset;
     printf("x stage after = %d\n", m_joystick.x_stage.x_pos);
 
+    int16_t x_pos = abs(m_joystick.x_stage.x_pos);
+
     adc_select_input(JOYSTICK_ADC_CHANNEL_Y);
     m_joystick.y_stage.y_pos = adc_read() - m_joystick.x_stage.y_offset;
 
     int8_t direction = (m_joystick.x_stage.x_pos>0) ? 1 : -1;
 
-    if(m_joystick.x_stage.x_pos >= 100 && m_joystick.x_stage.x_pos < 1000)
+    if(x_pos >= 100 && x_pos < 600)
     {
         m_joystick.joystick_state = JoystickState::JOYSTICK_STATE_LOW;
     }
-    else if(m_joystick.x_stage.x_pos > 1000 && m_joystick.x_stage.x_pos < 2000)
+    else if(x_pos > 600 && x_pos < 1000)
     {
-        m_joystick.joystick_state = JoystickState::JOYSTICK_STATE_MID;
+        m_joystick.joystick_state = JoystickState::JOYSTICK_STATE_MID_1;
     }
-    else if(m_joystick.x_stage.x_pos > 2000)
+    else if(x_pos > 1000 && x_pos < 1400)
     {
-        m_joystick.joystick_state = JoystickState::JOYSTICK_STATE_HIGH;
+        m_joystick.joystick_state = JoystickState::JOYSTICK_STATE_MID_2;
+    }
+    else if(x_pos > 1400 && x_pos < 1800)
+    {
+        m_joystick.joystick_state = JoystickState::JOYSTICK_STATE_HIGH_1;
+    }
+    else if(x_pos > 1800)
+    {
+        m_joystick.joystick_state = JoystickState::JOYSTICK_STATE_HIGH_2;
     }
     else
     {
