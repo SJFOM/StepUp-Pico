@@ -47,8 +47,8 @@ struct GCONF_t
                 multistep_filt : 1, test_mode : 1;
         };
     };
-    // Default constructor holds reset values  
-    GCONF_t() : extcap(0), multistep_filt(1){}
+    // Default constructor holds reset values
+    GCONF_t() : extcap(0), multistep_filt(1) {}
 };
 
 struct GSTAT_t
@@ -313,7 +313,7 @@ struct PWMCONF_t
         {
             uint8_t pwm_ofs : 8, pwm_grad : 8, pwm_freq : 2;
             bool pwm_autoscale : 1, pwm_autograd : 1;
-            uint8_t freewheel : 2, :2, pwm_reg:4, pwm_lim : 4;
+            uint8_t freewheel : 2, : 2, pwm_reg : 4, pwm_lim : 4;
         };
     };
     // Default constructor holds reset value
