@@ -122,9 +122,9 @@ enum ControllerState JoystickControl::processJob(uint32_t tick_count)
     adc_select_input(JOYSTICK_ADC_CHANNEL_X);
     // m_joystick.x_stage.x_pos = adc_read() - m_joystick.x_stage.x_offset;
     m_joystick.x_stage.x_pos = adc_read();
-    printf("x stage before = %d\n", m_joystick.x_stage.x_pos);
+    // printf("x stage before = %d\n", m_joystick.x_stage.x_pos);
     m_joystick.x_stage.x_pos -= m_joystick.x_stage.x_offset;
-    printf("x stage after = %d\n", m_joystick.x_stage.x_pos);
+    // printf("x stage after = %d\n", m_joystick.x_stage.x_pos);
 
     int16_t x_pos = abs(m_joystick.x_stage.x_pos);
 
