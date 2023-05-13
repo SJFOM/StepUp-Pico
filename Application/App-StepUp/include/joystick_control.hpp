@@ -31,8 +31,10 @@ enum JoystickState
 {
     JOYSTICK_STATE_IDLE = 0,
     JOYSTICK_STATE_LOW,
-    JOYSTICK_STATE_MID,
-    JOYSTICK_STATE_HIGH,
+    JOYSTICK_STATE_MID_1,
+    JOYSTICK_STATE_MID_2,
+    JOYSTICK_STATE_HIGH_1,
+    JOYSTICK_STATE_HIGH_2,
 };
 struct JoystickData
 {
@@ -51,6 +53,7 @@ public:
     void deinit();
     enum ControllerState processJob(uint32_t tick_count);
     enum JoystickState getJoystickState();
+    struct JoystickData getJoystickData();
 
 protected:
 
