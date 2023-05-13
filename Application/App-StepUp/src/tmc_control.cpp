@@ -157,6 +157,9 @@ void TMCControl::defaultConfiguration()
     if(m_gstat.sr)
     {
         printf("TMC drive error detected!\n");
+        printf("Reset = %d\n", m_gstat.reset);
+        printf("Error, shut down = %d\n", m_gstat.drv_err);
+        printf("Low supply voltage = %d\n", m_gstat.u3v5);
     }
 
     /* Register: IOIN_t
