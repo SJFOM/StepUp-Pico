@@ -1,7 +1,6 @@
 #ifndef PIN_DEFINITIONS_H_
 #define PIN_DEFINITIONS_H_
 
-
 /************************/
 /* TMC2300 pins - START */
 /************************/
@@ -24,10 +23,11 @@
 /*************************/
 
 // Joystick ADC pins
-#define JOYSTICK_ADC_PIN_X (26U)
-#define JOYSTICK_ADC_CHANNEL_X (0U)
-#define JOYSTICK_ADC_PIN_Y (27U)
-#define JOYSTICK_ADC_CHANNEL_Y (1U)
+#define JOYSTICK_ADC_PIN_X            (26U)
+#define JOYSTICK_ADC_CHANNEL_X        (0U)
+#define JOYSTICK_ADC_PIN_Y            (27U)
+#define JOYSTICK_ADC_CHANNEL_Y        (1U)
+#define JOYSTICK_ADC_ROUND_ROBIN_MASK (0x03)
 
 // Joystick Button pin
 #define JOYSTICK_BUTTON_PIN (22U)
@@ -36,4 +36,4 @@
 /* Joystick pins - END */
 /***********************/
 
-#endif // PIN_DEFINITIONS_H_
+#endif  // PIN_DEFINITIONS_H_
