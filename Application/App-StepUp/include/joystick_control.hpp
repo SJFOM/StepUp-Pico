@@ -27,6 +27,9 @@
 #define ADC_UPPER_HOME_THRESHOLD_RAW \
     (ADC_MIDWAY_VALUE_RAW + ADC_HOME_THRESHOLD_RAW)
 
+#define JOYSTICK_THRESHOLD_UPPER (1000U)
+#define JOYSTICK_THRESHOLD_LOWER (-JOYSTICK_THRESHOLD_UPPER)
+
 struct JoystickPosition
 {
     int16_t x, y;
@@ -36,24 +39,15 @@ struct JoystickPosition
 enum JoystickState
 {
     JOYSTICK_STATE_IDLE = 0,
-    JOYSTICK_STATE_LOW,
-    JOYSTICK_STATE_MID,
-    JOYSTICK_STATE_HIGH,
+    JOYSTICK_STATE_NEG,
+    JOYSTICK_STATE_POS,
 };
 struct JoystickData
 {
     JoystickPosition position;
-    enum JoystickState joystick_state;
+    enum JoystickState state_x, state_y;
     enum ControllerState control_state;
     bool button_is_pressed;
-    uint8_t current;
-};
-
-struct JoystickSpeedCurrentData
-{
-    int32_t velocity;
-    int8_t direction;
-    uint8_t current;
 };
 
 class JoystickControl : public ControlInterface
