@@ -29,6 +29,8 @@ extern "C"
 
 #define TMC_UART_CHANNEL (0)  // Not as relevant for single IC use case
 
+#define VELOCITY_MAX_STEPS_PER_SECOND (100000UL)
+
 /*****************************/
 /* General Registers - START */
 /*****************************/
@@ -375,6 +377,7 @@ public:
     void enableDriver(bool enableDriver);
     void move(uint32_t velocity);
     void setCurrent(uint8_t i_run, uint8_t i_hold);
+    void updateCurrent(uint8_t i_run_plus_minus);
     uint8_t getChipID();
 
 protected:

@@ -17,7 +17,17 @@ using std::vector;
  */
 // This is the inter-task queue
 volatile QueueHandle_t queue = NULL;
-volatile QueueHandle_t queue_joystick_speed_current = NULL;
+volatile QueueHandle_t queue_motor_control_data = NULL;
+
+// Motor control define(s)
+#define VELOCITY_DELTA_VALUE (1000U)
+
+struct MotorControlData
+{
+    uint8_t current;
+    uint32_t velocity;
+    int8_t direction;
+};
 
 // Set a delay time of exactly 500ms
 const TickType_t ms_delay = 500 / portTICK_PERIOD_MS;
@@ -200,8 +210,6 @@ void tmc_process_job(void *unused_arg)
     ControllerState tmc_state = ControllerState::STATE_IDLE;
     // JoystickState joystick_state = JoystickState::JOYSTICK_STATE_IDLE;
 
-    JoystickSpeedCurrentData joystick_control_data = {};
-
     // Store the Pico LED state
     uint8_t pico_led_state = 0;
 
@@ -238,6 +246,7 @@ void tmc_process_job(void *unused_arg)
             }
             case ControllerState::STATE_READY:
             {
+                MotorControlData motor_data = {};
                 if (!default_config_sent)
                 {
                     printf("Set up default config\n");
@@ -245,16 +254,14 @@ void tmc_process_job(void *unused_arg)
                     default_config_sent = true;
                 }
                 // Check for an item in the FreeRTOS xQueue
-                if (xQueueReceive(queue_joystick_speed_current,
-                                  &joystick_control_data,
-                                  0) == pdPASS)
+                if (xQueueReceive(queue_motor_control_data, &motor_data, 0) ==
+                    pdPASS)
                 {
                     printf("Velocity: %d\n",
-                           joystick_control_data.velocity *
-                               joystick_control_data.direction);
-                    printf("IRUN: %d\n", joystick_control_data.current);
-                    tmc_control.setCurrent(joystick_control_data.current, 0);
-                    tmc_control.move(joystick_control_data.velocity);
+                           motor_data.velocity * motor_data.direction);
+                    printf("IRUN: %d\n", motor_data.current);
+                    tmc_control.updateCurrent(motor_data.current);
+                    tmc_control.move(motor_data.velocity);
                 }
 
                 break;
@@ -277,7 +284,6 @@ void joystick_process_job(void *unused_arg)
     unsigned long count = 0;
     ControllerState joystick_controller_state = ControllerState::STATE_IDLE;
     JoystickData joystick_data = {};
-    JoystickSpeedCurrentData joystick_control_data = {};
 
     while (true)
     {
@@ -285,31 +291,51 @@ void joystick_process_job(void *unused_arg)
             joystick_control.processJob(xTaskGetTickCount());
         if (joystick_controller_state == ControllerState::STATE_NEW_DATA)
         {
+            MotorControlData motor_data = {};
             joystick_data = joystick_control.getJoystickData();
 
-            joystick_control_data.current = joystick_data.current;
-            switch (joystick_data.joystick_state)
+            switch (joystick_data.state_x)
             {
+                case (JoystickState::JOYSTICK_STATE_NEG):
+                    motor_data.direction = -1;
+                    break;
+                case (JoystickState::JOYSTICK_STATE_POS):
+                    motor_data.direction = 1;
+                    break;
                 case (JoystickState::JOYSTICK_STATE_IDLE):
-                    joystick_control_data.velocity = 0;
-                    break;
-                case (JoystickState::JOYSTICK_STATE_LOW):
-                    joystick_control_data.velocity = 3000;
-                    break;
-                case (JoystickState::JOYSTICK_STATE_MID):
-                    joystick_control_data.velocity = 6000;
-                    break;
-                case (JoystickState::JOYSTICK_STATE_HIGH):
-                    joystick_control_data.velocity = 10000;
-                    break;
                 default:
-                    joystick_control_data.velocity = 0;
+                    motor_data.direction = 0;
             }
-            joystick_control_data.direction =
-                (joystick_data.position.x > 0) ? 1 : -1;
-            xQueueSendToBack(queue_joystick_speed_current,
-                             &joystick_control_data,
-                             0);
+            switch (joystick_data.state_y)
+            {
+                case (JoystickState::JOYSTICK_STATE_NEG):
+                {
+                    if (motor_data.velocity >= VELOCITY_DELTA_VALUE)
+                    {
+                        motor_data.velocity -= VELOCITY_DELTA_VALUE;
+                    }
+                    break;
+                }
+                case (JoystickState::JOYSTICK_STATE_POS):
+                {
+                    if (motor_data.velocity < VELOCITY_MAX_STEPS_PER_SECOND)
+                    {
+                        motor_data.velocity += VELOCITY_DELTA_VALUE;
+                    }
+                    break;
+                }
+                case (JoystickState::JOYSTICK_STATE_IDLE):
+                default:
+                {
+                    motor_data.direction = 0;
+                }
+            }
+            if (joystick_data.button_is_pressed)
+            {
+                // A button press event should instantly stop the motor
+                motor_data.velocity = 0;
+            }
+            xQueueSendToBack(queue_motor_control_data, &motor_data, 0);
         }
         vTaskDelay(joystick_job_delay);
     }
@@ -356,8 +382,7 @@ int main()
 
     // Set up the event queue
     queue = xQueueCreate(4, sizeof(uint8_t));
-    queue_joystick_speed_current =
-        xQueueCreate(4, sizeof(struct JoystickSpeedCurrentData));
+    queue_motor_control_data = xQueueCreate(4, sizeof(struct MotorControlData));
 
     // Start the FreeRTOS scheduler
     // FROM 1.0.1: Only proceed with valid tasks

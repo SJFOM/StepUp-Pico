@@ -14,17 +14,27 @@
 // 12-bit conversion, assume max value == ADC_VREF == 3.3 V
 constexpr float adc_conversion_factor = 3.3f / (1 << 12);
 
+/***********************************/
+/* Joystick button control - START */
+/***********************************/
 static volatile bool button_press_event = false;
 
+// Button debounce control
+uint32_t time_of_last_button_press;
+// Millisecond delay between valid button press events
+constexpr uint8_t delay_time_ms = 50;
+
 void joystick_button_callback(uint gpio, uint32_t events);
+/*********************************/
+/* Joystick button control - END */
+/*********************************/
 
 JoystickControl::JoystickControl()
 {
-    m_joystick.joystick_state = JOYSTICK_STATE_IDLE;
+    m_joystick.state_x = JOYSTICK_STATE_IDLE;
+    m_joystick.state_y = JOYSTICK_STATE_IDLE;
     m_joystick.button_is_pressed = false;
     m_init_success = false;
-
-    m_joystick.current = 5;  // Default IRUN value
 }
 JoystickControl::~JoystickControl()
 {
@@ -81,6 +91,9 @@ bool JoystickControl::init()
             printf("x stage offset = %d\n", m_joystick.position.x_offset);
             printf("y stage offset = %d\n", m_joystick.position.y_offset);
         }
+
+        // Mimick first button press event against which to compare later events
+        time_of_last_button_press = to_ms_since_boot(get_absolute_time());
     }
 
     if (m_init_success)
@@ -110,12 +123,6 @@ void JoystickControl::deinit()
     m_init_success = false;
 }
 
-enum JoystickState JoystickControl::getJoystickState()
-{
-    m_joystick.control_state = ControllerState::STATE_READY;
-    return m_joystick.joystick_state;
-}
-
 struct JoystickData JoystickControl::getJoystickData()
 {
     m_joystick.control_state = ControllerState::STATE_READY;
@@ -124,11 +131,9 @@ struct JoystickData JoystickControl::getJoystickData()
 
 enum ControllerState JoystickControl::processJob(uint32_t tick_count)
 {
-    enum JoystickState _joystick_state = m_joystick.joystick_state;
-    uint8_t _current = m_joystick.current;
+    enum JoystickState _joystick_state_x = m_joystick.state_x;
     if (button_press_event)
     {
-        // TODO: Implement some de-bounce mechanism
         button_press_event = false;
         m_joystick.button_is_pressed = true;
     }
@@ -140,50 +145,37 @@ enum ControllerState JoystickControl::processJob(uint32_t tick_count)
     m_joystick.position.x -= m_joystick.position.x_offset;
     // printf("x stage after = %d\n", m_joystick.position.x);
 
-    int16_t x = abs(m_joystick.position.x);
-
     adc_select_input(JOYSTICK_ADC_CHANNEL_Y);
     m_joystick.position.y =
         (adc_read() & ADC_ENOB_MASK) - m_joystick.position.y_offset;
 
-    // printf("y stage after = %d\n", m_joystick.position.y);
-
-    // int8_t direction = (m_joystick.position.x > 0) ? 1 : -1;
-
-    if (x >= 100 && x < 1000)
+    if (m_joystick.position.x < JOYSTICK_THRESHOLD_LOWER)
     {
-        m_joystick.joystick_state = JoystickState::JOYSTICK_STATE_LOW;
+        m_joystick.state_x = JoystickState::JOYSTICK_STATE_NEG;
     }
-    else if (x > 1000 && x < 1800)
+    else if (m_joystick.position.x > JOYSTICK_THRESHOLD_UPPER)
     {
-        m_joystick.joystick_state = JoystickState::JOYSTICK_STATE_MID;
-    }
-    else if (x > 1800)
-    {
-        m_joystick.joystick_state = JoystickState::JOYSTICK_STATE_HIGH;
+        m_joystick.state_x = JoystickState::JOYSTICK_STATE_POS;
     }
     else
     {
-        m_joystick.joystick_state = JoystickState::JOYSTICK_STATE_IDLE;
+        m_joystick.state_x = JoystickState::JOYSTICK_STATE_IDLE;
     }
 
-    if (m_joystick.position.y < -1800)
+    if (m_joystick.position.y < JOYSTICK_THRESHOLD_LOWER)
     {
-        if (m_joystick.current > 0)
-        {
-            m_joystick.current--;
-        }
+        m_joystick.state_y = JoystickState::JOYSTICK_STATE_NEG;
     }
-    else if (m_joystick.position.y > 1800)
+    else if (m_joystick.position.y > JOYSTICK_THRESHOLD_UPPER)
     {
-        if (m_joystick.current < 31)
-        {
-            m_joystick.current++;
-        }
+        m_joystick.state_y = JoystickState::JOYSTICK_STATE_POS;
+    }
+    else
+    {
+        m_joystick.state_y = JoystickState::JOYSTICK_STATE_IDLE;
     }
 
-    if (_joystick_state != m_joystick.joystick_state ||
-        _current != m_joystick.current || m_joystick.button_is_pressed)
+    if (_joystick_state_x != m_joystick.state_x || m_joystick.button_is_pressed)
     {
         // If there has been a change in state we want to return that new data
         // is available
@@ -195,6 +187,13 @@ enum ControllerState JoystickControl::processJob(uint32_t tick_count)
 
 void joystick_button_callback(uint gpio, uint32_t events)
 {
-    button_press_event = true;
-    printf("GPIO %d %d\n", gpio, events);
+    uint32_t time_now = to_ms_since_boot(get_absolute_time());
+    if ((time_now - time_of_last_button_press) > delay_time_ms)
+    {
+        // Recommend to not to change the position of this line
+        time_of_last_button_press = to_ms_since_boot(get_absolute_time());
+
+        printf("GPIO %d %d\n", gpio, events);
+        button_press_event = true;
+    }
 }
