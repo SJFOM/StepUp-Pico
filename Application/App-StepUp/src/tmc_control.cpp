@@ -260,8 +260,21 @@ void TMCControl::setCurrent(uint8_t i_run, uint8_t i_hold)
     tmc2300_writeInt(&tmc2300, m_ihold_irun.address, m_ihold_irun.sr);
 }
 
+void TMCControl::updateCurrent(uint8_t i_run_plus_minus)
+{
+    uint8_t _i_run = m_ihold_irun.irun + i_run_plus_minus;
+
+    setCurrent(_i_run, m_ihold_irun.ihold);
+}
+
 void TMCControl::move(uint32_t velocity)
 {
+    if (velocity > VELOCITY_MAX_STEPS_PER_SECOND)
+    {
+        Utils::log_warn("Max motor velocity reached!");
+
+        velocity = VELOCITY_MAX_STEPS_PER_SECOND;
+    }
     m_vactual.sr = velocity;
     enableDriver(velocity > 0 ? true : false);
     tmc2300_writeInt(&tmc2300, m_vactual.address, m_vactual.sr);
