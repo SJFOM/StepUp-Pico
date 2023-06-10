@@ -25,8 +25,9 @@ volatile QueueHandle_t queue_motor_control_data = NULL;
 struct MotorControlData
 {
     uint8_t current;
-    uint32_t velocity;
+    int32_t velocity;
     int8_t direction;
+    bool button_press;
 };
 
 // Set a delay time of exactly 500ms
@@ -257,14 +258,27 @@ void tmc_process_job(void *unused_arg)
                 if (xQueueReceive(queue_motor_control_data, &motor_data, 0) ==
                     pdPASS)
                 {
-                    printf("Velocity: %d\n",
-                           motor_data.velocity * motor_data.direction);
-                    printf("IRUN: %d\n", motor_data.current);
-                    tmc_control.updateCurrent(motor_data.current);
-                    tmc_control.move(motor_data.velocity);
-                }
+                    printf("Velocity: %d\n", motor_data.velocity);
+                    printf("Direction: %d\n", motor_data.direction);
+                    // printf("IRUN: %d\n", motor_data.current);
+                    // tmc_control.updateCurrent(motor_data.current);
+                    if (motor_data.button_press)
+                    {
+                        printf("Button press - stopping motor!\n");
+                        // A button press event should instantly stop the motor
+                        tmc_control.stop();
+                        // tmc_control.move(motor_data.velocity);
+                        // tmc_control.setCurrent(motor_data.current, 0);
+                    }
+                    else
+                    {
+                        tmc_control.updateMovementDynamics(
+                            motor_data.velocity,
+                            motor_data.direction);
+                    }
 
-                break;
+                    break;
+                }
             }
             case ControllerState::STATE_NEW_DATA:
             {
@@ -310,31 +324,27 @@ void joystick_process_job(void *unused_arg)
             {
                 case (JoystickState::JOYSTICK_STATE_NEG):
                 {
-                    if (motor_data.velocity >= VELOCITY_DELTA_VALUE)
-                    {
-                        motor_data.velocity -= VELOCITY_DELTA_VALUE;
-                    }
+                    motor_data.velocity = -VELOCITY_DELTA_VALUE;
                     break;
                 }
                 case (JoystickState::JOYSTICK_STATE_POS):
                 {
-                    if (motor_data.velocity < VELOCITY_MAX_STEPS_PER_SECOND)
-                    {
-                        motor_data.velocity += VELOCITY_DELTA_VALUE;
-                    }
+                    motor_data.velocity = VELOCITY_DELTA_VALUE;
                     break;
                 }
                 case (JoystickState::JOYSTICK_STATE_IDLE):
                 default:
                 {
-                    motor_data.direction = 0;
+                    motor_data.velocity = 0;
                 }
             }
-            if (joystick_data.button_is_pressed)
-            {
-                // A button press event should instantly stop the motor
-                motor_data.velocity = 0;
-            }
+
+            // printf("joy-x: %d\n", joystick_data.state_x);
+            // printf("joy-y: %d\n", joystick_data.state_y);
+            // printf("direction: %d\n", motor_data.direction);
+            // printf("velocity: %d\n", motor_data.velocity);
+
+            motor_data.button_press = joystick_data.button_is_pressed;
             xQueueSendToBack(queue_motor_control_data, &motor_data, 0);
         }
         vTaskDelay(joystick_job_delay);

@@ -126,12 +126,17 @@ void JoystickControl::deinit()
 struct JoystickData JoystickControl::getJoystickData()
 {
     m_joystick.control_state = ControllerState::STATE_READY;
-    return m_joystick;
+    JoystickData temp_data = m_joystick;
+    m_joystick.state_x = JoystickState::JOYSTICK_STATE_IDLE;
+    m_joystick.state_y = JoystickState::JOYSTICK_STATE_IDLE;
+    m_joystick.button_is_pressed = false;
+    return temp_data;
 }
 
 enum ControllerState JoystickControl::processJob(uint32_t tick_count)
 {
     enum JoystickState _joystick_state_x = m_joystick.state_x;
+    enum JoystickState _joystick_state_y = m_joystick.state_y;
     if (button_press_event)
     {
         button_press_event = false;
@@ -148,34 +153,43 @@ enum ControllerState JoystickControl::processJob(uint32_t tick_count)
     adc_select_input(JOYSTICK_ADC_CHANNEL_Y);
     m_joystick.position.y =
         (adc_read() & ADC_ENOB_MASK) - m_joystick.position.y_offset;
+    // printf("y stage after = %d\n", m_joystick.position.y);
 
     if (m_joystick.position.x < JOYSTICK_THRESHOLD_LOWER)
     {
+        // printf("XL\n");
         m_joystick.state_x = JoystickState::JOYSTICK_STATE_NEG;
     }
     else if (m_joystick.position.x > JOYSTICK_THRESHOLD_UPPER)
     {
+        // printf("XU\n");
         m_joystick.state_x = JoystickState::JOYSTICK_STATE_POS;
     }
     else
     {
+        // printf("XI\n");
         m_joystick.state_x = JoystickState::JOYSTICK_STATE_IDLE;
     }
 
     if (m_joystick.position.y < JOYSTICK_THRESHOLD_LOWER)
     {
+        // printf("YL\n");
         m_joystick.state_y = JoystickState::JOYSTICK_STATE_NEG;
     }
     else if (m_joystick.position.y > JOYSTICK_THRESHOLD_UPPER)
     {
+        // printf("YU\n");
         m_joystick.state_y = JoystickState::JOYSTICK_STATE_POS;
     }
     else
     {
+        // printf("YI\n");
         m_joystick.state_y = JoystickState::JOYSTICK_STATE_IDLE;
     }
 
-    if (_joystick_state_x != m_joystick.state_x || m_joystick.button_is_pressed)
+    if ((_joystick_state_x != m_joystick.state_x) ||
+        (_joystick_state_y != m_joystick.state_y) ||
+        m_joystick.button_is_pressed)
     {
         // If there has been a change in state we want to return that new data
         // is available

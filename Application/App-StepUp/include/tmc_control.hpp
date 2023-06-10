@@ -170,7 +170,7 @@ struct VACTUAL_t
 {
     // WRITE only register
     constexpr static uint8_t address = TMC2300_VACTUAL;
-    uint32_t sr : 24;
+    int32_t sr : 24;
 };
 
 /************************************/
@@ -375,9 +375,11 @@ public:
     void enableUartPins(bool enablePins);
     void setStandby(bool enableStandby);
     void enableDriver(bool enableDriver);
-    void move(uint32_t velocity);
+    void move(int32_t velocity);
+    void stop();
     void setCurrent(uint8_t i_run, uint8_t i_hold);
-    void updateCurrent(uint8_t i_run_plus_minus);
+    void updateCurrent(uint8_t i_run_delta);
+    void updateMovementDynamics(int32_t velocity_delta, int8_t direction);
     uint8_t getChipID();
 
 protected:
