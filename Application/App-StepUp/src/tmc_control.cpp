@@ -189,7 +189,7 @@ void TMCControl::defaultConfiguration()
      */
     m_ihold_irun.sr = tmc2300_readInt(&tmc2300, m_ihold_irun.address);
     m_ihold_irun.ihold = 0;       // Standstill current
-    m_ihold_irun.irun = 2;        // Motor run current
+    m_ihold_irun.irun = 10;       // Motor run current
     m_ihold_irun.iholddelay = 2;  // Number of clock cycles for motor power down
                                   // after standstill detected
     tmc2300_writeInt(&tmc2300, m_ihold_irun.address, m_ihold_irun.sr);
@@ -260,24 +260,68 @@ void TMCControl::setCurrent(uint8_t i_run, uint8_t i_hold)
     tmc2300_writeInt(&tmc2300, m_ihold_irun.address, m_ihold_irun.sr);
 }
 
-void TMCControl::updateCurrent(uint8_t i_run_plus_minus)
+void TMCControl::updateCurrent(uint8_t i_run_delta)
 {
-    uint8_t _i_run = m_ihold_irun.irun + i_run_plus_minus;
+    uint8_t _i_run = m_ihold_irun.irun + i_run_delta;
 
     setCurrent(_i_run, m_ihold_irun.ihold);
 }
 
-void TMCControl::move(uint32_t velocity)
+void TMCControl::updateMovementDynamics(int32_t velocity_delta,
+                                        int8_t direction)
 {
-    if (velocity > VELOCITY_MAX_STEPS_PER_SECOND)
-    {
-        Utils::log_warn("Max motor velocity reached!");
+    int32_t _velocity = m_vactual.sr + velocity_delta;
 
-        velocity = VELOCITY_MAX_STEPS_PER_SECOND;
+    if (_velocity < 0 && direction == -1)
+    {
+        // Do nothing
+        ;
     }
-    m_vactual.sr = velocity;
-    enableDriver(velocity > 0 ? true : false);
-    tmc2300_writeInt(&tmc2300, m_vactual.address, m_vactual.sr);
+    if (_velocity > 0 && direction == 1)
+    {
+        // Do nothing
+        ;
+    }
+    if (_velocity < 0 && direction == 1)
+    {
+        // Invert direction
+        _velocity = -_velocity;
+    }
+    if (_velocity > 0 && direction == -1)
+    {
+        // Invert direction
+        _velocity = -_velocity;
+    }
+    if (direction == 0)
+    {
+        // Stop motor
+        _velocity = 0;
+    }
+
+    move(_velocity);
+}
+
+void TMCControl::stop()
+{
+    move(0);
+    enableDriver(false);
+}
+
+void TMCControl::move(int32_t velocity)
+{
+    if (m_vactual.sr != velocity)
+    {
+        if (abs(velocity) > VELOCITY_MAX_STEPS_PER_SECOND)
+        {
+            Utils::log_warn("Max motor velocity reached!");
+
+            velocity = VELOCITY_MAX_STEPS_PER_SECOND;
+        }
+        printf("New velocity: %d\n", velocity);
+        m_vactual.sr = velocity;
+        enableDriver(velocity == 0 ? false : true);
+        tmc2300_writeInt(&tmc2300, m_vactual.address, m_vactual.sr);
+    }
 }
 
 uint8_t TMCControl::getChipID()
