@@ -4,3 +4,4 @@ pico-sdk.diff
 build/
 
 bazel-*
+.cortex-debug*

@@ -10,40 +10,38 @@
 #ifndef UTILS_HEADER
 #define UTILS_HEADER
 
-
+#include <algorithm>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
-#include <cstdlib>
-#include <cstdint>
-#include <cstring>
-#include <sstream>
-#include <iomanip>
-#include <algorithm>
- // Pico SDK
-#include "pico/stdlib.h"
+// Pico SDK
 #include "pico/binary_info.h"
+#include "pico/stdlib.h"
 
-
-using std::vector;
 using std::string;
-
+using std::vector;
 
 /*
  * PROTOTYPES
  */
-namespace Utils {
-    vector<string>  split_to_lines(string str, string sep = "\r\n");
-    string          split_msg(string msg, uint32_t want_line);
-    string          get_sms_number(string line);
-    string          get_field_value(string line, uint32_t field_number);
-    string          uppercase(string base);
-    uint32_t        bcd(uint32_t base);
-    void            log_device_info(void);
-    void            log_info(const string msg);
-    void            log_warn(const string msg);
-    void            log_error(const string msg);
-}
+namespace Utils
+{
+    vector<string> split_to_lines(string str, string sep = "\r\n");
+    string split_msg(string msg, uint32_t want_line);
+    string get_sms_number(string line);
+    string get_field_value(string line, uint32_t field_number);
+    string uppercase(string base);
+    uint32_t bcd(uint32_t base);
+    void log_device_info(void);
+    void log_info(const string msg);
+    void log_debug(const string msg);
+    void log_warn(const string msg);
+    void log_error(const string msg);
+}  // namespace Utils
 
-
-#endif // UTILS_HEADER
+#endif  // UTILS_HEADER
