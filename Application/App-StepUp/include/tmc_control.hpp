@@ -7,31 +7,32 @@
 // Common
 #include "../../../Common/utils.h"
 
+// Control libraries
+#include "../../../Interfaces/ControlInterface.hpp"
+
+// pin includes
+#include "pins_definitions.h"
+
 // TMC-API
 extern "C"
 {
-#include "../../../Interfaces/ControlInterface.hpp"
 #include "../../../Libraries/TMC_API/helpers/CRC.h"
 #include "../../../Libraries/TMC_API/helpers/Config.h"
 #include "../../../Libraries/TMC_API/ic/TMC2300.h"
 }
 
 // printf can default to using uart0 so use uart1 instead
-#define UART_ID   uart1
-#define BAUD_RATE ((uint)115200)
-
-// We are using pins 0 and 1, but see the GPIO function select table in the
-// datasheet for information on which other pins can be used.
-#define UART_TX_PIN 4U
-#define UART_RX_PIN 5U
-
-// Motor control pins
-#define PIN_TMC_ENABLE    14U
-#define PIN_TMC_N_STANDBY 15U
+#define TMC_UART_ID   uart1
+#define TMC_BAUD_RATE ((unsigned)460800)
 
 #define TMC_UART_SLAVE_ADDRESS (3U)
 
 #define TMC_UART_CHANNEL (0)  // Not as relevant for single IC use case
+
+#define VELOCITY_MAX_STEPS_PER_SECOND (100000UL)
+
+#define DEFAULT_IRUN_VALUE  (10U)
+#define DEFAULT_IHOLD_VALUE (0U)
 
 /*****************************/
 /* General Registers - START */
@@ -51,8 +52,8 @@ struct GCONF_t
                 multistep_filt : 1, test_mode : 1;
         };
     };
-    // Default constructor holds reset values  
-    GCONF_t() : extcap(0), multistep_filt(1){}
+    // Default constructor holds reset values
+    GCONF_t() : extcap(0), multistep_filt(1) {}
 };
 
 struct GSTAT_t
@@ -172,7 +173,7 @@ struct VACTUAL_t
 {
     // WRITE only register
     constexpr static uint8_t address = TMC2300_VACTUAL;
-    uint32_t sr : 24;
+    int32_t sr : 24;
 };
 
 /************************************/
@@ -197,7 +198,7 @@ struct SGTHRS_t
     // WRITE only register
     constexpr static uint8_t address = TMC2300_SGTHRS;
 
-    /* Detection threshold for stall. The StallGuardv alue SG_VALUE becomes
+    /* Detection threshold for stall. The StallGuard value SG_VALUE becomes
      * compared to this threshold. */
     uint8_t sr : 8;
 };
@@ -317,7 +318,7 @@ struct PWMCONF_t
         {
             uint8_t pwm_ofs : 8, pwm_grad : 8, pwm_freq : 2;
             bool pwm_autoscale : 1, pwm_autograd : 1;
-            uint8_t freewheel : 2, :2, pwm_reg:4, pwm_lim : 4;
+            uint8_t freewheel : 2, : 2, pwm_reg : 4, pwm_lim : 4;
         };
     };
     // Default constructor holds reset value
@@ -360,21 +361,30 @@ struct PWM_AUTO_t
 /* Chopper Control Registers - END */
 /***********************************/
 
-class TMCControl : ControlInterface
+struct TMCData
+{
+    ControllerState control_state;
+};
+
+class TMCControl : public ControlInterface
 {
 public:
     TMCControl();
     ~TMCControl();
-    bool init();
-    void deinit();
-    void defaultConfiguration();
-    void processJob(uint32_t tick_count);
+    bool init(void);
+    void deinit(void);
+    void defaultConfiguration(void);
+    enum ControllerState processJob(uint32_t tick_count);
     void enableUartPins(bool enablePins);
     void setStandby(bool enableStandby);
+    bool isDriverEnabled(void);
     void enableDriver(bool enableDriver);
-    void move(uint32_t velocity);
+    void move(int32_t velocity);
+    void resetMovementDynamics(void);
     void setCurrent(uint8_t i_run, uint8_t i_hold);
-    uint8_t getChipID();
+    void updateCurrent(uint8_t i_run_delta);
+    void updateMovementDynamics(int32_t velocity_delta, int8_t direction);
+    uint8_t getChipID(void);
 
 protected:
     GCONF_t m_gconf;
@@ -386,8 +396,11 @@ protected:
     DRV_STATUS_t m_drv_status;
     PWMCONF_t m_pwmconf;
 
+    struct TMCData getTMCData();
+
 private:
     bool m_init_success, m_uart_pins_enabled;
+    struct TMCData m_tmc;
 };
 
 #endif  // TMC_CONTROL_H_
