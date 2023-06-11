@@ -20,26 +20,30 @@ volatile QueueHandle_t queue = NULL;
 volatile QueueHandle_t queue_motor_control_data = NULL;
 
 // Motor control define(s)
-#define VELOCITY_DELTA_VALUE (1000U)
+#define VELOCITY_DELTA_VALUE (500U)
 
 struct MotorControlData
 {
-    uint8_t current;
-    int32_t velocity;
+    int32_t velocity_delta;
     int8_t direction;
     bool button_press;
 };
 
 // Set a delay time of exactly 500ms
 const TickType_t ms_delay = 500 / portTICK_PERIOD_MS;
-const TickType_t tmc_job_delay = 150 / portTICK_PERIOD_MS;
-const TickType_t joystick_job_delay = 100 / portTICK_PERIOD_MS;
+const TickType_t tmc_job_delay = 20 / portTICK_PERIOD_MS;
+const TickType_t joystick_job_delay = 10 / portTICK_PERIOD_MS;
 
 // FROM 1.0.1 Record references to the tasks
 TaskHandle_t gpio_task_handle = NULL;
 TaskHandle_t pico_task_handle = NULL;
 TaskHandle_t tmc_task_handle = NULL;
 TaskHandle_t joystick_task_handle = NULL;
+
+// Task priorities (higher value = higher priority)
+UBaseType_t job_priority_led_control = 1U;
+UBaseType_t job_priority_tmc_control = 2U;
+UBaseType_t job_priority_joystick_control = 3U;
 
 // Create class instances of control interfaces
 TMCControl tmc_control;
@@ -71,7 +75,7 @@ void setup_tmc2300()
     // If this fails on a call to writing to TMC then it will be blocking!
     if (false == tmc_control.init())
     {
-        Utils::log_info("ERROR:TMC failed to initialise!");
+        Utils::log_error("ERROR:TMC failed to initialise!");
     }
 
     uint8_t tmc_version = tmc_control.getChipID();
@@ -87,7 +91,7 @@ void setup_tmc2300()
 }
 
 /**
- * @brief Set the up Josytick module
+ * @brief Set the up Joystick module
  *
  * @details // TODO: Fill in details
  *
@@ -99,7 +103,7 @@ void setup_joystick()
     {
         // This will be true if no joystick present OR the josytick is not
         // centered
-        Utils::log_info("ERROR:Joystick failed to initialise!");
+        Utils::log_error("ERROR:Joystick failed to initialise!");
     }
 }
 
@@ -187,9 +191,8 @@ void led_task_gpio(void *unused_arg)
     uint8_t passed_value_buffer = 0;
 
     // Configure the GPIO LED
-    // FIXME: RED LED pin is external to Pico PCB
-    gpio_init(RED_LED_PIN);
-    gpio_set_dir(RED_LED_PIN, GPIO_OUT);
+    gpio_init(LED_PIN_YELLOW);
+    gpio_set_dir(LED_PIN_YELLOW, GPIO_OUT);
 
     while (true)
     {
@@ -198,7 +201,7 @@ void led_task_gpio(void *unused_arg)
         {
             // Received a value so flash the GPIO LED accordingly
             // (NOT the sent value)
-            gpio_put(RED_LED_PIN, passed_value_buffer == 1 ? 0 : 1);
+            gpio_put(LED_PIN_YELLOW, passed_value_buffer == 1 ? 0 : 1);
         }
     }
 }
@@ -250,30 +253,27 @@ void tmc_process_job(void *unused_arg)
                 MotorControlData motor_data = {};
                 if (!default_config_sent)
                 {
-                    printf("Set up default config\n");
+                    Utils::log_info("Configure TMC2300 default values...");
                     tmc_control.defaultConfiguration();
                     default_config_sent = true;
+                    Utils::log_info("Configure TMC2300 default values - OK!");
                 }
                 // Check for an item in the FreeRTOS xQueue
                 if (xQueueReceive(queue_motor_control_data, &motor_data, 0) ==
                     pdPASS)
                 {
-                    printf("Velocity: %d\n", motor_data.velocity);
-                    printf("Direction: %d\n", motor_data.direction);
-                    // printf("IRUN: %d\n", motor_data.current);
-                    // tmc_control.updateCurrent(motor_data.current);
+                    // printf("Velocity diff: %d\n", motor_data.velocity_delta);
+                    // printf("Direction: %d\n", motor_data.direction);
                     if (motor_data.button_press)
                     {
                         printf("Button press - stopping motor!\n");
                         // A button press event should instantly stop the motor
-                        tmc_control.stop();
-                        // tmc_control.move(motor_data.velocity);
-                        // tmc_control.setCurrent(motor_data.current, 0);
+                        tmc_control.resetMovementDynamics();
                     }
                     else
                     {
                         tmc_control.updateMovementDynamics(
-                            motor_data.velocity,
+                            motor_data.velocity_delta,
                             motor_data.direction);
                     }
 
@@ -308,44 +308,30 @@ void joystick_process_job(void *unused_arg)
             MotorControlData motor_data = {};
             joystick_data = joystick_control.getJoystickData();
 
-            switch (joystick_data.state_x)
-            {
-                case (JoystickState::JOYSTICK_STATE_NEG):
-                    motor_data.direction = -1;
-                    break;
-                case (JoystickState::JOYSTICK_STATE_POS):
-                    motor_data.direction = 1;
-                    break;
-                case (JoystickState::JOYSTICK_STATE_IDLE):
-                default:
-                    motor_data.direction = 0;
-            }
-            switch (joystick_data.state_y)
-            {
-                case (JoystickState::JOYSTICK_STATE_NEG):
-                {
-                    motor_data.velocity = -VELOCITY_DELTA_VALUE;
-                    break;
-                }
-                case (JoystickState::JOYSTICK_STATE_POS):
-                {
-                    motor_data.velocity = VELOCITY_DELTA_VALUE;
-                    break;
-                }
-                case (JoystickState::JOYSTICK_STATE_IDLE):
-                default:
-                {
-                    motor_data.velocity = 0;
-                }
-            }
+            // Assign motor direction to the state of the joystick (either
+            // NEGATIVE:-1, IDLE:0, POSITIVE:+1)
+            motor_data.direction = joystick_data.state_x;
 
-            // printf("joy-x: %d\n", joystick_data.state_x);
-            // printf("joy-y: %d\n", joystick_data.state_y);
-            // printf("direction: %d\n", motor_data.direction);
-            // printf("velocity: %d\n", motor_data.velocity);
+            // Assign velocity_delta to the state of the joystick (either
+            // NEGATIVE:-1, IDLE:0, POSITIVE:+1) multiplied by the change in
+            // velocity we should incur.
+            motor_data.velocity_delta =
+                joystick_data.state_y * VELOCITY_DELTA_VALUE;
+
+            // This ensures that, no matter which direction we face, the
+            // joystick will "speed up" or "slow down" consistent with the
+            // direction of rotation of the motor shaft.
+            motor_data.velocity_delta *= motor_data.direction;
 
             motor_data.button_press = joystick_data.button_is_pressed;
-            xQueueSendToBack(queue_motor_control_data, &motor_data, 0);
+
+            // To ensure our new data isn't discarded and successfully makes it
+            // into the queue, we should wait a bit longer than the amount of
+            // time required to process one tmc_job_delay period to allow the
+            // tmc task to complete its latest round of actions.
+            xQueueSendToBack(queue_motor_control_data,
+                             &motor_data,
+                             tmc_job_delay + 1);
         }
         vTaskDelay(joystick_job_delay);
     }
@@ -375,24 +361,24 @@ int main()
                                          "GPIO_LED_TASK",
                                          128,
                                          NULL,
-                                         1,
+                                         job_priority_led_control,
                                          &gpio_task_handle);
-    BaseType_t joystick_status = xTaskCreate(joystick_process_job,
-                                             "JOYSTICK_JOB_TASK",
-                                             512,
-                                             NULL,
-                                             2,
-                                             &joystick_task_handle);
     BaseType_t tmc_status = xTaskCreate(tmc_process_job,
                                         "TMC_JOB_TASK",
                                         256,
                                         NULL,
-                                        3,
+                                        job_priority_tmc_control,
                                         &tmc_task_handle);
+    BaseType_t joystick_status = xTaskCreate(joystick_process_job,
+                                             "JOYSTICK_JOB_TASK",
+                                             512,
+                                             NULL,
+                                             job_priority_joystick_control,
+                                             &joystick_task_handle);
 
     // Set up the event queue
     queue = xQueueCreate(4, sizeof(uint8_t));
-    queue_motor_control_data = xQueueCreate(4, sizeof(struct MotorControlData));
+    queue_motor_control_data = xQueueCreate(2, sizeof(struct MotorControlData));
 
     // Start the FreeRTOS scheduler
     // FROM 1.0.1: Only proceed with valid tasks

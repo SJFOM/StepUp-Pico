@@ -38,9 +38,9 @@ struct JoystickPosition
 
 enum JoystickState
 {
+    JOYSTICK_STATE_NEG = -1,
     JOYSTICK_STATE_IDLE = 0,
-    JOYSTICK_STATE_NEG,
-    JOYSTICK_STATE_POS,
+    JOYSTICK_STATE_POS = 1,
 };
 struct JoystickData
 {
