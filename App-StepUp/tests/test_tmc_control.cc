@@ -1,6 +1,9 @@
 #include <gtest/gtest.h>
 
+extern "C"
+{
 #include "../include/tmc_control.hpp"
+}
 
 class TMCControlTest : public ::testing::Test
 {
@@ -21,6 +24,7 @@ protected:
 TEST_F(TMCControlTest, ShouldSetCorrectVelocity)
 {
     // EXPECT_CALL(*tmc_control, move(1000)).Times(1);
+    // tmc_control.move(1000);
     tmc_control.updateMovementDynamics(1000, 1);
     // if (_velocity < 0 && direction == -1)
     // {
