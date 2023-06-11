@@ -103,3 +103,12 @@ Application source © 2022, Tony Smith and licensed under the terms of the [MIT 
 [FreeRTOS](https://freertos.org/) © 2021, Amazon Web Services, Inc. It is also licensed under the terms of the [MIT Licence](./LICENSE.md).
 
 The [Raspberry Pi Pico SDK](https://github.com/raspberrypi/pico-sdk) is © 2020, Raspberry Pi (Trading) Ltd. It is licensed under the terms of the [BSD 3-Clause "New" or "Revised" Licence](https://github.com/raspberrypi/pico-sdk/blob/master/LICENSE.TXT).
+
+
+## SAM notes on usage
+
+### Debugging
+To get openocd to play ball, you must install the following as per the README.macOS file in the openocd folder (do so within the folder):
+```
+brew install libtool automake libusb libusb-compat hidapi libftdi
+```

@@ -67,12 +67,18 @@ bool JoystickControl::init()
         adc_select_input(JOYSTICK_ADC_CHANNEL_Y);
         m_joystick.position.y_offset = adc_read();
 
-        printf("X - Raw value: 0x%03x, voltage: %f V\n",
-               m_joystick.position.x_offset,
-               m_joystick.position.x_offset * adc_conversion_factor);
-        printf("Y - Raw value: 0x%03x, voltage: %f V\n",
-               m_joystick.position.y_offset,
-               m_joystick.position.y_offset * adc_conversion_factor);
+        Utils::log_info((string) "X - Raw value: " +
+                        std::to_string(m_joystick.position.x_offset) +
+                        " - voltage: " +
+                        std::to_string(m_joystick.position.x_offset *
+                                       adc_conversion_factor) +
+                        " V");
+        Utils::log_info((string) "Y - Raw value: " +
+                        std::to_string(m_joystick.position.y_offset) +
+                        " - voltage: " +
+                        std::to_string(m_joystick.position.y_offset *
+                                       adc_conversion_factor) +
+                        " V");
 
         if ((m_joystick.position.x_offset > ADC_LOWER_HOME_THRESHOLD_RAW &&
              m_joystick.position.x_offset < ADC_UPPER_HOME_THRESHOLD_RAW) &&
@@ -87,9 +93,12 @@ bool JoystickControl::init()
         }
         else
         {
-            printf("ADC lower bound = %d\n", ADC_LOWER_HOME_THRESHOLD_RAW);
-            printf("x stage offset = %d\n", m_joystick.position.x_offset);
-            printf("y stage offset = %d\n", m_joystick.position.y_offset);
+            Utils::log_warn((string) "ADC lower bound:" +
+                            std::to_string(ADC_LOWER_HOME_THRESHOLD_RAW));
+            Utils::log_warn((string) "x stage offset: " +
+                            std::to_string(m_joystick.position.x_offset));
+            Utils::log_warn((string) "y stage offset: " +
+                            std::to_string(m_joystick.position.y_offset));
         }
 
         // Mimick first button press event against which to compare later events
@@ -99,6 +108,9 @@ bool JoystickControl::init()
     if (m_init_success)
     {
         m_joystick.control_state = ControllerState::STATE_READY;
+        // TODO: Have the ADC's constantly sample using DMA to fill a buffer
+        // which we can read the averaged value from when the processJob comes
+        // around to do its job
         // adc_set_round_robin(JOYSTICK_ADC_ROUND_ROBIN_MASK);
         // Set channel 0 to be first
         // adc_select_input(JOYSTICK_ADC_CHANNEL_X);
@@ -126,8 +138,10 @@ void JoystickControl::deinit()
 struct JoystickData JoystickControl::getJoystickData()
 {
     m_joystick.control_state = ControllerState::STATE_READY;
+    // Create temporary data holder before modifying local values
     JoystickData temp_data = m_joystick;
-    m_joystick.state_x = JoystickState::JOYSTICK_STATE_IDLE;
+    // Reset y stage as we always want to catch the state of this on each
+    // iteration of processJob
     m_joystick.state_y = JoystickState::JOYSTICK_STATE_IDLE;
     m_joystick.button_is_pressed = false;
     return temp_data;
@@ -157,33 +171,27 @@ enum ControllerState JoystickControl::processJob(uint32_t tick_count)
 
     if (m_joystick.position.x < JOYSTICK_THRESHOLD_LOWER)
     {
-        // printf("XL\n");
         m_joystick.state_x = JoystickState::JOYSTICK_STATE_NEG;
     }
     else if (m_joystick.position.x > JOYSTICK_THRESHOLD_UPPER)
     {
-        // printf("XU\n");
         m_joystick.state_x = JoystickState::JOYSTICK_STATE_POS;
     }
     else
     {
-        // printf("XI\n");
         m_joystick.state_x = JoystickState::JOYSTICK_STATE_IDLE;
     }
 
     if (m_joystick.position.y < JOYSTICK_THRESHOLD_LOWER)
     {
-        // printf("YL\n");
         m_joystick.state_y = JoystickState::JOYSTICK_STATE_NEG;
     }
     else if (m_joystick.position.y > JOYSTICK_THRESHOLD_UPPER)
     {
-        // printf("YU\n");
         m_joystick.state_y = JoystickState::JOYSTICK_STATE_POS;
     }
     else
     {
-        // printf("YI\n");
         m_joystick.state_y = JoystickState::JOYSTICK_STATE_IDLE;
     }
 
@@ -207,7 +215,7 @@ void joystick_button_callback(uint gpio, uint32_t events)
         // Recommend to not to change the position of this line
         time_of_last_button_press = to_ms_since_boot(get_absolute_time());
 
-        printf("GPIO %d %d\n", gpio, events);
+        // printf("GPIO %d %d\n", gpio, events);
         button_press_event = true;
     }
 }

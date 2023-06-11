@@ -23,13 +23,16 @@ extern "C"
 
 // printf can default to using uart0 so use uart1 instead
 #define TMC_UART_ID   uart1
-#define TMC_BAUD_RATE ((uint)115200)
+#define TMC_BAUD_RATE ((unsigned)460800)
 
 #define TMC_UART_SLAVE_ADDRESS (3U)
 
 #define TMC_UART_CHANNEL (0)  // Not as relevant for single IC use case
 
 #define VELOCITY_MAX_STEPS_PER_SECOND (100000UL)
+
+#define DEFAULT_IRUN_VALUE  (10U)
+#define DEFAULT_IHOLD_VALUE (0U)
 
 /*****************************/
 /* General Registers - START */
@@ -195,7 +198,7 @@ struct SGTHRS_t
     // WRITE only register
     constexpr static uint8_t address = TMC2300_SGTHRS;
 
-    /* Detection threshold for stall. The StallGuardv alue SG_VALUE becomes
+    /* Detection threshold for stall. The StallGuard value SG_VALUE becomes
      * compared to this threshold. */
     uint8_t sr : 8;
 };
@@ -368,19 +371,20 @@ class TMCControl : public ControlInterface
 public:
     TMCControl();
     ~TMCControl();
-    bool init();
-    void deinit();
-    void defaultConfiguration();
+    bool init(void);
+    void deinit(void);
+    void defaultConfiguration(void);
     enum ControllerState processJob(uint32_t tick_count);
     void enableUartPins(bool enablePins);
     void setStandby(bool enableStandby);
+    bool isDriverEnabled(void);
     void enableDriver(bool enableDriver);
     void move(int32_t velocity);
-    void stop();
+    void resetMovementDynamics(void);
     void setCurrent(uint8_t i_run, uint8_t i_hold);
     void updateCurrent(uint8_t i_run_delta);
     void updateMovementDynamics(int32_t velocity_delta, int8_t direction);
-    uint8_t getChipID();
+    uint8_t getChipID(void);
 
 protected:
     GCONF_t m_gconf;

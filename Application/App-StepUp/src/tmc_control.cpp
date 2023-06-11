@@ -28,20 +28,16 @@ void callback(TMC2300TypeDef *tmc2300, ConfigState cfg_state)
         // Configuration reset completed
         // Change hardware preset registers here
 
+        // TODO: Update register values also to reflect state
         // m_ihold_irun.ihold = 1;
         // m_ihold_irun.irun = 4;
         // m_ihold_irun.iholddelay = 2;
-
-        // // Lower the default run and standstill currents
-        // tmc2300_writeInt(tmc2300, m_ihold_irun.address, m_ihold_irun.sr);
-
-        // TODO: Update register values also to reflect state
         // Lower the default run and standstill currents
         tmc2300_writeInt(tmc2300, TMC2300_IHOLD_IRUN, 0x00010402);
     }
     else
     {
-        printf("TMC is ready for action!\n");
+        Utils::log_info("TMC is ready for use");
         // Configuration restore complete
         is_callback_complete = true;
         // The driver may only be enabled once the configuration is done
@@ -158,9 +154,13 @@ void TMCControl::defaultConfiguration()
     m_gstat.sr = tmc2300_readInt(&tmc2300, m_gstat.address);
     if (m_gstat.sr)
     {
-        printf("Reset = %d\n", m_gstat.reset);
-        printf("Error, shut down = %d\n", m_gstat.drv_err);
-        printf("Low supply voltage = %d\n", m_gstat.u3v5);
+        Utils::log_info("TMC2300 GSTAT register diagnostics:");
+        Utils::log_info((string) "\t- Reset?: " +
+                        std::to_string(m_gstat.reset));
+        Utils::log_info((string) "\t- Driver shutdown due to error?: " +
+                        std::to_string(m_gstat.drv_err));
+        Utils::log_info((string) "\t- Low supply voltage?: " +
+                        std::to_string(m_gstat.u3v5));
     }
 
     /* Register: IOIN_t
@@ -188,8 +188,8 @@ void TMCControl::defaultConfiguration()
      * Use: Control motor power consumption and ability to drive loads
      */
     m_ihold_irun.sr = tmc2300_readInt(&tmc2300, m_ihold_irun.address);
-    m_ihold_irun.ihold = 0;       // Standstill current
-    m_ihold_irun.irun = 10;       // Motor run current
+    m_ihold_irun.ihold = DEFAULT_IHOLD_VALUE;  // Standstill current
+    m_ihold_irun.irun = DEFAULT_IRUN_VALUE;    // Motor run current
     m_ihold_irun.iholddelay = 2;  // Number of clock cycles for motor power down
                                   // after standstill detected
     tmc2300_writeInt(&tmc2300, m_ihold_irun.address, m_ihold_irun.sr);
@@ -233,7 +233,7 @@ void TMCControl::defaultConfiguration()
     m_pwmconf.pwm_grad = 16;  // Velocity dependent gradient for PWM amplitude
     m_pwmconf.pwm_freq = 0;   // PWM frequency selection
     m_pwmconf.pwm_autoscale = true;  // PWM automatic amplitude scaling
-    m_pwmconf.pwm_autograd = false;  // PWM automatic gradient adaptation
+    m_pwmconf.pwm_autograd = true;   // PWM automatic gradient adaptation
     m_pwmconf.freewheel =
         1;                  // Standstill option when motor current setting is 0
     m_pwmconf.pwm_reg = 4;  // Regulation loop gradient
@@ -270,58 +270,57 @@ void TMCControl::updateCurrent(uint8_t i_run_delta)
 void TMCControl::updateMovementDynamics(int32_t velocity_delta,
                                         int8_t direction)
 {
-    int32_t _velocity = m_vactual.sr + velocity_delta;
-
-    if (_velocity < 0 && direction == -1)
-    {
-        // Do nothing
-        ;
-    }
-    if (_velocity > 0 && direction == 1)
-    {
-        // Do nothing
-        ;
-    }
-    if (_velocity < 0 && direction == 1)
-    {
-        // Invert direction
-        _velocity = -_velocity;
-    }
-    if (_velocity > 0 && direction == -1)
-    {
-        // Invert direction
-        _velocity = -_velocity;
-    }
     if (direction == 0)
     {
-        // Stop motor
-        _velocity = 0;
+        enableDriver(false);
     }
+    else
+    {
+        int32_t _velocity = abs(m_vactual.sr);
+        _velocity *= direction;
+        _velocity += velocity_delta;
 
-    move(_velocity);
+        move(_velocity);
+    }
 }
 
-void TMCControl::stop()
+void TMCControl::resetMovementDynamics()
 {
     move(0);
-    enableDriver(false);
+    setCurrent(DEFAULT_IRUN_VALUE, DEFAULT_IHOLD_VALUE);
 }
 
 void TMCControl::move(int32_t velocity)
 {
-    if (m_vactual.sr != velocity)
+    if (abs(velocity) > VELOCITY_MAX_STEPS_PER_SECOND)
     {
-        if (abs(velocity) > VELOCITY_MAX_STEPS_PER_SECOND)
-        {
-            Utils::log_warn("Max motor velocity reached!");
+        Utils::log_warn("Max motor velocity reached!");
 
-            velocity = VELOCITY_MAX_STEPS_PER_SECOND;
-        }
-        printf("New velocity: %d\n", velocity);
-        m_vactual.sr = velocity;
-        enableDriver(velocity == 0 ? false : true);
-        tmc2300_writeInt(&tmc2300, m_vactual.address, m_vactual.sr);
+        velocity = VELOCITY_MAX_STEPS_PER_SECOND;
     }
+    // printf("New velocity: %d\n", velocity);
+    m_vactual.sr = velocity;
+    if (!isDriverEnabled())
+    {
+        enableDriver(velocity == 0 ? false : true);
+    }
+    tmc2300_writeInt(&tmc2300, m_vactual.address, m_vactual.sr);
+
+    // TODO: Implement Stallguard thresholding logic
+    /*
+        uint32_t sg_value = tmc2300_readInt(&tmc2300, TMC2300_SG_VALUE);
+        printf("SG: %d\n", sg_value);
+        if (sg_value < 50)
+        {
+            printf("current++\n");
+            updateCurrent(1);
+        }
+        if (sg_value > 200)
+        {
+            printf("current--\n");
+            updateCurrent(-1);
+        }
+    */
 }
 
 uint8_t TMCControl::getChipID()
@@ -338,7 +337,7 @@ void TMCControl::enableUartPins(bool enablePins)
 {
     if (enablePins && !m_uart_pins_enabled)
     {
-        Utils::log_info("UART pins enable");
+        Utils::log_info("TMC - UART pins enable");
         // Set the TX and RX pins by using the function select on the GPIO
         // Set datasheet for more information on function select
         gpio_init(TMC_UART_TX_PIN);
@@ -352,7 +351,7 @@ void TMCControl::enableUartPins(bool enablePins)
     }
     else if (!enablePins)
     {
-        Utils::log_info("UART pins disable");
+        Utils::log_info("TMC - UART pins disable");
         // Set the UART pins as standard IO's
         gpio_set_function(TMC_UART_TX_PIN, GPIO_FUNC_SIO);
         gpio_set_function(TMC_UART_RX_PIN, GPIO_FUNC_SIO);
@@ -369,7 +368,7 @@ void TMCControl::enableUartPins(bool enablePins)
     }
 
     // TODO: Figure out if actually needed...
-    sleep_ms(10);
+    sleep_ms(5);
 }
 
 struct TMCData TMCControl::getTMCData()
@@ -447,13 +446,16 @@ void TMCControl::setStandby(bool enable_standby)
     tmc2300_setStandby(&tmc2300, enable_standby ? 1 : 0);
 }
 
+bool TMCControl::isDriverEnabled()
+{
+    return gpio_get(TMC_PIN_ENABLE);
+}
+
 void TMCControl::enableDriver(bool enable_driver)
 {
     bool _enable_driver = (bool)(driver_can_be_enabled && enable_driver);
 
-    printf("enable driver: %d\n", _enable_driver);
+    Utils::log_debug((string) "Driver enabled: " +
+                     std::to_string(_enable_driver));
     gpio_put(TMC_PIN_ENABLE, _enable_driver ? 1 : 0);
-
-    // TODO: Check if necessary
-    sleep_ms(10);
 }
