@@ -2,9 +2,16 @@
 #define JOYSTICK_CONTROL_H_
 
 // pico-sdk
-#include "hardware/adc.h"
-#include "hardware/gpio.h"
-#include "pico/stdlib.h"  // Includes `hardware_gpio.h`
+// #include "hardware/adc.h"
+// #include "hardware/gpio.h"
+// #include "pico/stdlib.h"  // Includes `hardware_gpio.h`
+
+extern "C"
+{
+#include "../../../testing_interfaces/pico_interface/hardware/adc.h"
+#include "../../../testing_interfaces/pico_interface/hardware/gpio.h"
+#include "../../../testing_interfaces/pico_interface/pico/stdlib.h"
+}
 
 // pin includes
 #include "pins_definitions.h"

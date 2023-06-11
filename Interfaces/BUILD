@@ -1,5 +1,5 @@
 cc_library(
-    name = "ControlInterface",
-    hdrs = "ControlInterface.hpp",
+    name = "control_interface",
+    hdrs = ["ControlInterface.hpp"],
     visibility = ["//visibility:public"],
 )

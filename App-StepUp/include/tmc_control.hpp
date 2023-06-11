@@ -2,7 +2,14 @@
 #define TMC_CONTROL_H_
 
 // pico-sdk
-#include "pico/stdlib.h"  // Includes `hardware_gpio.h`
+// #include "pico/stdlib.h"  // Includes `hardware_gpio.h`
+
+// extern "C"
+// {
+#include "../../../testing_interfaces/pico_interface/hardware/adc.h"
+#include "../../../testing_interfaces/pico_interface/hardware/gpio.h"
+#include "../../../testing_interfaces/pico_interface/pico/stdlib.h"
+// }
 
 // Logging utilities
 #include "utils.h"
@@ -142,7 +149,7 @@ struct IHOLD_IRUN_t
     };
 
     // Default constructor holds reset values
-    IHOLD_IRUN_t() : ihold(8U), irun(31U), iholddelay(1U) {}
+    IHOLD_IRUN_t() : iholddelay(1U), irun(31U), ihold(8U) {}
 };
 
 struct TPOWERDOWN_t

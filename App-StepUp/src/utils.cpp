@@ -144,7 +144,7 @@ namespace Utils
      */
     void log_info(const string msg)
     {
-        printf("[INFO] %s%\n", msg.c_str());
+        printf("[INFO] %s\n", msg.c_str());
     }
 
     /**
@@ -155,7 +155,7 @@ namespace Utils
      */
     void log_debug(const string msg)
     {
-        printf("[DBUG] %s%\n", msg.c_str());
+        printf("[DBUG] %s\n", msg.c_str());
     }
 
     /**

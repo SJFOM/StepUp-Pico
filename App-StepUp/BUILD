@@ -5,12 +5,12 @@ cc_library(
     copts = [
         "-I Libraries/TMC_API",
         # "-I testing-interfaces/pico-interface"
-        # "-I Interfaces/ControlInterface",
+        # "-I Interfaces",
     ],
     deps = [
         "//Libraries/TMC_API:TMC_API",
-        "//testing-interfaces/pico-interface:pico_test"
-        # "//Interfaces/ControlInterface:ControlInterface",
+        "//testing_interfaces/pico_interface:pico_test",
+        "//Interfaces:control_interface",
     ],
     visibility = [
         "//App-StepUp/tests:__pkg__",

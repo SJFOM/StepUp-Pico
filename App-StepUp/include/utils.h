@@ -20,8 +20,18 @@
 #include <string>
 #include <vector>
 // Pico SDK
-#include "pico/binary_info.h"
-#include "pico/stdlib.h"
+// #include "pico/binary_info.h"
+// #include "pico/stdlib.h"
+
+#ifndef APP_NAME
+#    define APP_NAME "APP_TEST"
+#endif
+#ifndef APP_VERSION
+#    define APP_VERSION "APP_TEST_VERSION"
+#endif
+#ifndef BUILD_NUM
+#    define BUILD_NUM "APP_TEST_BUILD_NUM"
+#endif
 
 using std::string;
 using std::vector;

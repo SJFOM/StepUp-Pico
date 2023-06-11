@@ -1,5 +1,5 @@
 cc_library(
     name = "TMC_API",
-    hdrs = glob(["*.h"]),
+    hdrs = glob(["ic/*.h", "helpers/*.h"]),
     visibility = ["//visibility:public"],
 )

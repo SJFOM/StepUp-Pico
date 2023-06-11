@@ -78,7 +78,14 @@
     "numeric": "cpp",
     "random": "cpp",
     "ranges": "cpp",
-    "cinttypes": "cpp"
+    "cinttypes": "cpp",
+    "__functional_03": "cpp",
+    "__hash_table": "cpp",
+    "__node_handle": "cpp",
+    "filesystem": "cpp",
+    "list": "cpp",
+    "stack": "cpp",
+    "variant": "cpp"
   },
   "cortex-debug.openocdPath.osx": "${workspaceRoot}/openocd/src/openocd",
   "cortex-debug.openocdPath.windows": "C:\\Program Files\\Raspberry Pi\\Pico SDK v1.5.0\\openocd\\openocd.exe",

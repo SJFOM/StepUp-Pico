@@ -5,7 +5,7 @@ cc_library(
         "hardware/adc.h",
         "hardware/gpio.h",
         "types.h",
-        "pico_test.h"
+        # "pico_test.h"
     ],
     # hdrs = glob(["hardware/*.h"], ["pico/*.h"]),
     # hdrs = ["pico_test.h"],
