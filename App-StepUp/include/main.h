@@ -1,6 +1,7 @@
 /**
- * RP2040 FreeRTOS Template
+ * Main header file for App-StepUp
  *
+ * Adapted from:
  * @copyright 2022, Tony Smith (@smittytone)
  * @version   1.4.1
  * @license   MIT
@@ -27,7 +28,7 @@
 #include "pico/binary_info.h"
 #include "pico/stdlib.h"  // Includes `hardware_gpio.h`
 // App
-#include "../../../Common/utils.h"
+#include "utils.h"
 // Control includes
 #include "joystick_control.hpp"
 #include "tmc_control.hpp"
