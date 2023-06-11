@@ -15,6 +15,7 @@ Details:
 3. Copy of UF2 file (as spec'd by user) to Pico
 """
 
+# TODO: Pass com port as input
 # FAO User: edit this as appropriate
 APP_NAME = "App-StepUp"
 if ("win32" in sys.platform):
