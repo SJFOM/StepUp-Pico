@@ -13,7 +13,7 @@ cc_library(
         # "//Interfaces/ControlInterface:ControlInterface",
     ],
     visibility = [
-        "//Application/App-StepUp/tests:__pkg__",
-        "//Application/App-StepUp/src:__pkg__",
+        "//App-StepUp/tests:__pkg__",
+        "//App-StepUp/src:__pkg__",
     ],
 )
