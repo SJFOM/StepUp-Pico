@@ -89,5 +89,8 @@
     "editor.defaultFormatter": "vscode.json-language-features"
   },
   "editor.formatOnSave": true,
-  "C_Cpp.clang_format_path": "/usr/local/bin/clang-format"
+  "C_Cpp.clang_format_path": "/usr/local/bin/clang-format",
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.python"
+  }
 }

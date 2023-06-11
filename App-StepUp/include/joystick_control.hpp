@@ -9,8 +9,8 @@
 // pin includes
 #include "pins_definitions.h"
 
-// Common
-#include "../../../Common/utils.h"
+// Logging utilities
+#include "utils.h"
 
 // Control libraries
 #include "../../../Interfaces/ControlInterface.hpp"

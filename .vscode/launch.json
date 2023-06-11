@@ -7,7 +7,7 @@
         {
             "name": "Debug with OpenOCD",
             "cwd": "${workspaceRoot}",
-            "executable": "${workspaceRoot}/build/Application/App-StepUp/StepUp.elf",
+            "executable": "${workspaceRoot}/build/App-StepUp/StepUp.elf",
             "request": "launch",
             "type": "cortex-debug",
             "servertype": "openocd",
@@ -40,7 +40,7 @@
         {
             "name": "Upload only",
             "cwd": "${workspaceRoot}",
-            "executable": "${workspaceRoot}/build/Application/App-StepUp/StepUp.elf",
+            "executable": "${workspaceRoot}/build/App-StepUp/StepUp.elf",
             "request": "launch",
             "type": "cortex-debug",
             "servertype": "openocd",
