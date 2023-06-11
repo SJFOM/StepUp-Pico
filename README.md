@@ -1,4 +1,4 @@
-![Alt Text](./images/StepUp_text_header.gif)
+![Alt Text](./images/StepUp_text_header.svg)
 
 
 Meet *StepUp!* - A simple tool for instant stepper motor testing.
