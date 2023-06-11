@@ -5,3 +5,6 @@ build/
 
 bazel-*
 .cortex-debug*
+
+# Mac specific
+.DS_Store

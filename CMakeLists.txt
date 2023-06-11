@@ -5,30 +5,11 @@ set(PROJECT_NAME "STEPUP_PICO")
 set(BUILD_NUMBER "0")
 
 # Set app name(s) and version(s)
-set(APP_1_NAME "StepUp")
-set(APP_1_VERSION_NUMBER "0.0.1")
-
-set(APP_2_NAME "SCHEDULING_DEMO")
-set(APP_2_VERSION_NUMBER "1.4.1")
-
-set(APP_3_NAME "IRQS_DEMO")
-set(APP_3_VERSION_NUMBER "1.4.1")
-
-set(APP_4_NAME "TIMERS_DEMO")
-set(APP_4_VERSION_NUMBER "1.4.1")
-
-set(APP_5_NAME "Basic_Test")
-set(APP_5_VERSION_NUMBER "0.0.1")
+set(APP_NAME "StepUp")
+set(APP_VERSION_NUMBER "0.0.1")
 
 # Specify the app(s) source code
-set(APP_1_SRC_DIRECTORY "${CMAKE_SOURCE_DIR}/Application/App-StepUp")
-set(APP_2_SRC_DIRECTORY "${CMAKE_SOURCE_DIR}/Application/App-Scheduling")
-set(APP_3_SRC_DIRECTORY "${CMAKE_SOURCE_DIR}/Application/App-IRQs")
-set(APP_4_SRC_DIRECTORY "${CMAKE_SOURCE_DIR}/Application/App-Timers")
-set(APP_5_SRC_DIRECTORY "${CMAKE_SOURCE_DIR}/Application/App-Basic")
-
-# FROM 1.3.0 -- Move common source code to a separate directory
-set(COMMON_CODE_DIRECTORY "${CMAKE_SOURCE_DIR}/Common")
+set(APP_SRC_DIRECTORY "${CMAKE_SOURCE_DIR}/App-StepUp")
 
 # Sam - create references to additional folders
 set(TMC_API_CODE_DIRECTORY "${CMAKE_SOURCE_DIR}/Libraries/TMC_API")
@@ -80,9 +61,4 @@ target_include_directories(FreeRTOS PUBLIC
 )
 
 # Include the apps' source code
-add_subdirectory(${APP_1_SRC_DIRECTORY}) # App-StepUp
-
-# add_subdirectory(${APP_2_SRC_DIRECTORY}) # App-Scheduling
-# add_subdirectory(${APP_3_SRC_DIRECTORY}) # App-IRQs
-# add_subdirectory(${APP_4_SRC_DIRECTORY}) # App-Timers
-# add_subdirectory(${APP_5_SRC_DIRECTORY}) # App-Basic
+add_subdirectory(${APP_SRC_DIRECTORY}) # App-StepUp

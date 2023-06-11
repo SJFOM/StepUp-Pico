@@ -1,10 +1,10 @@
 TEST_DEPS = [
     "@com_google_googletest//:gtest_main",
-    "//Application/App-StepUp:app_step_up",
+    "//App-StepUp:app_step_up",
     "//testing-interfaces/pico-interface:pico_test"
 ]
 # TEST_COPTS = [
-#     "-I Application/App-StepUp",
+#     "-I App-StepUp",
 #     "-I Interfaces/ControlInterface",
 # ]
 

@@ -1,27 +1,24 @@
-# RP2040-FreeRTOS Template 1.4.1
+![Alt Text](./images/StepUp_text_header.svg)
+# *StepUp!* - A simple tool for instant stepper motor testing
 
-This repo contains my base project for [FreeRTOS](https://freertos.org/) on the [Raspberry Pi RP2040 microcontroller](https://www.raspberrypi.com/products/rp2040/). It can be run as a demo and then used as the basis of a new project.
 
-More details [in this blog post](https://blog.smittytone.net/2022/02/24/how-to-use-freertos-with-the-raspberry-pi-pico/).
+<a href="https://hits.dwyl.com/SJFOM/StepUp-Pico"><img src="https://hits.dwyl.com/SJFOM/StepUp-Pico.svg" alt="Hits Badge"/></a>
+<a href="https://github.com/SJFOM/StepUp-Pico/stargazers"><img src="https://img.shields.io/github/stars/SJFOM/StepUp-Pico" alt="Stars Badge"/></a>
+<a href="https://github.com/SJFOM/StepUp-Pico/network/members"><img src="https://img.shields.io/github/forks/SJFOM/StepUp-Pico" alt="Forks Badge"/></a>
+<a href="https://github.com/SJFOM/StepUp-Pico/pulls"><img src="https://img.shields.io/github/issues-pr/SJFOM/StepUp-Pico" alt="Pull Requests Badge"/></a>
+<a href="https://github.com/SJFOM/StepUp-Pico/issues"><img src="https://img.shields.io/github/issues/SJFOM/StepUp-Pico" alt="Issues Badge"/></a>
+<a href="https://github.com/SJFOM/StepUp-Pico/graphs/contributors"><img alt="GitHub contributors" src="https://img.shields.io/github/contributors/SJFOM/StepUp-Pico?color=2b9348"></a>
+<a href="https://github.com/SJFOM/StepUp-Pico/blob/master/LICENSE"><img src="https://img.shields.io/github/license/SJFOM/StepUp-Pico?color=2b9348" alt="License Badge"/></a>
+
+
 
 ## Project Structure
 
 ```
-/RP2040-FreeRTOS
+/StepUp-Pico
 |
-|___/App-Template           // Application 1 (FreeRTOS template) source code (C)
+|___/App-StepUp             // StepUp! Application source code (C++)
 |   |___CMakeLists.txt      // Application-level CMake config file
-|
-|___/App-Scheduling         // Application 2 (scheduling demo) source code (C++)
-|   |___CMakeLists.txt      // Application-level CMake config file
-|
-|___/App-IRQs               // Application 3 (IRQs demo) source code (C++)
-|   |___CMakeLists.txt      // Application-level CMake config file
-|
-|___/App-Timers             // Application 4 (timers demo) source code (C++)
-|   |___CMakeLists.txt      // Application-level CMake config file
-|
-|___/Common                 // Source code common to applications 2-4 (C++)
 |
 |___/Config
 |   |___FreeRTOSConfig.h    // FreeRTOS project config file
@@ -31,10 +28,14 @@ More details [in this blog post](https://blog.smittytone.net/2022/02/24/how-to-u
 |
 |___CMakeLists.txt          // Top-level project CMake config file
 |___pico_sdk_import.cmake   // Raspberry Pi Pico SDK CMake import script
-|___deploy.sh               // Build-and-deploy shell script
+|
+|___deploy.sh               // Build-and-deploy shell script (Windows)
+|___deploy.py               // Build-and-deploy shell script (OS Agnostic - WIP)
+|___program.sh              // Program Pico using a connected debugger tool
+|___program_and_monitor.sh  // Program and monitor the Pico using a connected debugger tool
+|___build_and_program.sh    // Build and then program the Pico using a connected debugger tool
 |
 |___rp2040.code-workspace   // Visual Studio Code workspace
-|___rp2040.xcworkspace      // Xcode workspace
 |
 |___README.md
 |___LICENSE.md
@@ -44,71 +45,48 @@ More details [in this blog post](https://blog.smittytone.net/2022/02/24/how-to-u
 
 To use the code in this repo, your system must be set up for RP2040 C/C++ development. See [this blog post of mine](https://blog.smittytone.net/2021/02/02/program-raspberry-pi-pico-c-mac/) for setup details.
 
+
+### Hardware
+This project makes use of the very handy [Raspberry Pi Debug Probe](https://www.raspberrypi.com/documentation/microcontrollers/debug-probe.html) although this is only one of several ways of uploading code to and debugging the Pico microcontroller found on the StepUp! circuit board.
+
+![Alt Text](./images/pico_debug_probe.webp)
+
+### Debugging on MacOS
+To get openocd to play ball, you must install the following libraries as described in the `openocd/README.macOS` file:
+```
+brew install libtool automake libusb libusb-compat hidapi libftdi
+```
+
 ## Usage
 
-1. Clone the repo: `git clone https://github.com/smittytone/RP2040-FreeRTOS`.
-1. Enter the repo: `cd RP2040-FreeRTOS`.
+1. Clone the repo: `git clone https://github.com/SJFOM/StepUp-Pico.git`.
+1. Enter the repo: `cd StepUp-Pico`.
 1. Install the submodules: `git submodule update --init --recursive`.
-1. Optionally, edit `CMakeLists.txt` and `/<Application>/CMakeLists.txt` to rename the project.
+1. Optionally, edit `CMakeLists.txt` and `/App-StepUp/CMakeLists.txt` to configure the project.
 1. Optionally, manually configure the build process: `cmake -S . -B build/`.
 1. Optionally, manually build the app: `cmake --build build`.
 1. Connect your device so it’s ready for file transfer.
-1. Install the app: `./deploy.sh`.
-    * Pass the app you wish to deplopy:
-        * `./deploy.sh build/App-Template/TEMPLATE.uf2`.
-        * `./deploy.sh build/App-Scheduling/SCHEDULING_DEMO.uf2`.
-    * To trigger a build, include the `--build` or `-b` flag: `./deploy.sh -b`.
+1. Install the app: `./deploy.py`.
+    * Pass the COM Port you wish to deploy to:
+        * `./deploy.py --port /dev/tty.usbserialX`
+        * `./deploy.py --port COMX`
+    * To trigger a build, include the `--build` or `-b` flag: `./deploy.py -b`.
 
-
-## The Apps
-
-This repo includes a number of deployable apps. The project builds them all, sequentially. Exclude apps from the build process by commenting out their `add_subdirectory()` lines in the top-level `CMakeLists.txt`.
-
-### App One: Template
-
-This C app provides a simple flip-flop using an on-board LED and an LED wired between GPIO 20 and GND. The board LED flashes every 500ms under one task. When its state changes, a message containing its state is added to a FreeRTOS inter-task xQueue. A second task checks for an enqueued message: if one is present, it reads the message and sets the LED it controls — the GPIO LED — accordingly to the inverse of the board LED’s state.
-
-![Circuit layout](./images/plus.png)
-
-The code demonstrates a basic FreeRTOS setup, but you can replace it entirely with your own code if you’re using this repo’s contents as a template for your own projects.
-
-### App Two: Scheduling
-
-This C++ app builds on the first by adding an MCP9808 temperature sensor and an HT16K33-based LED display. It is used in [this blog post](https://blog.smittytone.net/2022/03/04/further-fun-with-freertos-scheduling/).
-
-![Circuit layout](./images/scheduler.png)
-
-### App Three: IRQs
-
-This C++ app builds on the second by using the MCP9808 temperature sensor to trigger an interrupt. It is used in [this blog post](https://blog.smittytone.net/2022/03/20/fun-with-freertos-and-pi-pico-interrupts-semaphores-notifications/).
-
-![Circuit layout](./images/irqs.png)
-
-### App Four: Timers
-
-This C++ app provides an introduction to FreeRTOS’ software timers. No extra hardware is required. It is used in [this blog post](https://blog.smittytone.net/2022/06/14/fun-with-freertos-and-the-pi-pico-timers/).
 
 ## IDEs
 
-Workspace files are included for the Visual Studio Code and Xcode IDEs.
+Workspace files are included for [Visual Studio Code](https://code.visualstudio.com/).
 
 ## Credits
 
-This work was inspired by work done on [Twilio Microvisor FreeRTOS Demo code](https://github.com/twilio/twilio-microvisor-freertos), but the version of the `FreeRTOSConfig.h` file included here was derived from [work by @yunka2](https://github.com/yunkya2/pico-freertos-sample).
+This work makes heavy usage of Tony Smith's (a.k.a [smittytone](https://github.com/smittytone)) wonderful [RP2040-FreeRTOS Template](https://github.com/smittytone/RP2040-FreeRTOS) which forms the basic structure for most of this project. Kudos to his work on creating a simple platform to get started with FreeRTOS on the Pi Pico hardware.
 
 ## Copyright and Licences
 
-Application source © 2022, Tony Smith and licensed under the terms of the [MIT Licence](./LICENSE.md).
+StepUp! application source © 2023, Sam O'Mahony (a.k.a [SJFOM](https://github.com/SJFOM)) and licensed under the terms of the [MIT Licence](./LICENSE.md).
+
+Original template source code © 2022, Tony Smith (a.k.a. [smittytone](https://github.com/smittytone)) and licensed under the terms of the [MIT Licence](./LICENSE.md).
 
 [FreeRTOS](https://freertos.org/) © 2021, Amazon Web Services, Inc. It is also licensed under the terms of the [MIT Licence](./LICENSE.md).
 
 The [Raspberry Pi Pico SDK](https://github.com/raspberrypi/pico-sdk) is © 2020, Raspberry Pi (Trading) Ltd. It is licensed under the terms of the [BSD 3-Clause "New" or "Revised" Licence](https://github.com/raspberrypi/pico-sdk/blob/master/LICENSE.TXT).
-
-
-## SAM notes on usage
-
-### Debugging
-To get openocd to play ball, you must install the following as per the README.macOS file in the openocd folder (do so within the folder):
-```
-brew install libtool automake libusb libusb-compat hidapi libftdi
-```
