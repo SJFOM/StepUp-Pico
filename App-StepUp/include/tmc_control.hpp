@@ -23,9 +23,10 @@
 // TMC-API
 extern "C"
 {
-#include "../../../Libraries/TMC_API/helpers/CRC.h"
-#include "../../../Libraries/TMC_API/helpers/Config.h"
-#include "../../../Libraries/TMC_API/ic/TMC2300.h"
+#include "../../../Libraries/TMC_API/TMC_API.h"
+    // #include "../../../Libraries/TMC_API/helpers/CRC.h"
+    // #include "../../../Libraries/TMC_API/helpers/Config.h"
+    // #include "../../../Libraries/TMC_API/ic/TMC2300.h"
 }
 
 // printf can default to using uart0 so use uart1 instead

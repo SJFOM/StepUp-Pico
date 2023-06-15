@@ -8,8 +8,8 @@
 #ifndef TMC_IC_TMC2300_H_
 #define TMC_IC_TMC2300_H_
 
-#include "../helpers/API_Header.h"
-#include "../helpers/Constants.h"
+#include "API_Header.h"
+#include "Constants.h"
 #include "TMC2300_Constants.h"
 #include "TMC2300_Fields.h"
 #include "TMC2300_Register.h"

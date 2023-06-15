@@ -8,7 +8,7 @@ cc_library(
         # "-I Interfaces",
     ],
     deps = [
-        "//Libraries/TMC_API:TMC_API",
+        "//Libraries/TMC_API:tmc_api",
         "//testing_interfaces/pico_interface:pico_test",
         "//Interfaces:control_interface",
     ],

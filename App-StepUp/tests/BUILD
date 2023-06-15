@@ -3,6 +3,7 @@ TEST_DEPS = [
     "//App-StepUp:app_step_up",
     "//testing_interfaces/pico_interface:pico_test",
     "//Interfaces:control_interface",
+    "//Libraries/TMC_API:tmc_api",
 ]
 TEST_COPTS = [
     "-I App-StepUp",

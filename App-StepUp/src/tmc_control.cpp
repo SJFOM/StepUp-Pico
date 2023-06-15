@@ -33,7 +33,7 @@ void callback(TMC2300TypeDef *tmc2300, ConfigState cfg_state)
         // m_ihold_irun.irun = 4;
         // m_ihold_irun.iholddelay = 2;
         // Lower the default run and standstill currents
-        // tmc2300_writeInt(tmc2300, TMC2300_IHOLD_IRUN, 0x00010402);
+        tmc2300_writeInt(tmc2300, TMC2300_IHOLD_IRUN, 0x00010402);
     }
     else
     {
@@ -81,14 +81,14 @@ bool TMCControl::init()
         }
 
         // Configure TMC2300 IC and default register states
-        // tmc2300_init(&tmc2300,
-        //  TMC_UART_CHANNEL,
-        //  &tmc2300_config,
-        //  tmc2300_defaultRegisterResetState);
+        tmc2300_init(&tmc2300,
+                     TMC_UART_CHANNEL,
+                     &tmc2300_config,
+                     tmc2300_defaultRegisterResetState);
 
-        // tmc2300_setSlaveAddress(&tmc2300, TMC_UART_SLAVE_ADDRESS);
+        tmc2300_setSlaveAddress(&tmc2300, TMC_UART_SLAVE_ADDRESS);
 
-        // tmc2300_setCallback(&tmc2300, callback);
+        tmc2300_setCallback(&tmc2300, callback);
 
         // Set up our UART with the required speed.
         enableUartPins(true);
@@ -141,7 +141,7 @@ void TMCControl::defaultConfiguration()
     m_gconf.multistep_filt =
         true;                   // pulse generator optimized for higher speeds
     m_gconf.test_mode = false;  // Normal operation
-    // tmc2300_writeInt(&tmc2300, m_gconf.address, m_gconf.sr);
+    tmc2300_writeInt(&tmc2300, m_gconf.address, m_gconf.sr);
 
     /* Register: GSTAT
      * What: Error flags reflection of IC's operating status (0 = OK, 1 = ERROR)
@@ -192,7 +192,7 @@ void TMCControl::defaultConfiguration()
     m_ihold_irun.irun = DEFAULT_IRUN_VALUE;    // Motor run current
     m_ihold_irun.iholddelay = 2;  // Number of clock cycles for motor power down
                                   // after standstill detected
-    // tmc2300_writeInt(&tmc2300, m_ihold_irun.address, m_ihold_irun.sr);
+    tmc2300_writeInt(&tmc2300, m_ihold_irun.address, m_ihold_irun.sr);
 
     /* Register: VACTUAL
      * What: Motor velocity value in +-(2^23)-1 [μsteps / t]
@@ -200,7 +200,7 @@ void TMCControl::defaultConfiguration()
      * control to set motor velocity.
      */
     m_vactual.sr = 10000U;
-    // tmc2300_writeInt(&tmc2300, m_vactual.address, m_vactual.sr);
+    tmc2300_writeInt(&tmc2300, m_vactual.address, m_vactual.sr);
 
     /* Register: CHOPCONF
      * What: Generic chopper algorithm configuration
@@ -216,7 +216,7 @@ void TMCControl::defaultConfiguration()
     m_chopconf.diss2g = false;  // Short to GND protection (0=enable, 1=disable)
     m_chopconf.diss2vs =
         false;  // Low side short protection (0=enable, 1=disable)
-    // tmc2300_writeInt(&tmc2300, m_chopconf.address, m_chopconf.sr);
+    tmc2300_writeInt(&tmc2300, m_chopconf.address, m_chopconf.sr);
 
     /* Register: DRV_STATUS
      * What: Driver status flags and current level read back
@@ -239,7 +239,7 @@ void TMCControl::defaultConfiguration()
     m_pwmconf.pwm_reg = 4;  // Regulation loop gradient
     m_pwmconf.pwm_lim =
         12;  // PWM automatic scale amplitude limit when switching on
-    // tmc2300_writeInt(&tmc2300, m_pwmconf.address, m_pwmconf.sr);
+    tmc2300_writeInt(&tmc2300, m_pwmconf.address, m_pwmconf.sr);
 }
 
 void TMCControl::setCurrent(uint8_t i_run, uint8_t i_hold)
@@ -257,7 +257,7 @@ void TMCControl::setCurrent(uint8_t i_run, uint8_t i_hold)
 
     m_ihold_irun.irun = i_run;
     m_ihold_irun.ihold = i_hold;
-    // tmc2300_writeInt(&tmc2300, m_ihold_irun.address, m_ihold_irun.sr);
+    tmc2300_writeInt(&tmc2300, m_ihold_irun.address, m_ihold_irun.sr);
 }
 
 void TMCControl::updateCurrent(uint8_t i_run_delta)
@@ -290,7 +290,7 @@ void TMCControl::resetMovementDynamics()
     setCurrent(DEFAULT_IRUN_VALUE, DEFAULT_IHOLD_VALUE);
 }
 
-void TMCControl::move(int32_t velocity)
+void TMCControl::move(int velocity)
 {
     if (abs(velocity) > VELOCITY_MAX_STEPS_PER_SECOND)
     {
