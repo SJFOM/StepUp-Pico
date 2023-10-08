@@ -43,7 +43,51 @@
 
 ## Prerequisites
 
-To use the code in this repo, your system must be set up for RP2040 C/C++ development. See [this blog post of mine](https://blog.smittytone.net/2021/02/02/program-raspberry-pi-pico-c-mac/) for setup details.
+To use the code in this repo, your system must be set up for RP2040 C/C++ development. 
+
+### VS Code extensions
+
+- CMake: `twxs.cmake`
+- CMake Tools: `ms-vscode.cmake-tools`
+- C/C++: `ms-vscode.cpptools`
+- Cortex-Debug: `marus25.cortex-debug`
+- Python: `ms-python.python`
+
+
+### Windows
+The Raspberry Pi foundation offer [a simple installer script](https://www.raspberrypi.com/documentation/microcontrollers/raspberry-pi-pico.html#software-development) for Windows users which downloads and configures the following:
+
+- [Arm GNU Toolchain](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads)
+- [CMake](https://cmake.org/download/)
+- [Ninja](https://github.com/ninja-build/ninja/releases)
+- [Python 3.9](https://www.python.org/downloads/windows/)
+- [Git for Windows](https://git-scm.com/download/win)
+- [Visual Studio Code](https://code.visualstudio.com/)
+- [OpenOCD](https://github.com/openocd-org/openocd/)
+
+
+Once installed, you will be presented with a version of VS Code pre-pended with the work "Pico" as shown in the image below. 
+![VS Code Pico IDE](images/pico_vscode_version.png)
+
+Use this version of the VSCode IDE from now on whenever developing for the Pico.
+
+Once selected and VS code opens, you will likely be prompted with a choice of "Kit" - you should choose the `arm-none-eabi`
+![VS Code Kit selection](images/vscode_select_kits.png)
+
+
+
+
+
+**NOTE:** If an existing `build` folder exists, it is recommended that you delete it before attempting to configure CMake to build your project.
+
+### Mac
+(TBD)...
+
+### Linux
+(TBD)...
+
+Additionally, [this blog post](https://blog.smittytone.net/2021/02/02/program-raspberry-pi-pico-c-mac/) offers additional details on how Pico project setup works and explains how to add new libraries and Pico functionality (e.g. I2C).
+
 
 
 ### Hardware
