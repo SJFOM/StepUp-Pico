@@ -11,20 +11,18 @@
 
 #include "../include/joystick_control.hpp"
 
-// 12-bit conversion, assume max value == ADC_VREF == 3.3 V
-constexpr float adc_conversion_factor = 3.3f / (1 << 12);
-
 /***********************************/
 /* Joystick button control - START */
 /***********************************/
-static volatile bool button_press_event = false;
+// Static non-class-member callback variables
+static volatile bool s_button_press_event = false;
 
 // Button debounce control
-uint32_t time_of_last_button_press;
+static uint32_t s_time_of_last_button_press;
 // Millisecond delay between valid button press events
-constexpr uint8_t delay_time_ms = 50;
+static constexpr uint8_t s_delay_time_ms = 50;
 
-void joystick_button_callback(uint gpio, uint32_t events);
+static void joystick_button_callback(uint gpio, uint32_t events);
 /*********************************/
 /* Joystick button control - END */
 /*********************************/
@@ -71,13 +69,13 @@ bool JoystickControl::init()
                         std::to_string(m_joystick.position.x_offset) +
                         " - voltage: " +
                         std::to_string(m_joystick.position.x_offset *
-                                       adc_conversion_factor) +
+                                       ADC_TO_VOLTAGE_CONVERSION_FACTOR) +
                         " V");
         Utils::log_info((string) "Y - Raw value: " +
                         std::to_string(m_joystick.position.y_offset) +
                         " - voltage: " +
                         std::to_string(m_joystick.position.y_offset *
-                                       adc_conversion_factor) +
+                                       ADC_TO_VOLTAGE_CONVERSION_FACTOR) +
                         " V");
 
         if ((m_joystick.position.x_offset > ADC_LOWER_HOME_THRESHOLD_RAW &&
@@ -102,7 +100,7 @@ bool JoystickControl::init()
         }
 
         // Mimick first button press event against which to compare later events
-        time_of_last_button_press = to_ms_since_boot(get_absolute_time());
+        s_time_of_last_button_press = to_ms_since_boot(get_absolute_time());
     }
 
     if (m_init_success)
@@ -151,14 +149,14 @@ enum ControllerState JoystickControl::processJob(uint32_t tick_count)
 {
     enum JoystickState _joystick_state_x = m_joystick.state_x;
     enum JoystickState _joystick_state_y = m_joystick.state_y;
-    if (button_press_event)
+    if (s_button_press_event)
     {
-        button_press_event = false;
+        s_button_press_event = false;
         m_joystick.button_is_pressed = true;
     }
-
     adc_select_input(JOYSTICK_ADC_CHANNEL_X);
-    // m_joystick.position.x = adc_read() - m_joystick.position.x_offset;
+    // m_joystick.position.x = adc_read() -
+    // m_joystick.position.x_offset;
     m_joystick.position.x = adc_read() & ADC_ENOB_MASK;
     // printf("x stage before = %d\n", m_joystick.position.x);
     m_joystick.position.x -= m_joystick.position.x_offset;
@@ -210,12 +208,12 @@ enum ControllerState JoystickControl::processJob(uint32_t tick_count)
 void joystick_button_callback(uint gpio, uint32_t events)
 {
     uint32_t time_now = to_ms_since_boot(get_absolute_time());
-    if ((time_now - time_of_last_button_press) > delay_time_ms)
+    if ((time_now - s_time_of_last_button_press) > s_delay_time_ms)
     {
         // Recommend to not to change the position of this line
-        time_of_last_button_press = to_ms_since_boot(get_absolute_time());
+        s_time_of_last_button_press = to_ms_since_boot(get_absolute_time());
 
         // printf("GPIO %d %d\n", gpio, events);
-        button_press_event = true;
+        s_button_press_event = true;
     }
 }

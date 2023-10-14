@@ -14,8 +14,11 @@
 static TMC2300TypeDef tmc2300;
 static ConfigurationTypeDef tmc2300_config;
 
-static volatile bool is_callback_complete = false;
+// Static non-class-member callback variables
+static volatile bool s_is_callback_complete = false;
+static volatile bool s_diag_event = false;
 
+// Static non-class-member variables
 static bool driver_can_be_enabled = false;
 
 void callback(TMC2300TypeDef *tmc2300, ConfigState cfg_state)
@@ -39,11 +42,13 @@ void callback(TMC2300TypeDef *tmc2300, ConfigState cfg_state)
     {
         Utils::log_info("TMC is ready for use");
         // Configuration restore complete
-        is_callback_complete = true;
+        s_is_callback_complete = true;
         // The driver may only be enabled once the configuration is done
         driver_can_be_enabled = true;
     }
 }
+
+static void tmc_diag_callback(uint gpio, uint32_t events);
 
 TMCControl::TMCControl()
 {
@@ -67,11 +72,20 @@ bool TMCControl::init()
         bool _init_routine_success = true;
 
         // Generic I/O setup
-        gpio_init(TMC_PIN_ENABLE);
-        gpio_set_dir(TMC_PIN_ENABLE, GPIO_OUT);
+        gpio_init(TMC_ENABLE_PIN);
+        gpio_set_dir(TMC_ENABLE_PIN, GPIO_OUT);
 
-        gpio_init(TMC_PIN_N_STANDBY);
-        gpio_set_dir(TMC_PIN_N_STANDBY, GPIO_OUT);
+        gpio_init(TMC_N_STANDBY_PIN);
+        gpio_set_dir(TMC_N_STANDBY_PIN, GPIO_OUT);
+
+        // Configure DIAG pin as interrupt
+        gpio_set_input_enabled(TMC_DIAG_PIN, true);
+        gpio_pull_up(TMC_DIAG_PIN);
+        // Set up the joystick button interrupt
+        gpio_set_irq_enabled_with_callback(TMC_DIAG_PIN,
+                                           GPIO_IRQ_EDGE_RISE,
+                                           true,
+                                           &tmc_diag_callback);
 
         // Initialize CRC calculation for TMC2300 UART datagrams
         if (!(tmc_fillCRC8Table(0x07, true, 0) == 1))
@@ -371,9 +385,46 @@ void TMCControl::enableUartPins(bool enablePins)
     sleep_ms(5);
 }
 
+TMCDiagnostics TMCControl::populateTMCDiagnostics()
+{
+    // Start with a blank TMCDiagnostics with all flags set to false
+    TMCDiagnostics tmc_diag;
+    m_drv_status.sr = tmc2300_readInt(&tmc2300, m_drv_status.address);
+
+    if (m_drv_status.otpw || m_drv_status.ot || m_drv_status.t120 ||
+        m_drv_status.t150)
+    {
+        tmc_diag.overheating = true;
+        tmc_diag.normal_operation = false;
+    }
+
+    if (m_drv_status.ola || m_drv_status.olb)
+    {
+        tmc_diag.open_circuit = true;
+        tmc_diag.normal_operation = false;
+    }
+
+    if (m_drv_status.s2ga || m_drv_status.s2gb || m_drv_status.s2vsa ||
+        m_drv_status.s2vsb)
+    {
+        tmc_diag.short_circuit = true;
+        tmc_diag.normal_operation = false;
+    }
+
+    if (m_drv_status.stst)
+    {
+        tmc_diag.stall_detected = true;
+        tmc_diag.normal_operation = false;
+    }
+
+    return tmc_diag;
+}
+
 struct TMCData TMCControl::getTMCData()
 {
+    // TODO: Should we be re-setting the state to READY here?
     m_tmc.control_state = ControllerState::STATE_READY;
+    m_tmc.diag = populateTMCDiagnostics();
     return m_tmc;
 }
 
@@ -381,7 +432,7 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
 {
     tmc2300_periodicJob(&tmc2300, tick_count);
 
-    if (is_callback_complete &&
+    if (s_is_callback_complete &&
         m_tmc.control_state == ControllerState::STATE_BUSY)
     {
         // TODO: Unsure if the callback is triggered for every TMC register
@@ -389,10 +440,11 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
         m_tmc.control_state = ControllerState::STATE_READY;
     }
 
-    // if(DIAG_PIN changes state)
-    // {
-    //     m_tmc.control_state = ControllerState::STATE_NEW_DATA;
-    // }
+    if (s_diag_event)
+    {
+        s_diag_event = false;
+        m_tmc.control_state = ControllerState::STATE_NEW_DATA;
+    }
 
     return m_tmc.control_state;
 }
@@ -440,7 +492,7 @@ void TMCControl::setStandby(bool enable_standby)
     }
 
     // Set the Standby pin state - after enable so we retain control over driver
-    gpio_put(TMC_PIN_N_STANDBY, enable_standby ? 0 : 1);
+    gpio_put(TMC_N_STANDBY_PIN, enable_standby ? 0 : 1);
 
     // Update the APIs internal standby state
     tmc2300_setStandby(&tmc2300, enable_standby ? 1 : 0);
@@ -448,7 +500,7 @@ void TMCControl::setStandby(bool enable_standby)
 
 bool TMCControl::isDriverEnabled()
 {
-    return gpio_get(TMC_PIN_ENABLE);
+    return gpio_get(TMC_ENABLE_PIN);
 }
 
 void TMCControl::enableDriver(bool enable_driver)
@@ -457,5 +509,18 @@ void TMCControl::enableDriver(bool enable_driver)
 
     Utils::log_debug((string) "Driver enabled: " +
                      std::to_string(_enable_driver));
-    gpio_put(TMC_PIN_ENABLE, _enable_driver ? 1 : 0);
+    gpio_put(TMC_ENABLE_PIN, _enable_driver ? 1 : 0);
 }
+
+/******************************/
+/* Interrupt routines - START */
+/******************************/
+
+void tmc_diag_callback(uint gpio, uint32_t events)
+{
+    s_diag_event = true;
+}
+
+/****************************/
+/* Interrupt routines - END */
+/****************************/

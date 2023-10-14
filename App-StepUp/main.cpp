@@ -212,7 +212,7 @@ void led_task_gpio(void *unused_arg)
 void tmc_process_job(void *unused_arg)
 {
     ControllerState tmc_state = ControllerState::STATE_IDLE;
-    // JoystickState joystick_state = JoystickState::JOYSTICK_STATE_IDLE;
+    TMCData tmc_data = {};
 
     // Store the Pico LED state
     uint8_t pico_led_state = 0;
@@ -283,6 +283,13 @@ void tmc_process_job(void *unused_arg)
             case ControllerState::STATE_NEW_DATA:
             {
                 // tmc_control get State
+                tmc_data = tmc_control.getTMCData();
+                // TODO: Parse data and decide next move
+                if (false == tmc_data.diag.normal_operation)
+                {
+                    // TODO: Deal with the issue at hand and report to user
+                    ;
+                }
                 break;
             }
             case ControllerState::STATE_BUSY:
