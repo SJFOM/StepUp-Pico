@@ -67,11 +67,13 @@ The Raspberry Pi foundation offer [a simple installer script](https://www.raspbe
 
 
 Once installed, you will be presented with a version of VS Code pre-pended with the work "Pico" as shown in the image below. 
+
 ![VS Code Pico IDE](images/pico_vscode_version.png)
 
 Use this version of the VSCode IDE from now on whenever developing for the Pico.
 
 Once selected and VS code opens, you will likely be prompted with a choice of "Kit" - you should choose the `arm-none-eabi`
+
 ![VS Code Kit selection](images/vscode_select_kits.png)
 
 
