@@ -6,5 +6,8 @@ build/
 bazel-*
 .cortex-debug*
 
+# Python virtual environments
+env
+
 # Mac specific
 .DS_Store
