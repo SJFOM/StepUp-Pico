@@ -26,14 +26,14 @@ else:
     exit("Could not detect host OS!")
 
 # Serial comms setup
-# PORT = "COM4"
-PORT = "/dev/tty.usbmode14201"
+PORT = "COM4"
+# PORT = "/dev/tty.usbmodem14201"
 BAUDRATE_RESET = 1200
 BAUDRATE_COMMS = 115200
 
 # Build path for firmware hex file (UF2)
 FILE_UF2_SRC_PARENT_FOLDER = os.path.join(
-    ".", "build", "Application", APP_NAME)
+    ".", "build", APP_NAME)
 FILE_UF2_SRC = [x for x in os.listdir(
     FILE_UF2_SRC_PARENT_FOLDER) if x.endswith(".uf2")]
 if len(FILE_UF2_SRC) != 1:

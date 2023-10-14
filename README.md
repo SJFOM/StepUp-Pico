@@ -75,9 +75,6 @@ Once selected and VS code opens, you will likely be prompted with a choice of "K
 ![VS Code Kit selection](images/vscode_select_kits.png)
 
 
-
-
-
 **NOTE:** If an existing `build` folder exists, it is recommended that you delete it before attempting to configure CMake to build your project.
 
 ### Mac
@@ -87,7 +84,6 @@ Once selected and VS code opens, you will likely be prompted with a choice of "K
 (TBD)...
 
 Additionally, [this blog post](https://blog.smittytone.net/2021/02/02/program-raspberry-pi-pico-c-mac/) offers additional details on how Pico project setup works and explains how to add new libraries and Pico functionality (e.g. I2C).
-
 
 
 ### Hardware
@@ -108,18 +104,13 @@ The environment variable `PICO_SDK_VERSION` should represent what SDK is being u
 
 ## Usage
 
-1. Clone the repo: `git clone https://github.com/SJFOM/StepUp-Pico.git`.
-1. Enter the repo: `cd StepUp-Pico`.
-1. Install the submodules: `git submodule update --init --recursive`.
-1. Optionally, edit `CMakeLists.txt` and `/App-StepUp/CMakeLists.txt` to configure the project.
-1. Optionally, manually configure the build process: `cmake -S . -B build/`.
-1. Optionally, manually build the app: `cmake --build build`.
-1. Connect your device so it’s ready for file transfer.
-1. Install the app: `./deploy.py`.
-    * Pass the COM Port you wish to deploy to:
-        * `./deploy.py --port /dev/tty.usbserialX`
-        * `./deploy.py --port COMX`
-    * To trigger a build, include the `--build` or `-b` flag: `./deploy.py -b`.
+1. Clone (recursively) the repo: `git clone --recursive https://github.com/SJFOM/StepUp-Pico.git`.
+2. Enter the repo: `StepUp-Pico`.
+3. Optionally, edit `CMakeLists.txt` and `/App-StepUp/CMakeLists.txt` to configure the project.
+4. Optionally, manually configure the build process: `cmake -S . -B build/`.
+5. Optionally, manually build the app: `cmake --build build`.
+6. Connect your device so it’s ready for file transfer.
+7. Copy the `StepUp.uf2` file from the `build/App-StepUp` folder to the drive which represents the attached Pico device hardware.
 
 
 ## IDEs
