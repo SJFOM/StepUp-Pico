@@ -43,7 +43,47 @@
 
 ## Prerequisites
 
-To use the code in this repo, your system must be set up for RP2040 C/C++ development. See [this blog post of mine](https://blog.smittytone.net/2021/02/02/program-raspberry-pi-pico-c-mac/) for setup details.
+To use the code in this repo, your system must be set up for RP2040 C/C++ development. 
+
+### VS Code extensions
+
+- CMake: `twxs.cmake`
+- CMake Tools: `ms-vscode.cmake-tools`
+- C/C++: `ms-vscode.cpptools`
+- Cortex-Debug: `marus25.cortex-debug`
+- Python: `ms-python.python`
+
+
+### Windows
+The Raspberry Pi foundation offer [a simple installer script](https://www.raspberrypi.com/documentation/microcontrollers/raspberry-pi-pico.html#software-development) for Windows users which downloads and configures the following:
+
+- [Arm GNU Toolchain](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads)
+- [CMake](https://cmake.org/download/)
+- [Ninja](https://github.com/ninja-build/ninja/releases)
+- [Python 3.9](https://www.python.org/downloads/windows/)
+- [Git for Windows](https://git-scm.com/download/win)
+- [Visual Studio Code](https://code.visualstudio.com/)
+- [OpenOCD](https://github.com/openocd-org/openocd/)
+
+
+Once installed, you will be presented with a version of VS Code pre-pended with the work "Pico" as shown in the image below. 
+![VS Code Pico IDE](images/pico_vscode_version.png)
+
+Use this version of the VSCode IDE from now on whenever developing for the Pico.
+
+Once selected and VS code opens, you will likely be prompted with a choice of "Kit" - you should choose the `arm-none-eabi`
+![VS Code Kit selection](images/vscode_select_kits.png)
+
+
+**NOTE:** If an existing `build` folder exists, it is recommended that you delete it before attempting to configure CMake to build your project.
+
+### Mac
+(TBD)...
+
+### Linux
+(TBD)...
+
+Additionally, [this blog post](https://blog.smittytone.net/2021/02/02/program-raspberry-pi-pico-c-mac/) offers additional details on how Pico project setup works and explains how to add new libraries and Pico functionality (e.g. I2C).
 
 
 ### Hardware
@@ -57,20 +97,20 @@ To get openocd to play ball, you must install the following libraries as describ
 brew install libtool automake libusb libusb-compat hidapi libftdi
 ```
 
+## Note on debugging (all platforms)
+Ensure that both `cortex-debug.openocdPath` in `settings.json` and `configFiles` and `searchDir` key values in `launch.json` refer to the current `Pico SDK v1.5.X` version at time of install.
+
+The environment variable `PICO_SDK_VERSION` should represent what SDK is being used by the development environment - query this environment variable from within your preferred terminal in VS Code to get this value.
+
 ## Usage
 
-1. Clone the repo: `git clone https://github.com/SJFOM/StepUp-Pico.git`.
-1. Enter the repo: `cd StepUp-Pico`.
-1. Install the submodules: `git submodule update --init --recursive`.
-1. Optionally, edit `CMakeLists.txt` and `/App-StepUp/CMakeLists.txt` to configure the project.
-1. Optionally, manually configure the build process: `cmake -S . -B build/`.
-1. Optionally, manually build the app: `cmake --build build`.
-1. Connect your device so it’s ready for file transfer.
-1. Install the app: `./deploy.py`.
-    * Pass the COM Port you wish to deploy to:
-        * `./deploy.py --port /dev/tty.usbserialX`
-        * `./deploy.py --port COMX`
-    * To trigger a build, include the `--build` or `-b` flag: `./deploy.py -b`.
+1. Clone (recursively) the repo: `git clone --recursive https://github.com/SJFOM/StepUp-Pico.git`.
+2. Enter the repo: `StepUp-Pico`.
+3. Optionally, edit `CMakeLists.txt` and `/App-StepUp/CMakeLists.txt` to configure the project.
+4. Optionally, manually configure the build process: `cmake -S . -B build/`.
+5. Optionally, manually build the app: `cmake --build build`.
+6. Connect your device so it’s ready for file transfer.
+7. Copy the `StepUp.uf2` file from the `build/App-StepUp` folder to the drive which represents the attached Pico device hardware.
 
 
 ## IDEs
