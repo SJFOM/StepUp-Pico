@@ -361,9 +361,19 @@ struct PWM_AUTO_t
 /* Chopper Control Registers - END */
 /***********************************/
 
+struct TMCDiagnostics
+{
+    bool normal_operation = true;
+    bool overheating = false;
+    bool short_circuit = false;
+    bool open_circuit = false;
+    bool stall_detected = false;
+};
+
 struct TMCData
 {
     ControllerState control_state;
+    TMCDiagnostics diag;
 };
 
 class TMCControl : public ControlInterface
@@ -375,16 +385,10 @@ public:
     void deinit(void);
     void defaultConfiguration(void);
     enum ControllerState processJob(uint32_t tick_count);
-    void enableUartPins(bool enablePins);
-    void setStandby(bool enableStandby);
-    bool isDriverEnabled(void);
-    void enableDriver(bool enableDriver);
-    void move(int32_t velocity);
     void resetMovementDynamics(void);
-    void setCurrent(uint8_t i_run, uint8_t i_hold);
-    void updateCurrent(uint8_t i_run_delta);
     void updateMovementDynamics(int32_t velocity_delta, int8_t direction);
     uint8_t getChipID(void);
+    struct TMCData getTMCData();
 
 protected:
     GCONF_t m_gconf;
@@ -396,11 +400,18 @@ protected:
     DRV_STATUS_t m_drv_status;
     PWMCONF_t m_pwmconf;
 
-    struct TMCData getTMCData();
-
 private:
     bool m_init_success, m_uart_pins_enabled;
     struct TMCData m_tmc;
+
+    void enableUartPins(bool enablePins);
+    void enableDriver(bool enableDriver);
+    void setStandby(bool enableStandby);
+    bool isDriverEnabled(void);
+    void move(int32_t velocity);
+    void setCurrent(uint8_t i_run, uint8_t i_hold);
+    void updateCurrent(uint8_t i_run_delta);
+    TMCDiagnostics populateTMCDiagnostics();
 };
 
 #endif  // TMC_CONTROL_H_

@@ -11,8 +11,11 @@
 #define TMC_UART_RX_PIN (5U)
 
 // Motor control pins
-#define TMC_PIN_ENABLE    (14U)
-#define TMC_PIN_N_STANDBY (15U)
+#define TMC_ENABLE_PIN    (14U)
+#define TMC_N_STANDBY_PIN (15U)
+
+// Diagnostics pins
+#define TMC_DIAG_PIN (20U)
 
 /**********************/
 /* TMC2300 pins - END */

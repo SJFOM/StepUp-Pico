@@ -30,6 +30,9 @@
 #define JOYSTICK_THRESHOLD_UPPER (1000)
 #define JOYSTICK_THRESHOLD_LOWER (-JOYSTICK_THRESHOLD_UPPER)
 
+// 12-bit conversion, assume max value == ADC_VREF == 3.3 V
+#define ADC_TO_VOLTAGE_CONVERSION_FACTOR (3.3f / (1 << 12))
+
 struct JoystickPosition
 {
     int16_t x, y;
