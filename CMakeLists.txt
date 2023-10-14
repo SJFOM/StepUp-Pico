@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.14)
 
+# Pull in SDK (must be before project)
+include(pico_sdk_import.cmake)
+
 # Set project data
 set(PROJECT_NAME "STEPUP_PICO")
 set(BUILD_NUMBER "0")
@@ -29,14 +32,15 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DTSDEBUG")
 set(FREERTOS_CFG_DIRECTORY "${CMAKE_SOURCE_DIR}/Config")
 set(FREERTOS_SRC_DIRECTORY "${CMAKE_SOURCE_DIR}/FreeRTOS-Kernel")
 
-# Include the Pico SDK
-include(pico_sdk_import.cmake)
 
 # Name the project
 project(${PROJECT_NAME}
     LANGUAGES C CXX ASM
-    DESCRIPTION "FreeRTOS-based RP2040 applications"
+    DESCRIPTION "FreeRTOS-based RP2040 Stepper motor driver application"
 )
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
 # Initialise the Pico SDK
 pico_sdk_init()

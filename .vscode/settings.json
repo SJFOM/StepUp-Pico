@@ -1,7 +1,5 @@
 {
-  "prettier.configPath": "",
-  "prettier.enable": false,
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.defaultFormatter": "ms-vscode.cpptools",
   "C_Cpp.formatting": "clangFormat",
   "git.autoRepositoryDetection": "openEditors",
   "git.ignoredRepositories": [
@@ -81,7 +79,7 @@
     "cinttypes": "cpp"
   },
   "cortex-debug.openocdPath.osx": "${workspaceRoot}/openocd/src/openocd",
-  "cortex-debug.openocdPath.windows": "C:\\Program Files\\Raspberry Pi\\Pico SDK v1.5.0\\openocd\\openocd.exe",
+  "cortex-debug.openocdPath.windows": "C:\\Program Files\\Raspberry Pi\\Pico SDK v1.5.1\\openocd\\openocd.exe",
   "cortex-debug.gdbPath": "arm-none-eabi-gdb",
   "C_Cpp.clang_format_fallbackStyle": "Visual Studio",
   "C_Cpp.clang_format_style": "file",
@@ -89,8 +87,14 @@
     "editor.defaultFormatter": "vscode.json-language-features"
   },
   "editor.formatOnSave": true,
-  "C_Cpp.clang_format_path": "/usr/local/bin/clang-format",
+  "C_Cpp.clang_format_path": "",
   "[python]": {
-    "editor.defaultFormatter": "ms-python.python"
-  }
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+  "cmake.configureSettings": {
+    "CMAKE_MODULE_PATH": "${env:PICO_INSTALL_PATH}/pico-sdk-tools",
+    "PICO_BOARD": "pico",
+  },
+  "cmake.configureOnOpen": false,
+  "python.formatting.provider": "none",
 }
