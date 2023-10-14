@@ -1,6 +1,4 @@
 {
-  "prettier.configPath": "",
-  "prettier.enable": false,
   "editor.defaultFormatter": "ms-vscode.cpptools",
   "C_Cpp.formatting": "clangFormat",
   "git.autoRepositoryDetection": "openEditors",
@@ -89,12 +87,14 @@
     "editor.defaultFormatter": "vscode.json-language-features"
   },
   "editor.formatOnSave": true,
-  "C_Cpp.clang_format_path": "/usr/local/bin/clang-format",
+  "C_Cpp.clang_format_path": "",
   "[python]": {
-    "editor.defaultFormatter": "ms-python.python"
+    "editor.defaultFormatter": "ms-python.black-formatter"
   },
   "cmake.configureSettings": {
     "CMAKE_MODULE_PATH": "${env:PICO_INSTALL_PATH}/pico-sdk-tools",
     "PICO_BOARD": "pico",
   },
+  "cmake.configureOnOpen": false,
+  "python.formatting.provider": "none",
 }
