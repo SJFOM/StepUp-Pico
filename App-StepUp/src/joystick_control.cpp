@@ -200,11 +200,6 @@ enum ControllerState JoystickControl::processJob(uint32_t tick_count)
         (_joystick_state_y != m_joystick.state_y) ||
         m_joystick.button_is_pressed)
     {
-        printf("NEW DATA\n");
-        if (_joystick_state_y != m_joystick.state_y)
-        {
-            printf("Y: %d != %d\n", _joystick_state_y, m_joystick.state_y);
-        }
         // If there has been a change in state we want to return that new data
         // is available
         m_joystick.control_state = ControllerState::STATE_NEW_DATA;
