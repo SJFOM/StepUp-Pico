@@ -402,6 +402,7 @@ protected:
     CHOPCONF_t m_chopconf;
     DRV_STATUS_t m_drv_status;
     PWMCONF_t m_pwmconf;
+    PWM_SCALE_t m_pwm_scale;
 
 private:
     bool m_init_success, m_uart_pins_enabled;
