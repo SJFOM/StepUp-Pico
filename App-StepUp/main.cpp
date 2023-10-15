@@ -250,7 +250,7 @@ void tmc_process_job(void *unused_arg)
             }
             case ControllerState::STATE_READY:
             {
-                MotorControlData motor_data = {};
+                static MotorControlData motor_data = {};
                 if (!default_config_sent)
                 {
                     Utils::log_info("Configure TMC2300 default values...");

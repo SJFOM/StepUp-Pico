@@ -254,6 +254,12 @@ void TMCControl::defaultConfiguration()
     m_pwmconf.pwm_lim =
         12;  // PWM automatic scale amplitude limit when switching on
     tmc2300_writeInt(&tmc2300, m_pwmconf.address, m_pwmconf.sr);
+
+    /* Register: PWM_SCALE
+     * What: Results of StealthChop amplitude regulator
+     * Use: These values can be used to monitor automatic PWM amplitude scaling
+     */
+    m_pwm_scale.sr = tmc2300_readInt(&tmc2300, m_pwm_scale.address);
 }
 
 void TMCControl::setCurrent(uint8_t i_run, uint8_t i_hold)
@@ -313,7 +319,7 @@ void TMCControl::resetMovementDynamics()
 
 void TMCControl::move(int32_t velocity)
 {
-    Utils::log_debug((string) "velocity: " + std::to_string(velocity));
+    // Utils::log_debug((string) "velocity: " + std::to_string(velocity));
     if (abs(velocity) > VELOCITY_MAX_STEPS_PER_SECOND)
     {
         Utils::log_warn("Max motor velocity reached!");
@@ -395,6 +401,11 @@ TMCDiagnostics TMCControl::readTMCDiagnostics()
     // Start with a blank TMCDiagnostics with all flags set to false
     TMCDiagnostics tmc_diag;
     m_drv_status.sr = tmc2300_readInt(&tmc2300, m_drv_status.address);
+
+    m_pwm_scale.sr = tmc2300_readInt(&tmc2300, m_pwm_scale.address);
+
+    Utils::log_debug((string) "PWM_SCALE_SUM: " +
+                     std::to_string(m_pwm_scale.pwm_scale_sum));
 
     if (m_drv_status.otpw || m_drv_status.ot || m_drv_status.t120 ||
         m_drv_status.t150)
@@ -512,8 +523,8 @@ void TMCControl::enableDriver(bool enable_driver)
 {
     bool _enable_driver = (bool)(driver_can_be_enabled && enable_driver);
 
-    Utils::log_debug((string) "Driver enabled: " +
-                     std::to_string(_enable_driver));
+    // Utils::log_debug((string) "Driver enabled: " +
+    //  std::to_string(_enable_driver));
     gpio_put(TMC_ENABLE_PIN, _enable_driver ? 1 : 0);
 }
 
@@ -523,6 +534,7 @@ void TMCControl::enableDriver(bool enable_driver)
 
 void tmc_diag_callback(uint gpio, uint32_t events)
 {
+    // FIXME: This seems to trigger very often - check correct functionality...
     s_diag_event = true;
 }
 
