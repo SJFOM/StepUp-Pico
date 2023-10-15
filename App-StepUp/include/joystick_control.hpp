@@ -21,7 +21,7 @@
 // ADC homing position allowable threshold values
 #define ADC_MIDWAY_VALUE_RAW \
     (1 << 11U)  // 12 bit ADC, take mid-way value (half)
-#define ADC_HOME_THRESHOLD_RAW (100U)
+#define ADC_HOME_THRESHOLD_RAW (200U)
 #define ADC_LOWER_HOME_THRESHOLD_RAW \
     (ADC_MIDWAY_VALUE_RAW - ADC_HOME_THRESHOLD_RAW)
 #define ADC_UPPER_HOME_THRESHOLD_RAW \

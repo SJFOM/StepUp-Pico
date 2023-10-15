@@ -93,6 +93,8 @@ bool JoystickControl::init()
         {
             Utils::log_warn((string) "ADC lower bound:" +
                             std::to_string(ADC_LOWER_HOME_THRESHOLD_RAW));
+            Utils::log_warn((string) "ADC upper bound:" +
+                            std::to_string(ADC_UPPER_HOME_THRESHOLD_RAW));
             Utils::log_warn((string) "x stage offset: " +
                             std::to_string(m_joystick.position.x_offset));
             Utils::log_warn((string) "y stage offset: " +
@@ -135,20 +137,21 @@ void JoystickControl::deinit()
 
 struct JoystickData JoystickControl::getJoystickData()
 {
-    m_joystick.control_state = ControllerState::STATE_READY;
     // Create temporary data holder before modifying local values
-    JoystickData temp_data = m_joystick;
+    JoystickData joystick_data = m_joystick;
+    m_joystick.control_state = ControllerState::STATE_READY;
     // Reset y stage as we always want to catch the state of this on each
     // iteration of processJob
-    m_joystick.state_y = JoystickState::JOYSTICK_STATE_IDLE;
     m_joystick.button_is_pressed = false;
-    return temp_data;
+    m_joystick.state_y = JoystickState::JOYSTICK_STATE_IDLE;
+    return joystick_data;
 }
 
 enum ControllerState JoystickControl::processJob(uint32_t tick_count)
 {
     enum JoystickState _joystick_state_x = m_joystick.state_x;
     enum JoystickState _joystick_state_y = m_joystick.state_y;
+
     if (s_button_press_event)
     {
         s_button_press_event = false;
@@ -197,6 +200,11 @@ enum ControllerState JoystickControl::processJob(uint32_t tick_count)
         (_joystick_state_y != m_joystick.state_y) ||
         m_joystick.button_is_pressed)
     {
+        printf("NEW DATA\n");
+        if (_joystick_state_y != m_joystick.state_y)
+        {
+            printf("Y: %d != %d\n", _joystick_state_y, m_joystick.state_y);
+        }
         // If there has been a change in state we want to return that new data
         // is available
         m_joystick.control_state = ControllerState::STATE_NEW_DATA;

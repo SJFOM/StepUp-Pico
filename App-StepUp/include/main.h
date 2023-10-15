@@ -28,6 +28,7 @@
 #include "pico/binary_info.h"
 #include "pico/stdlib.h"  // Includes `hardware_gpio.h`
 // App
+#include "pins_definitions.h"
 #include "utils.h"
 // Control includes
 #include "joystick_control.hpp"
@@ -37,12 +38,6 @@
 extern "C"
 {
 #endif
-
-    /**
-     * CONSTANTS
-     */
-#define LED_PIN_YELLOW 17
-#define LED_PIN_GREEN  20
 
     /**
      * PROTOTYPES
