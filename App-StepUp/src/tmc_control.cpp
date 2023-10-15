@@ -292,7 +292,14 @@ void TMCControl::updateMovementDynamics(int32_t velocity_delta,
     {
         int32_t _velocity = abs(m_vactual.sr);
         _velocity *= direction;
-        _velocity += velocity_delta;
+
+        // We do not wish to allow a velocity update to make the motor stop, the
+        // direction flag should control this. Instead, we want to enforce a
+        // call to resetMotorDynamics or move(0) to have this effect.
+        if ((_velocity + velocity_delta) != 0)
+        {
+            _velocity += velocity_delta;
+        }
 
         move(_velocity);
     }
@@ -306,6 +313,7 @@ void TMCControl::resetMovementDynamics()
 
 void TMCControl::move(int32_t velocity)
 {
+    Utils::log_debug((string) "velocity: " + std::to_string(velocity));
     if (abs(velocity) > VELOCITY_MAX_STEPS_PER_SECOND)
     {
         Utils::log_warn("Max motor velocity reached!");
@@ -314,10 +322,7 @@ void TMCControl::move(int32_t velocity)
     }
     // printf("New velocity: %d\n", velocity);
     m_vactual.sr = velocity;
-    if (!isDriverEnabled())
-    {
-        enableDriver(velocity == 0 ? false : true);
-    }
+    enableDriver(velocity == 0 ? false : true);
     tmc2300_writeInt(&tmc2300, m_vactual.address, m_vactual.sr);
 
     // TODO: Implement Stallguard thresholding logic
@@ -385,7 +390,7 @@ void TMCControl::enableUartPins(bool enablePins)
     sleep_ms(5);
 }
 
-TMCDiagnostics TMCControl::populateTMCDiagnostics()
+TMCDiagnostics TMCControl::readTMCDiagnostics()
 {
     // Start with a blank TMCDiagnostics with all flags set to false
     TMCDiagnostics tmc_diag;
@@ -424,7 +429,7 @@ struct TMCData TMCControl::getTMCData()
 {
     // TODO: Should we be re-setting the state to READY here?
     m_tmc.control_state = ControllerState::STATE_READY;
-    m_tmc.diag = populateTMCDiagnostics();
+    m_tmc.diag = readTMCDiagnostics();
     return m_tmc;
 }
 

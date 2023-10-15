@@ -288,7 +288,23 @@ void tmc_process_job(void *unused_arg)
                 if (false == tmc_data.diag.normal_operation)
                 {
                     // TODO: Deal with the issue at hand and report to user
-                    ;
+                    Utils::log_debug("Abnormal operation detected!");
+                    if (tmc_data.diag.open_circuit)
+                    {
+                        Utils::log_debug("Open circuit");
+                    }
+                    if (tmc_data.diag.overheating)
+                    {
+                        Utils::log_debug("Overheating");
+                    }
+                    if (tmc_data.diag.short_circuit)
+                    {
+                        Utils::log_debug("Short circuit");
+                    }
+                    if (tmc_data.diag.stall_detected)
+                    {
+                        Utils::log_debug("Stall detected");
+                    }
                 }
                 break;
             }
@@ -350,13 +366,11 @@ void joystick_process_job(void *unused_arg)
 int main()
 {
     // Enable STDIO
-#ifdef DEBUG
     // stdio_usb_init();
     stdio_init_all();
     sleep_ms(2000);
     // Log app info
     Utils::log_device_info();
-#endif
 
     Utils::log_info("Setting up peripherals...");
     setup();
