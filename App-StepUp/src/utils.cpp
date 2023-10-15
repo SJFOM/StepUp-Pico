@@ -125,7 +125,6 @@ namespace Utils
     {
         // string result;
         std::transform(base.begin(), base.end(), base.begin(), ::toupper);
-        // printf("%s -> %s\n", base.c_str(), result.c_str());
         return base;
     }
 
@@ -155,7 +154,9 @@ namespace Utils
      */
     void log_debug(const string msg)
     {
+#ifdef DEBUG
         printf("[DBUG] %s%\n", msg.c_str());
+#endif
     }
 
     /**

@@ -13,6 +13,9 @@
 // pin includes
 #include "pins_definitions.h"
 
+// Logging utilities
+#include "utils.h"
+
 // TMC-API
 extern "C"
 {
@@ -411,7 +414,7 @@ private:
     void move(int32_t velocity);
     void setCurrent(uint8_t i_run, uint8_t i_hold);
     void updateCurrent(uint8_t i_run_delta);
-    TMCDiagnostics populateTMCDiagnostics();
+    TMCDiagnostics readTMCDiagnostics();
 };
 
 #endif  // TMC_CONTROL_H_
