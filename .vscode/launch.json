@@ -15,7 +15,7 @@
             "runToEntryPoint": "main",
             "rtos": "auto",
             "liveWatch": {
-                "enabled": true,
+                "enabled": false,
                 "samplesPerSecond": 4
             },
             "showDevDebugOutput": "raw",
