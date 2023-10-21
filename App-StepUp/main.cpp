@@ -276,36 +276,45 @@ void tmc_process_job(void *unused_arg)
                             motor_data.velocity_delta,
                             motor_data.direction);
                     }
-
-                    break;
                 }
+                break;
             }
             case ControllerState::STATE_NEW_DATA:
             {
                 // tmc_control get State
                 tmc_data = tmc_control.getTMCData();
                 // TODO: Parse data and decide next move
-                if (false == tmc_data.diag.normal_operation)
+                if ((false == tmc_data.diag.normal_operation) &&
+                    (!tmc_data.diag.open_circuit) &&
+                    (!tmc_data.diag.overheating) &&
+                    (!tmc_data.diag.short_circuit) &&
+                    (!tmc_data.diag.stall_detected))
                 {
-                    // TODO: Deal with the issue at hand and report to user
-                    Utils::log_debug("Abnormal operation detected!");
-                    if (tmc_data.diag.open_circuit)
-                    {
-                        Utils::log_debug("Open circuit");
-                    }
-                    if (tmc_data.diag.overheating)
-                    {
-                        Utils::log_debug("Overheating");
-                    }
-                    if (tmc_data.diag.short_circuit)
-                    {
-                        Utils::log_debug("Short circuit");
-                    }
-                    if (tmc_data.diag.stall_detected)
-                    {
-                        Utils::log_debug("Stall detected");
-                    }
+                    // TODO: Consider removing this - should not have to rely on
+                    // this flag being set, the other diagnostic flags should be
+                    // well tuned to really detect what's happening.
+                    Utils::log_debug(
+                        "Abnormal operation detected but not raised by other "
+                        "flags!!");
                 }
+                // TODO: Deal with the issue at hand and report to user
+                if (tmc_data.diag.open_circuit)
+                {
+                    Utils::log_debug("Open circuit");
+                }
+                if (tmc_data.diag.overheating)
+                {
+                    Utils::log_debug("Overheating");
+                }
+                if (tmc_data.diag.short_circuit)
+                {
+                    Utils::log_debug("Short circuit");
+                }
+                if (tmc_data.diag.stall_detected)
+                {
+                    Utils::log_debug("Stall detected");
+                }
+
                 break;
             }
             case ControllerState::STATE_BUSY:
@@ -413,5 +422,5 @@ int main()
     while (true)
     {
         // NOP
-    };
+    }
 }

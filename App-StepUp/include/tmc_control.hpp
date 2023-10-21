@@ -32,7 +32,14 @@ extern "C"
 
 #define TMC_UART_CHANNEL (0)  // Not as relevant for single IC use case
 
-#define VELOCITY_MAX_STEPS_PER_SECOND (100000UL)
+#define VELOCITY_STARTING_STEPS_PER_SECOND (10000U)
+
+// Used for threshold where open-circuit flags are valid - datasheet says they
+// are valid for "slow speed" movements
+#define VELOCITY_SLOW_SPEED_STEPS_PER_SECOND \
+    (2 * VELOCITY_STARTING_STEPS_PER_SECOND)
+
+#define VELOCITY_MAX_STEPS_PER_SECOND (100000U)
 
 #define DEFAULT_IRUN_VALUE  (10U)
 #define DEFAULT_IHOLD_VALUE (0U)
@@ -292,6 +299,9 @@ struct DRV_STATUS_t
     // READ only register
     constexpr static uint8_t address = TMC2300_DRVSTATUS;
 
+    constexpr static uint32_t error_bit_mask =
+        0x800003FF;  // 0b1000 0000 0000 0000 0000 0011 1111 1111
+
     /* DRV_STATUS Driver status flags and current level read back */
     union
     {
@@ -408,9 +418,10 @@ private:
     bool m_init_success, m_uart_pins_enabled;
     struct TMCData m_tmc;
 
-    void enableUartPins(bool enablePins);
-    void enableDriver(bool enableDriver);
-    void setStandby(bool enableStandby);
+    void enableTMCDiagInterrupt(bool enable_interrupt);
+    void enableUartPins(bool enable_pins);
+    void enableDriver(bool enable_driver);
+    void setStandby(bool enable_standby);
     bool isDriverEnabled(void);
     void move(int32_t velocity);
     void setCurrent(uint8_t i_run, uint8_t i_hold);
