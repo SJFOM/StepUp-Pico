@@ -212,7 +212,7 @@ void led_task_gpio(void *unused_arg)
 void tmc_process_job(void *unused_arg)
 {
     ControllerState tmc_state = ControllerState::STATE_IDLE;
-    // JoystickState joystick_state = JoystickState::JOYSTICK_STATE_IDLE;
+    TMCData tmc_data = {};
 
     // Store the Pico LED state
     uint8_t pico_led_state = 0;
@@ -250,7 +250,7 @@ void tmc_process_job(void *unused_arg)
             }
             case ControllerState::STATE_READY:
             {
-                MotorControlData motor_data = {};
+                static MotorControlData motor_data = {};
                 if (!default_config_sent)
                 {
                     Utils::log_info("Configure TMC2300 default values...");
@@ -276,13 +276,45 @@ void tmc_process_job(void *unused_arg)
                             motor_data.velocity_delta,
                             motor_data.direction);
                     }
-
-                    break;
                 }
+                break;
             }
             case ControllerState::STATE_NEW_DATA:
             {
                 // tmc_control get State
+                tmc_data = tmc_control.getTMCData();
+                // TODO: Parse data and decide next move
+                if ((false == tmc_data.diag.normal_operation) &&
+                    (!tmc_data.diag.open_circuit) &&
+                    (!tmc_data.diag.overheating) &&
+                    (!tmc_data.diag.short_circuit) &&
+                    (!tmc_data.diag.stall_detected))
+                {
+                    // TODO: Consider removing this - should not have to rely on
+                    // this flag being set, the other diagnostic flags should be
+                    // well tuned to really detect what's happening.
+                    Utils::log_debug(
+                        "Abnormal operation detected but not raised by other "
+                        "flags!!");
+                }
+                // TODO: Deal with the issue at hand and report to user
+                if (tmc_data.diag.open_circuit)
+                {
+                    Utils::log_debug("Open circuit");
+                }
+                if (tmc_data.diag.overheating)
+                {
+                    Utils::log_debug("Overheating");
+                }
+                if (tmc_data.diag.short_circuit)
+                {
+                    Utils::log_debug("Short circuit");
+                }
+                if (tmc_data.diag.stall_detected)
+                {
+                    Utils::log_debug("Stall detected");
+                }
+
                 break;
             }
             case ControllerState::STATE_BUSY:
@@ -343,13 +375,11 @@ void joystick_process_job(void *unused_arg)
 int main()
 {
     // Enable STDIO
-#ifdef DEBUG
     // stdio_usb_init();
     stdio_init_all();
     sleep_ms(2000);
     // Log app info
     Utils::log_device_info();
-#endif
 
     Utils::log_info("Setting up peripherals...");
     setup();
@@ -392,5 +422,5 @@ int main()
     while (true)
     {
         // NOP
-    };
+    }
 }
