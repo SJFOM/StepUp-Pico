@@ -13,6 +13,9 @@
 // pin includes
 #include "pins_definitions.h"
 
+// Logging utilities
+#include "utils.h"
+
 // TMC-API
 extern "C"
 {
@@ -29,7 +32,14 @@ extern "C"
 
 #define TMC_UART_CHANNEL (0)  // Not as relevant for single IC use case
 
-#define VELOCITY_MAX_STEPS_PER_SECOND (100000UL)
+#define VELOCITY_STARTING_STEPS_PER_SECOND (10000U)
+
+// Used for threshold where open-circuit flags are valid - datasheet says they
+// are valid for "slow speed" movements
+#define VELOCITY_SLOW_SPEED_STEPS_PER_SECOND \
+    (2 * VELOCITY_STARTING_STEPS_PER_SECOND)
+
+#define VELOCITY_MAX_STEPS_PER_SECOND (100000U)
 
 #define DEFAULT_IRUN_VALUE  (10U)
 #define DEFAULT_IHOLD_VALUE (0U)
@@ -289,6 +299,9 @@ struct DRV_STATUS_t
     // READ only register
     constexpr static uint8_t address = TMC2300_DRVSTATUS;
 
+    constexpr static uint32_t error_bit_mask =
+        0x800003FF;  // 0b1000 0000 0000 0000 0000 0011 1111 1111
+
     /* DRV_STATUS Driver status flags and current level read back */
     union
     {
@@ -361,9 +374,19 @@ struct PWM_AUTO_t
 /* Chopper Control Registers - END */
 /***********************************/
 
+struct TMCDiagnostics
+{
+    bool normal_operation = true;
+    bool overheating = false;
+    bool short_circuit = false;
+    bool open_circuit = false;
+    bool stall_detected = false;
+};
+
 struct TMCData
 {
     ControllerState control_state;
+    TMCDiagnostics diag;
 };
 
 class TMCControl : public ControlInterface
@@ -375,16 +398,10 @@ public:
     void deinit(void);
     void defaultConfiguration(void);
     enum ControllerState processJob(uint32_t tick_count);
-    void enableUartPins(bool enablePins);
-    void setStandby(bool enableStandby);
-    bool isDriverEnabled(void);
-    void enableDriver(bool enableDriver);
-    void move(int32_t velocity);
     void resetMovementDynamics(void);
-    void setCurrent(uint8_t i_run, uint8_t i_hold);
-    void updateCurrent(uint8_t i_run_delta);
     void updateMovementDynamics(int32_t velocity_delta, int8_t direction);
     uint8_t getChipID(void);
+    struct TMCData getTMCData();
 
 protected:
     GCONF_t m_gconf;
@@ -395,12 +412,21 @@ protected:
     CHOPCONF_t m_chopconf;
     DRV_STATUS_t m_drv_status;
     PWMCONF_t m_pwmconf;
-
-    struct TMCData getTMCData();
+    PWM_SCALE_t m_pwm_scale;
 
 private:
     bool m_init_success, m_uart_pins_enabled;
     struct TMCData m_tmc;
+
+    void enableTMCDiagInterrupt(bool enable_interrupt);
+    void enableUartPins(bool enable_pins);
+    void enableDriver(bool enable_driver);
+    void setStandby(bool enable_standby);
+    bool isDriverEnabled(void);
+    void move(int32_t velocity);
+    void setCurrent(uint8_t i_run, uint8_t i_hold);
+    void updateCurrent(uint8_t i_run_delta);
+    TMCDiagnostics readTMCDiagnostics();
 };
 
 #endif  // TMC_CONTROL_H_

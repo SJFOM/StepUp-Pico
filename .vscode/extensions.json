@@ -4,6 +4,7 @@
         "twxs.cmake",
         "ms-vscode.cmake-tools",
         "marus25.cortex-debug",
-        "usernamehw.errorlens"
+        "usernamehw.errorlens",
+        "ms-vscode.vscode-serial-monitor"
     ]
 }

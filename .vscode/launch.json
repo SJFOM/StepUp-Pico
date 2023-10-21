@@ -13,6 +13,11 @@
             "servertype": "openocd",
             "device": "Pico2040",
             "runToEntryPoint": "main",
+            "rtos": "auto",
+            "liveWatch": {
+                "enabled": false,
+                "samplesPerSecond": 4
+            },
             "showDevDebugOutput": "raw",
             "openOCDLaunchCommands": [
                 "adapter speed 5000"
@@ -25,6 +30,7 @@
                 "searchDir": [
                     "${workspaceRoot}/openocd/tcl"
                 ],
+                "svdFile": "${workspaceRoot}/pico-sdk/src/rp2040/hardware_regs/rp2040.svd",
             },
             "windows": {
                 "configFiles": [
@@ -34,8 +40,8 @@
                 "searchDir": [
                     "C:\\Program Files\\Raspberry Pi\\Pico SDK v1.5.1\\openocd\\tcl"
                 ],
+                "svdFile": "${workspaceRoot}\\pico-sdk\\src\\rp2040\\hardware_regs\\rp2040.svd",
             },
-            "svdFile": "${workspaceRoot}/pico-sdk/src/rp2040/hardware_regs/rp2040.svd",
         },
         {
             "name": "Upload only",
