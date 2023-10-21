@@ -81,11 +81,6 @@ bool TMCControl::init()
         // Configure DIAG pin as interrupt
         gpio_set_input_enabled(TMC_DIAG_PIN, true);
         gpio_pull_up(TMC_DIAG_PIN);
-        // Set up the joystick button interrupt
-        gpio_set_irq_enabled_with_callback(TMC_DIAG_PIN,
-                                           GPIO_IRQ_EDGE_RISE,
-                                           true,
-                                           &tmc_diag_callback);
 
         // Initialize CRC calculation for TMC2300 UART datagrams
         if (!(tmc_fillCRC8Table(0x07, true, 0) == 1))
@@ -128,6 +123,8 @@ bool TMCControl::init()
 
 void TMCControl::deinit()
 {
+    // Disable DIAG pin interrupt function
+    enableTMCDiagInterrupt(false);
     // Reset the tmc2300 to its default values and state
     tmc2300_reset(&tmc2300);
 
@@ -213,7 +210,7 @@ void TMCControl::defaultConfiguration()
      * Use: Set to 0 for STEP/DIR operation, otherwise provide value for UART
      * control to set motor velocity.
      */
-    m_vactual.sr = 10000U;
+    m_vactual.sr = VELOCITY_STARTING_STEPS_PER_SECOND;
     tmc2300_writeInt(&tmc2300, m_vactual.address, m_vactual.sr);
 
     /* Register: CHOPCONF
@@ -260,6 +257,8 @@ void TMCControl::defaultConfiguration()
      * Use: These values can be used to monitor automatic PWM amplitude scaling
      */
     m_pwm_scale.sr = tmc2300_readInt(&tmc2300, m_pwm_scale.address);
+
+    enableTMCDiagInterrupt(true);
 }
 
 void TMCControl::setCurrent(uint8_t i_run, uint8_t i_hold)
@@ -290,6 +289,8 @@ void TMCControl::updateCurrent(uint8_t i_run_delta)
 void TMCControl::updateMovementDynamics(int32_t velocity_delta,
                                         int8_t direction)
 {
+    // TODO: This method is quite specific to updating based on a delta -
+    // suggest renaming or splitting into two separate methods
     if (direction == 0)
     {
         enableDriver(false);
@@ -358,9 +359,9 @@ uint8_t TMCControl::getChipID()
     return tmc_version;
 }
 
-void TMCControl::enableUartPins(bool enablePins)
+void TMCControl::enableUartPins(bool enable_pins)
 {
-    if (enablePins && !m_uart_pins_enabled)
+    if (enable_pins && !m_uart_pins_enabled)
     {
         Utils::log_info("TMC - UART pins enable");
         // Set the TX and RX pins by using the function select on the GPIO
@@ -374,7 +375,7 @@ void TMCControl::enableUartPins(bool enablePins)
 
         m_uart_pins_enabled = true;
     }
-    else if (!enablePins)
+    else if (!enable_pins)
     {
         Utils::log_info("TMC - UART pins disable");
         // Set the UART pins as standard IO's
@@ -404,32 +405,41 @@ TMCDiagnostics TMCControl::readTMCDiagnostics()
 
     m_pwm_scale.sr = tmc2300_readInt(&tmc2300, m_pwm_scale.address);
 
-    Utils::log_debug((string) "PWM_SCALE_SUM: " +
-                     std::to_string(m_pwm_scale.pwm_scale_sum));
+    // Utils::log_debug((string) "PWM_SCALE_SUM: " +
+    //                  std::to_string(m_pwm_scale.pwm_scale_sum));
 
     if (m_drv_status.otpw || m_drv_status.ot || m_drv_status.t120 ||
         m_drv_status.t150)
     {
         tmc_diag.overheating = true;
-        tmc_diag.normal_operation = false;
     }
 
-    if (m_drv_status.ola || m_drv_status.olb)
+    // The TMC2300 datasheet mentions the motor should be moving "slowly" for
+    // this open-circuit detection to be valid - see description of the ola &
+    // olb flags in the DRV_STATUS register map
+    // NOTE: If we have a known PWM_SCALE_SUM value at "low speed" for the motor
+    // and we suddenly detect a wildly different value here then we might also
+    // consider relying on using that as additional information for open-load
+    // detection.
+    if ((m_drv_status.ola || m_drv_status.olb) &&
+        (abs(m_vactual.sr) <= VELOCITY_SLOW_SPEED_STEPS_PER_SECOND))
     {
         tmc_diag.open_circuit = true;
-        tmc_diag.normal_operation = false;
     }
 
     if (m_drv_status.s2ga || m_drv_status.s2gb || m_drv_status.s2vsa ||
         m_drv_status.s2vsb)
     {
         tmc_diag.short_circuit = true;
-        tmc_diag.normal_operation = false;
     }
 
     if (m_drv_status.stst)
     {
         tmc_diag.stall_detected = true;
+    }
+
+    if (m_drv_status.sr & m_drv_status.error_bit_mask)
+    {
         tmc_diag.normal_operation = false;
     }
 
@@ -438,7 +448,8 @@ TMCDiagnostics TMCControl::readTMCDiagnostics()
 
 struct TMCData TMCControl::getTMCData()
 {
-    // TODO: Should we be re-setting the state to READY here?
+    // TODO: Should we be re-setting the state to READY here or should that be
+    // handled by the controlling code in main.cpp?
     m_tmc.control_state = ControllerState::STATE_READY;
     m_tmc.diag = readTMCDiagnostics();
     return m_tmc;
@@ -446,6 +457,7 @@ struct TMCData TMCControl::getTMCData()
 
 enum ControllerState TMCControl::processJob(uint32_t tick_count)
 {
+    static unsigned int process_count = 0;
     tmc2300_periodicJob(&tmc2300, tick_count);
 
     if (s_is_callback_complete &&
@@ -456,9 +468,13 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
         m_tmc.control_state = ControllerState::STATE_READY;
     }
 
-    if (s_diag_event)
+    // Stall detection, over temperature & short-circuit detection are all
+    // mapped to the DIAG pin. However, open-circuit flags must be polled and
+    // are not mapped to the DIAG pin flag.
+    if (s_diag_event || (process_count++ > 10))
     {
         s_diag_event = false;
+        process_count = 0;
         m_tmc.control_state = ControllerState::STATE_NEW_DATA;
     }
 
@@ -517,6 +533,16 @@ void TMCControl::setStandby(bool enable_standby)
 bool TMCControl::isDriverEnabled()
 {
     return gpio_get(TMC_ENABLE_PIN);
+}
+
+void TMCControl::enableTMCDiagInterrupt(bool enable_interrupt)
+{
+    // Set up and enable the TMC DIAG pin interrupt when we have finished
+    // initialising the TMC
+    gpio_set_irq_enabled_with_callback(TMC_DIAG_PIN,
+                                       GPIO_IRQ_EDGE_RISE,
+                                       enable_interrupt,
+                                       &tmc_diag_callback);
 }
 
 void TMCControl::enableDriver(bool enable_driver)
