@@ -1,6 +1,16 @@
 #ifndef PIN_DEFINITIONS_H_
 #define PIN_DEFINITIONS_H_
 
+/***************************/
+/* LED Status pins - START */
+/***************************/
+#define LED_PIN_YELLOW (17U)
+#define LED_PIN_GREEN  (20U)
+
+/*************************/
+/* LED Status pins - END */
+/*************************/
+
 /************************/
 /* TMC2300 pins - START */
 /************************/
@@ -11,8 +21,11 @@
 #define TMC_UART_RX_PIN (5U)
 
 // Motor control pins
-#define TMC_PIN_ENABLE    (14U)
-#define TMC_PIN_N_STANDBY (15U)
+#define TMC_ENABLE_PIN    (14U)
+#define TMC_N_STANDBY_PIN (15U)
+
+// Diagnostics pins
+#define TMC_DIAG_PIN (16U)
 
 /**********************/
 /* TMC2300 pins - END */
