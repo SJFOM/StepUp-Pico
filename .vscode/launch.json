@@ -6,13 +6,17 @@
     "configurations": [
         {
             "name": "Debug with OpenOCD",
-            "cwd": "${workspaceRoot}",
-            "executable": "${workspaceRoot}/build/App-StepUp/StepUp.elf",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/App-StepUp/StepUp.elf",
             "request": "launch",
             "type": "cortex-debug",
             "servertype": "openocd",
             "device": "Pico2040",
             "runToEntryPoint": "main",
+            "debuggerArgs": [
+                "-d",
+                "${workspaceFolder}"
+            ],
             "rtos": "auto",
             "liveWatch": {
                 "enabled": false,
@@ -28,25 +32,25 @@
                     "target/rp2040.cfg"
                 ],
                 "searchDir": [
-                    "${workspaceRoot}/openocd/tcl"
+                    "${workspaceFolder}/openocd/tcl"
                 ],
-                "svdFile": "${workspaceRoot}/pico-sdk/src/rp2040/hardware_regs/rp2040.svd",
+                "svdFile": "${workspaceFolder}/pico-sdk/src/rp2040/hardware_regs/rp2040.svd",
             },
             "windows": {
                 "configFiles": [
-                    "C:\\Program Files\\Raspberry Pi\\Pico SDK v1.5.1\\openocd\\scripts\\interface\\cmsis-dap.cfg",
-                    "C:\\Program Files\\Raspberry Pi\\Pico SDK v1.5.1\\openocd\\scripts\\target\\rp2040.cfg"
+                    "${env:PICO_INSTALL_PATH}\\openocd\\scripts\\interface\\cmsis-dap.cfg",
+                    "${env:PICO_INSTALL_PATH}\\openocd\\scripts\\target\\rp2040.cfg"
                 ],
                 "searchDir": [
-                    "C:\\Program Files\\Raspberry Pi\\Pico SDK v1.5.1\\openocd\\tcl"
+                    "${env:PICO_INSTALL_PATH}\\openocd\\tcl"
                 ],
-                "svdFile": "${workspaceRoot}\\pico-sdk\\src\\rp2040\\hardware_regs\\rp2040.svd",
+                "svdFile": "${workspaceFolder}\\pico-sdk\\src\\rp2040\\hardware_regs\\rp2040.svd",
             },
         },
         {
             "name": "Upload only",
-            "cwd": "${workspaceRoot}",
-            "executable": "${workspaceRoot}/build/App-StepUp/StepUp.elf",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/App-StepUp/StepUp.elf",
             "request": "launch",
             "type": "cortex-debug",
             "servertype": "openocd",
@@ -62,19 +66,19 @@
                     "target/rp2040.cfg"
                 ],
                 "searchDir": [
-                    "${workspaceRoot}/openocd/tcl"
+                    "${workspaceFolder}/openocd/tcl"
                 ],
             },
             "windows": {
                 "configFiles": [
-                    "C:\\Program Files\\Raspberry Pi\\Pico SDK v1.5.1\\openocd\\scripts\\interface\\cmsis-dap.cfg",
-                    "C:\\Program Files\\Raspberry Pi\\Pico SDK v1.5.1\\openocd\\scripts\\target\\rp2040.cfg"
+                    "${env:PICO_INSTALL_PATH}\\openocd\\scripts\\interface\\cmsis-dap.cfg",
+                    "${env:PICO_INSTALL_PATH}\\openocd\\scripts\\target\\rp2040.cfg"
                 ],
                 "searchDir": [
-                    "C:\\Program Files\\Raspberry Pi\\Pico SDK v1.5.1\\openocd\\tcl"
+                    "${env:PICO_INSTALL_PATH}\\openocd\\tcl"
                 ],
             },
-            "svdFile": "${workspaceRoot}/pico-sdk/src/rp2040/hardware_regs/rp2040.svd",
+            "svdFile": "${workspaceFolder}/pico-sdk/src/rp2040/hardware_regs/rp2040.svd",
             "postLaunchCommands": [
                 "monitor reset run",
                 "detach"
