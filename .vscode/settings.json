@@ -78,8 +78,8 @@
     "ranges": "cpp",
     "cinttypes": "cpp"
   },
-  "cortex-debug.openocdPath.osx": "${workspaceRoot}/openocd/src/openocd",
-  "cortex-debug.openocdPath.windows": "C:\\Program Files\\Raspberry Pi\\Pico SDK v1.5.1\\openocd\\openocd.exe",
+  "cortex-debug.openocdPath.osx": "${workspaceFolder}/openocd/src/openocd",
+  "cortex-debug.openocdPath.windows": "${env:PICO_INSTALL_PATH}\\openocd\\openocd.exe",
   "cortex-debug.gdbPath": "arm-none-eabi-gdb",
   "C_Cpp.clang_format_fallbackStyle": "Visual Studio",
   "C_Cpp.clang_format_style": "file",
@@ -96,5 +96,23 @@
     "PICO_BOARD": "pico",
   },
   "cmake.configureOnOpen": false,
-  "python.formatting.provider": "none",
+  // These settings tweaks to the cmake plugin will ensure
+  // that you debug using cortex-debug instead of trying to launch
+  // a Pico binary on the host - taken from raspberrypi/pico-examples
+  "cmake.statusbar.advanced": {
+    "debug": {
+      "visibility": "hidden"
+    },
+    "launch": {
+      "visibility": "hidden"
+    },
+    "build": {
+      "visibility": "hidden"
+    },
+    "buildTarget": {
+      "visibility": "hidden"
+    }
+  },
+  "cmake.buildBeforeRun": true,
+  "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
 }
