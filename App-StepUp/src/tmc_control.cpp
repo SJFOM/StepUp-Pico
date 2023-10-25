@@ -71,10 +71,6 @@ bool TMCControl::init()
         // Initially set as true
         bool _init_routine_success = true;
 
-        // Generic I/O setup
-        gpio_set_input_enabled(TMC_DIAG_PIN, true);
-        gpio_pull_up(TMC_DIAG_PIN);
-
         gpio_init(TMC_ENABLE_PIN);
         gpio_set_dir(TMC_ENABLE_PIN, GPIO_OUT);
 
@@ -261,7 +257,10 @@ void TMCControl::defaultConfiguration()
      */
     m_pwm_scale.sr = tmc2300_readInt(&tmc2300, m_pwm_scale.address);
 
+    // Enable the TMC interrupt and associated callback function
     enableTMCDiagInterrupt(true);
+    gpio_add_raw_irq_handler(TMC_DIAG_PIN, &tmc_diag_callback);
+    irq_set_enabled(IO_IRQ_BANK0, true);
 }
 
 void TMCControl::setCurrent(uint8_t i_run, uint8_t i_hold)
@@ -436,10 +435,11 @@ TMCDiagnostics TMCControl::readTMCDiagnostics()
         tmc_diag.short_circuit = true;
     }
 
-    // if (m_drv_status.stst)
-    // {
-    //     tmc_diag.stall_detected = true;
-    // }
+    // FIXME: Seems to trigger whenever a button press occurs
+    if (m_drv_status.stst)
+    {
+        tmc_diag.stall_detected = true;
+    }
 
     if (m_drv_status.sr & m_drv_status.error_bit_mask)
     {
@@ -542,16 +542,9 @@ void TMCControl::enableTMCDiagInterrupt(bool enable_interrupt)
 {
     // Set up and enable the TMC DIAG pin interrupt when we have finished
     // initialising the TMC
-    // gpio_set_irq_enabled_with_callback(TMC_DIAG_PIN,
-    //                                    GPIO_IRQ_EDGE_RISE,
-    //                                    enable_interrupt,
-    //                                    &tmc_diag_callback);
-
     gpio_set_irq_enabled(TMC_DIAG_PIN,
                          GPIO_IRQ_EDGE_RISE,
                          enable_interrupt);  // monitor pin 1 connected to pin 0
-    gpio_add_raw_irq_handler(TMC_DIAG_PIN, &tmc_diag_callback);
-    irq_set_enabled(IO_IRQ_BANK0, true);
 }
 
 void TMCControl::enableDriver(bool enable_driver)
@@ -569,14 +562,11 @@ void TMCControl::enableDriver(bool enable_driver)
 
 void tmc_diag_callback()
 {
-    printf("T\n");
     if (gpio_get_irq_event_mask(TMC_DIAG_PIN) & GPIO_IRQ_EDGE_RISE)
     {
         gpio_acknowledge_irq(TMC_DIAG_PIN, GPIO_IRQ_EDGE_RISE);
-        // FIXME: This seems to trigger very often - check correct
-        // functionality...
+        // TODO: Check if this needs de-bouncing
         s_diag_event = true;
-        printf("T1\n");
     }
 }
 
