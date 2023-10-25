@@ -20,9 +20,9 @@ static volatile bool s_button_press_event = false;
 // Button debounce control
 static uint32_t s_time_of_last_button_press;
 // Millisecond delay between valid button press events
-static constexpr uint8_t s_delay_time_ms = 50;
+static const uint16_t s_delay_time_ms = 500;
 
-static void joystick_button_callback(uint gpio, uint32_t events);
+static void joystick_button_callback();
 /*********************************/
 /* Joystick button control - END */
 /*********************************/
@@ -48,10 +48,17 @@ bool JoystickControl::init()
         gpio_set_input_enabled(JOYSTICK_BUTTON_PIN, true);
         gpio_pull_up(JOYSTICK_BUTTON_PIN);
         // Set up the joystick button interrupt
-        gpio_set_irq_enabled_with_callback(JOYSTICK_BUTTON_PIN,
-                                           GPIO_IRQ_EDGE_FALL,
-                                           true,
-                                           &joystick_button_callback);
+        // gpio_set_irq_enabled_with_callback(JOYSTICK_BUTTON_PIN,
+        //                                    GPIO_IRQ_EDGE_FALL,
+        //                                    true,
+        //                                    &joystick_button_callback);
+
+        gpio_set_irq_enabled(JOYSTICK_BUTTON_PIN,
+                             GPIO_IRQ_EDGE_FALL,
+                             true);  // monitor pin 1 connected to pin 0
+        gpio_add_raw_irq_handler(JOYSTICK_BUTTON_PIN,
+                                 &joystick_button_callback);
+        irq_set_enabled(IO_IRQ_BANK0, true);
 
         adc_init();
 
@@ -208,15 +215,21 @@ enum ControllerState JoystickControl::processJob(uint32_t tick_count)
     return m_joystick.control_state;
 }
 
-void joystick_button_callback(uint gpio, uint32_t events)
+void joystick_button_callback()
 {
-    uint32_t time_now = to_ms_since_boot(get_absolute_time());
-    if ((time_now - s_time_of_last_button_press) > s_delay_time_ms)
+    printf("J\n");
+    if (gpio_get_irq_event_mask(JOYSTICK_BUTTON_PIN) & GPIO_IRQ_EDGE_FALL)
     {
-        // Recommend to not to change the position of this line
-        s_time_of_last_button_press = to_ms_since_boot(get_absolute_time());
+        gpio_acknowledge_irq(JOYSTICK_BUTTON_PIN, GPIO_IRQ_EDGE_FALL);
 
-        // printf("GPIO %d %d\n", gpio, events);
-        s_button_press_event = true;
+        uint32_t time_now = to_ms_since_boot(get_absolute_time());
+        if ((time_now - s_time_of_last_button_press) > s_delay_time_ms)
+        {
+            // Recommend to not to change the position of this line
+            s_time_of_last_button_press = to_ms_since_boot(get_absolute_time());
+
+            s_button_press_event = true;
+        }
     }
+    printf("J1\n");
 }

@@ -293,9 +293,9 @@ void tmc_process_job(void *unused_arg)
                     // TODO: Consider removing this - should not have to rely on
                     // this flag being set, the other diagnostic flags should be
                     // well tuned to really detect what's happening.
-                    Utils::log_debug(
-                        "Abnormal operation detected but not raised by other "
-                        "flags!!");
+                    // Utils::log_debug(
+                    //     "Abnormal operation detected but not raised by other
+                    //     " "flags!!");
                 }
                 // TODO: Deal with the issue at hand and report to user
                 if (tmc_data.diag.open_circuit)
