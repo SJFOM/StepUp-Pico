@@ -295,7 +295,7 @@ void tmc_process_job(void *unused_arg)
                     // well tuned to really detect what's happening.
                     Utils::log_debug(
                         "Abnormal operation detected but not raised by other "
-                        "flags!!");
+                        "flags !!");
                 }
                 // TODO: Deal with the issue at hand and report to user
                 if (tmc_data.diag.open_circuit)

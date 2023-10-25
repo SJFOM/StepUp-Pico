@@ -21,6 +21,8 @@ static volatile bool s_diag_event = false;
 // Static non-class-member variables
 static bool driver_can_be_enabled = false;
 
+static void tmc_diag_callback();
+
 void callback(TMC2300TypeDef *tmc2300, ConfigState cfg_state)
 {
     UNUSED(tmc2300);
@@ -48,8 +50,6 @@ void callback(TMC2300TypeDef *tmc2300, ConfigState cfg_state)
     }
 }
 
-static void tmc_diag_callback(uint gpio, uint32_t events);
-
 TMCControl::TMCControl()
 {
     m_init_success = false;
@@ -71,7 +71,6 @@ bool TMCControl::init()
         // Initially set as true
         bool _init_routine_success = true;
 
-        // Generic I/O setup
         gpio_init(TMC_ENABLE_PIN);
         gpio_set_dir(TMC_ENABLE_PIN, GPIO_OUT);
 
@@ -258,7 +257,10 @@ void TMCControl::defaultConfiguration()
      */
     m_pwm_scale.sr = tmc2300_readInt(&tmc2300, m_pwm_scale.address);
 
+    // Enable the TMC interrupt and associated callback function
     enableTMCDiagInterrupt(true);
+    gpio_add_raw_irq_handler(TMC_DIAG_PIN, &tmc_diag_callback);
+    irq_set_enabled(IO_IRQ_BANK0, true);
 }
 
 void TMCControl::setCurrent(uint8_t i_run, uint8_t i_hold)
@@ -433,6 +435,7 @@ TMCDiagnostics TMCControl::readTMCDiagnostics()
         tmc_diag.short_circuit = true;
     }
 
+    // FIXME: Seems to trigger whenever a button press occurs
     if (m_drv_status.stst)
     {
         tmc_diag.stall_detected = true;
@@ -539,10 +542,9 @@ void TMCControl::enableTMCDiagInterrupt(bool enable_interrupt)
 {
     // Set up and enable the TMC DIAG pin interrupt when we have finished
     // initialising the TMC
-    gpio_set_irq_enabled_with_callback(TMC_DIAG_PIN,
-                                       GPIO_IRQ_EDGE_RISE,
-                                       enable_interrupt,
-                                       &tmc_diag_callback);
+    gpio_set_irq_enabled(TMC_DIAG_PIN,
+                         GPIO_IRQ_EDGE_RISE,
+                         enable_interrupt);  // monitor pin 1 connected to pin 0
 }
 
 void TMCControl::enableDriver(bool enable_driver)
@@ -558,10 +560,14 @@ void TMCControl::enableDriver(bool enable_driver)
 /* Interrupt routines - START */
 /******************************/
 
-void tmc_diag_callback(uint gpio, uint32_t events)
+void tmc_diag_callback()
 {
-    // FIXME: This seems to trigger very often - check correct functionality...
-    s_diag_event = true;
+    if (gpio_get_irq_event_mask(TMC_DIAG_PIN) & GPIO_IRQ_EDGE_RISE)
+    {
+        gpio_acknowledge_irq(TMC_DIAG_PIN, GPIO_IRQ_EDGE_RISE);
+        // TODO: Check if this needs de-bouncing
+        s_diag_event = true;
+    }
 }
 
 /****************************/
