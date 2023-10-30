@@ -55,6 +55,8 @@ TMCControl::TMCControl()
     m_init_success = false;
     m_uart_pins_enabled = false;
     driver_can_be_enabled = false;
+    m_was_idle_now_moving = false;
+    m_motor_is_moving = false;
     m_tmc.control_state = ControllerState::STATE_IDLE;
 }
 TMCControl::~TMCControl()
@@ -288,6 +290,19 @@ void TMCControl::updateCurrent(uint8_t i_run_delta)
     setCurrent(_i_run, m_ihold_irun.ihold);
 }
 
+// Steps
+/* 1 - Record current speed
+ * 2 - Some way of knowing that we are idle -> moving -> need to accelerate
+ *   - Store speed step increment value (1000U)
+ *   - Store state of motor: idle, moving etc..
+ * 3 - If changing velocity due to user input (i.e. velocity_delta != 0) then we
+ * need to leave accel-decel mode
+ *
+ * Thought... Do we need to have separate modes? Why don't we have
+ * updateMovementDynamics change the target_velocity and make it the job of
+ * processJob to accelerate towards the velocity? Hmmm.....
+ */
+
 void TMCControl::updateMovementDynamics(int32_t velocity_delta,
                                         int8_t direction)
 {
@@ -296,21 +311,30 @@ void TMCControl::updateMovementDynamics(int32_t velocity_delta,
     if (direction == 0)
     {
         enableDriver(false);
+        m_motor_is_moving = false;
+        m_was_idle_now_moving = false;
     }
     else
     {
-        int32_t _velocity = abs(m_vactual.sr);
-        _velocity *= direction;
+        int32_t updated_velocity = abs(m_vactual.sr);
+        updated_velocity *= direction;
 
         // We do not wish to allow a velocity update to make the motor stop, the
         // direction flag should control this. Instead, we want to enforce a
         // call to resetMotorDynamics or move(0) to have this effect.
-        if ((_velocity + velocity_delta) != 0)
+        if ((updated_velocity + velocity_delta) != 0)
         {
-            _velocity += velocity_delta;
+            updated_velocity += velocity_delta;
         }
 
-        move(_velocity);
+        m_target_velocity = updated_velocity;
+        if (!m_was_idle_now_moving && !m_motor_is_moving)
+        {
+            m_was_idle_now_moving = true;
+        }
+        m_motor_is_moving = true;
+
+        // move(updated_velocity);
     }
 }
 
@@ -335,6 +359,8 @@ void TMCControl::move(int32_t velocity)
     tmc2300_writeInt(&tmc2300, m_vactual.address, m_vactual.sr);
 
     // TODO: Implement Stallguard thresholding logic
+    // NOTE: Surely this is the job of Coolstep? Otherwise we will likely always
+    // be providing full current
     /*
         uint32_t sg_value = tmc2300_readInt(&tmc2300, TMC2300_SG_VALUE);
         printf("SG: %d\n", sg_value);
@@ -479,6 +505,47 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
         s_diag_event = false;
         process_count = 0;
         m_tmc.control_state = ControllerState::STATE_NEW_DATA;
+    }
+
+    // Ramp profile using internal TMC step generator
+    if (m_motor_is_moving)
+    {
+        // FIXME: Idle -> moving transition not always caught if we move from
+        // idle -> moving in the same direction. Only works if we toggle between
+        // clock-wise -> ccw movement (or vice-versa)
+        static int32_t updated_velocity = 0;
+        if (m_vactual.sr != m_target_velocity)
+        {
+            if (m_was_idle_now_moving)
+            {
+                printf("Idle -> moving\n");
+                m_was_idle_now_moving = false;
+                updated_velocity = VELOCITY_STARTING_STEPS_PER_SECOND;
+                if (m_target_velocity < 0)
+                {
+                    updated_velocity *= -1;
+                }
+            }
+            if (m_vactual.sr > m_target_velocity)
+            {
+                printf("High\n");
+                updated_velocity -= VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
+            }
+            if (m_vactual.sr < m_target_velocity)
+            {
+                printf("Low\n");
+                updated_velocity += VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
+            }
+        }
+        else
+        {
+            updated_velocity = m_target_velocity;
+        }
+        printf("%d -> %d -> %d\n",
+               m_vactual.sr,
+               updated_velocity,
+               m_target_velocity);
+        move(updated_velocity);
     }
 
     return m_tmc.control_state;
