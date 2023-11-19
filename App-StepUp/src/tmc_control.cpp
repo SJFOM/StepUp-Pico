@@ -524,19 +524,25 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
         {
             if (m_vactual.sr != m_target_velocity)
             {
-                if (m_vactual.sr > m_target_velocity)
+                if (abs(m_vactual.sr) > abs(m_target_velocity))
                 {
                     printf("High\n");
-                    updated_velocity -=
-                        VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
+                    updated_velocity = m_target_velocity;
                 }
-                if (m_vactual.sr < m_target_velocity)
+                else
                 {
                     printf("Low\n");
-                    updated_velocity +=
-                        VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
+                    if (m_target_velocity < 0)
+                    {
+                        updated_velocity -=
+                            VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
+                    }
+                    else
+                    {
+                        updated_velocity +=
+                            VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
+                    }
                 }
-
                 printf("%d -> %d -> %d\n",
                        m_vactual.sr,
                        updated_velocity,
