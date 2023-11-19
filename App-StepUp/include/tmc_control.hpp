@@ -390,6 +390,14 @@ struct TMCData
     TMCDiagnostics diag;
 };
 
+enum MotorMoveState
+{
+    MOTOR_IDLE = 0U,
+    MOTOR_IDLE_TO_MOVING = 1U,
+    MOTOR_MOVING_TO_IDLE = 2U,
+    MOTOR_MOVING,
+};
+
 class TMCControl : public ControlInterface
 {
 public:
@@ -416,10 +424,10 @@ protected:
     PWM_SCALE_t m_pwm_scale;
 
 private:
+    MotorMoveState m_motor_move_state;
     bool m_init_success, m_uart_pins_enabled;
     struct TMCData m_tmc;
     int32_t m_target_velocity;
-    bool m_was_idle_now_moving, m_motor_is_moving;
 
     void enableTMCDiagInterrupt(bool enable_interrupt);
     void enableUartPins(bool enable_pins);
