@@ -52,11 +52,10 @@ void callback(TMC2300TypeDef *tmc2300, ConfigState cfg_state)
 
 TMCControl::TMCControl()
 {
+    m_motor_move_state = MotorMoveState::MOTOR_IDLE;
     m_init_success = false;
     m_uart_pins_enabled = false;
     driver_can_be_enabled = false;
-    m_was_idle_now_moving = false;
-    m_motor_is_moving = false;
     m_tmc.control_state = ControllerState::STATE_IDLE;
 }
 TMCControl::~TMCControl()
@@ -311,8 +310,6 @@ void TMCControl::updateMovementDynamics(int32_t velocity_delta,
     if (direction == 0)
     {
         enableDriver(false);
-        m_motor_is_moving = false;
-        m_was_idle_now_moving = false;
     }
     else
     {
@@ -328,11 +325,8 @@ void TMCControl::updateMovementDynamics(int32_t velocity_delta,
         }
 
         m_target_velocity = updated_velocity;
-        if (!m_was_idle_now_moving && !m_motor_is_moving)
-        {
-            m_was_idle_now_moving = true;
-        }
-        m_motor_is_moving = true;
+
+        enableDriver(true);
 
         // move(updated_velocity);
     }
@@ -340,7 +334,8 @@ void TMCControl::updateMovementDynamics(int32_t velocity_delta,
 
 void TMCControl::resetMovementDynamics()
 {
-    move(0);
+    move(VELOCITY_STARTING_STEPS_PER_SECOND);
+    enableDriver(false);
     setCurrent(DEFAULT_IRUN_VALUE, DEFAULT_IHOLD_VALUE);
 }
 
@@ -508,45 +503,56 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
     }
 
     // Ramp profile using internal TMC step generator
-    if (m_motor_is_moving)
+    switch (m_motor_move_state)
     {
-        // FIXME: Idle -> moving transition not always caught if we move from
-        // idle -> moving in the same direction. Only works if we toggle between
-        // clock-wise -> ccw movement (or vice-versa)
         static int32_t updated_velocity = 0;
-        if (m_vactual.sr != m_target_velocity)
+        case (MOTOR_IDLE):
+            break;
+        case (MOTOR_IDLE_TO_MOVING):
         {
-            if (m_was_idle_now_moving)
+            printf("Idle -> moving\n");
+            updated_velocity = VELOCITY_STARTING_STEPS_PER_SECOND;
+            if (m_target_velocity < 0)
             {
-                printf("Idle -> moving\n");
-                m_was_idle_now_moving = false;
-                updated_velocity = VELOCITY_STARTING_STEPS_PER_SECOND;
-                if (m_target_velocity < 0)
+                updated_velocity *= -1;
+            }
+            move(updated_velocity);
+            m_motor_move_state = MotorMoveState::MOTOR_MOVING;
+            break;
+        }
+        case (MOTOR_MOVING):
+        {
+            if (m_vactual.sr != m_target_velocity)
+            {
+                if (m_vactual.sr > m_target_velocity)
                 {
-                    updated_velocity *= -1;
+                    printf("High\n");
+                    updated_velocity -=
+                        VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
                 }
+                if (m_vactual.sr < m_target_velocity)
+                {
+                    printf("Low\n");
+                    updated_velocity +=
+                        VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
+                }
+
+                printf("%d -> %d -> %d\n",
+                       m_vactual.sr,
+                       updated_velocity,
+                       m_target_velocity);
+                move(updated_velocity);
             }
-            if (m_vactual.sr > m_target_velocity)
-            {
-                printf("High\n");
-                updated_velocity -= VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
-            }
-            if (m_vactual.sr < m_target_velocity)
-            {
-                printf("Low\n");
-                updated_velocity += VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
-            }
+            break;
         }
-        else
+        case (MOTOR_MOVING_TO_IDLE):
         {
-            updated_velocity = m_target_velocity;
+            m_motor_move_state = MotorMoveState::MOTOR_IDLE;
+            break;
         }
-        printf("%d -> %d -> %d\n",
-               m_vactual.sr,
-               updated_velocity,
-               m_target_velocity);
-        move(updated_velocity);
-    }
+        default:
+            break;
+    };
 
     return m_tmc.control_state;
 }
@@ -617,6 +623,15 @@ void TMCControl::enableTMCDiagInterrupt(bool enable_interrupt)
 void TMCControl::enableDriver(bool enable_driver)
 {
     bool _enable_driver = (bool)(driver_can_be_enabled && enable_driver);
+
+    if (isDriverEnabled() && !_enable_driver)
+    {
+        m_motor_move_state = MotorMoveState::MOTOR_MOVING_TO_IDLE;
+    }
+    else if (!isDriverEnabled() && _enable_driver)
+    {
+        m_motor_move_state = MotorMoveState::MOTOR_IDLE_TO_MOVING;
+    }
 
     // Utils::log_debug((string) "Driver enabled: " +
     //  std::to_string(_enable_driver));
