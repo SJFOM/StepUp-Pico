@@ -52,6 +52,7 @@ void callback(TMC2300TypeDef *tmc2300, ConfigState cfg_state)
 
 TMCControl::TMCControl()
 {
+    m_motor_move_state = MotorMoveState::MOTOR_IDLE;
     m_init_success = false;
     m_uart_pins_enabled = false;
     driver_can_be_enabled = false;
@@ -288,6 +289,19 @@ void TMCControl::updateCurrent(uint8_t i_run_delta)
     setCurrent(_i_run, m_ihold_irun.ihold);
 }
 
+// Steps
+/* 1 - Record current speed
+ * 2 - Some way of knowing that we are idle -> moving -> need to accelerate
+ *   - Store speed step increment value (1000U)
+ *   - Store state of motor: idle, moving etc..
+ * 3 - If changing velocity due to user input (i.e. velocity_delta != 0) then we
+ * need to leave accel-decel mode
+ *
+ * Thought... Do we need to have separate modes? Why don't we have
+ * updateMovementDynamics change the target_velocity and make it the job of
+ * processJob to accelerate towards the velocity? Hmmm.....
+ */
+
 void TMCControl::updateMovementDynamics(int32_t velocity_delta,
                                         int8_t direction)
 {
@@ -299,24 +313,29 @@ void TMCControl::updateMovementDynamics(int32_t velocity_delta,
     }
     else
     {
-        int32_t _velocity = abs(m_vactual.sr);
-        _velocity *= direction;
+        int32_t updated_velocity = abs(m_vactual.sr);
+        updated_velocity *= direction;
 
         // We do not wish to allow a velocity update to make the motor stop, the
         // direction flag should control this. Instead, we want to enforce a
         // call to resetMotorDynamics or move(0) to have this effect.
-        if ((_velocity + velocity_delta) != 0)
+        if ((updated_velocity + velocity_delta) != 0)
         {
-            _velocity += velocity_delta;
+            updated_velocity += velocity_delta;
         }
 
-        move(_velocity);
+        m_target_velocity = updated_velocity;
+
+        enableDriver(true);
+
+        // move(updated_velocity);
     }
 }
 
 void TMCControl::resetMovementDynamics()
 {
-    move(0);
+    move(VELOCITY_STARTING_STEPS_PER_SECOND);
+    enableDriver(false);
     setCurrent(DEFAULT_IRUN_VALUE, DEFAULT_IHOLD_VALUE);
 }
 
@@ -335,6 +354,8 @@ void TMCControl::move(int32_t velocity)
     tmc2300_writeInt(&tmc2300, m_vactual.address, m_vactual.sr);
 
     // TODO: Implement Stallguard thresholding logic
+    // NOTE: Surely this is the job of Coolstep? Otherwise we will likely always
+    // be providing full current
     /*
         uint32_t sg_value = tmc2300_readInt(&tmc2300, TMC2300_SG_VALUE);
         printf("SG: %d\n", sg_value);
@@ -481,6 +502,64 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
         m_tmc.control_state = ControllerState::STATE_NEW_DATA;
     }
 
+    // Ramp profile using internal TMC step generator
+    switch (m_motor_move_state)
+    {
+        static int32_t updated_velocity = 0;
+        case (MOTOR_IDLE):
+            break;
+        case (MOTOR_IDLE_TO_MOVING):
+        {
+            printf("Idle -> moving\n");
+            updated_velocity = VELOCITY_STARTING_STEPS_PER_SECOND;
+            if (m_target_velocity < 0)
+            {
+                updated_velocity *= -1;
+            }
+            move(updated_velocity);
+            m_motor_move_state = MotorMoveState::MOTOR_MOVING;
+            break;
+        }
+        case (MOTOR_MOVING):
+        {
+            if (m_vactual.sr != m_target_velocity)
+            {
+                if (abs(m_vactual.sr) > abs(m_target_velocity))
+                {
+                    printf("High\n");
+                    updated_velocity = m_target_velocity;
+                }
+                else
+                {
+                    printf("Low\n");
+                    if (m_target_velocity < 0)
+                    {
+                        updated_velocity -=
+                            VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
+                    }
+                    else
+                    {
+                        updated_velocity +=
+                            VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
+                    }
+                }
+                printf("%d -> %d -> %d\n",
+                       m_vactual.sr,
+                       updated_velocity,
+                       m_target_velocity);
+                move(updated_velocity);
+            }
+            break;
+        }
+        case (MOTOR_MOVING_TO_IDLE):
+        {
+            m_motor_move_state = MotorMoveState::MOTOR_IDLE;
+            break;
+        }
+        default:
+            break;
+    };
+
     return m_tmc.control_state;
 }
 
@@ -550,6 +629,15 @@ void TMCControl::enableTMCDiagInterrupt(bool enable_interrupt)
 void TMCControl::enableDriver(bool enable_driver)
 {
     bool _enable_driver = (bool)(driver_can_be_enabled && enable_driver);
+
+    if (isDriverEnabled() && !_enable_driver)
+    {
+        m_motor_move_state = MotorMoveState::MOTOR_MOVING_TO_IDLE;
+    }
+    else if (!isDriverEnabled() && _enable_driver)
+    {
+        m_motor_move_state = MotorMoveState::MOTOR_IDLE_TO_MOVING;
+    }
 
     // Utils::log_debug((string) "Driver enabled: " +
     //  std::to_string(_enable_driver));

@@ -32,7 +32,8 @@ extern "C"
 
 #define TMC_UART_CHANNEL (0)  // Not as relevant for single IC use case
 
-#define VELOCITY_STARTING_STEPS_PER_SECOND (10000U)
+#define VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND (500U)
+#define VELOCITY_STARTING_STEPS_PER_SECOND       (10000U)
 
 // Used for threshold where open-circuit flags are valid - datasheet says they
 // are valid for "slow speed" movements
@@ -389,6 +390,14 @@ struct TMCData
     TMCDiagnostics diag;
 };
 
+enum MotorMoveState
+{
+    MOTOR_IDLE = 0U,
+    MOTOR_IDLE_TO_MOVING = 1U,
+    MOTOR_MOVING_TO_IDLE = 2U,
+    MOTOR_MOVING,
+};
+
 class TMCControl : public ControlInterface
 {
 public:
@@ -415,8 +424,10 @@ protected:
     PWM_SCALE_t m_pwm_scale;
 
 private:
+    MotorMoveState m_motor_move_state;
     bool m_init_success, m_uart_pins_enabled;
     struct TMCData m_tmc;
+    int32_t m_target_velocity;
 
     void enableTMCDiagInterrupt(bool enable_interrupt);
     void enableUartPins(bool enable_pins);
