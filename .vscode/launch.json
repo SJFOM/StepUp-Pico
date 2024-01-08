@@ -46,6 +46,16 @@
                 ],
                 "svdFile": "${workspaceFolder}\\pico-sdk\\src\\rp2040\\hardware_regs\\rp2040.svd",
             },
+            "linux": {
+                "configFiles": [
+                    "${env:PICO_INSTALL_PATH}/openocd/scripts/interface/cmsis-dap.cfg",
+                    "${env:PICO_INSTALL_PATH}/openocd/scripts/target/rp2040.cfg"
+                ],
+                "searchDir": [
+                    "${env:PICO_INSTALL_PATH}/openocd/tcl"
+                ],
+                "svdFile": "${workspaceFolder}/pico-sdk/src/rp2040/hardware_regs/rp2040.svd",
+            },
         },
         {
             "name": "Upload only",
@@ -76,6 +86,15 @@
                 ],
                 "searchDir": [
                     "${env:PICO_INSTALL_PATH}\\openocd\\tcl"
+                ],
+            },
+            "linux": {
+                "configFiles": [
+                    "${env:PICO_INSTALL_PATH}/openocd/scripts/interface/cmsis-dap.cfg",
+                    "${env:PICO_INSTALL_PATH}/openocd/scripts/target/rp2040.cfg"
+                ],
+                "searchDir": [
+                    "${env:PICO_INSTALL_PATH}/openocd/tcl"
                 ],
             },
             "svdFile": "${workspaceFolder}/pico-sdk/src/rp2040/hardware_regs/rp2040.svd",
