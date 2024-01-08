@@ -82,8 +82,9 @@ Once selected and VS code opens, you will likely be prompted with a choice of "K
 ### Mac
 (TBD)...
 
-### Linux
-(TBD)...
+### Linux (WIP)
+- Run the Pi install guide, modified to not configure UART
+- Add export PICO_INSTALL_PATH to your ~/.bashrc
 
 Additionally, [this blog post](https://blog.smittytone.net/2021/02/02/program-raspberry-pi-pico-c-mac/) offers additional details on how Pico project setup works and explains how to add new libraries and Pico functionality (e.g. I2C).
 
