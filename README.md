@@ -82,9 +82,12 @@ Once selected and VS code opens, you will likely be prompted with a choice of "K
 ### Mac
 (TBD)...
 
-### Linux
-(TBD)...
+### Linux (WIP)
+Run `bin/setup_pico.sh` to configure a Linux machine for programming the Pico
 
+**NOTE:** This guide is a modified version of a setup guide for the Raspberry Pi as offered by the Pi foundation - exercise caution when using!
+
+#### Additional project setup info
 Additionally, [this blog post](https://blog.smittytone.net/2021/02/02/program-raspberry-pi-pico-c-mac/) offers additional details on how Pico project setup works and explains how to add new libraries and Pico functionality (e.g. I2C).
 
 
