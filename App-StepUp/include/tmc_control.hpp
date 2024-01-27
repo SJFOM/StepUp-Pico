@@ -42,8 +42,15 @@ extern "C"
 
 #define VELOCITY_MAX_STEPS_PER_SECOND (100000U)
 
+// Run and hold current values (0..31U) scaled to 1.4A RMS
 #define DEFAULT_IRUN_VALUE  (10U)
 #define DEFAULT_IHOLD_VALUE (0U)
+
+// If SG_VALUE falls below 2x SGTHRS_VALUE then a stall detection is triggered
+// SG_VALUE = 0..510 (higher number, lighter loading)
+// 90% loading = 510 - 0.9*510 = 0.1*510 - 51
+// SGTHRS = 51/2 ~= 25
+#define DEFAULT_SGTHRS_VALUE (25U)
 
 /*****************************/
 /* General Registers - START */
@@ -418,6 +425,7 @@ protected:
     IOIN_t m_ioin;
     IHOLD_IRUN_t m_ihold_irun;
     VACTUAL_t m_vactual;
+    SGTHRS_t m_sgthrs;
     CHOPCONF_t m_chopconf;
     DRV_STATUS_t m_drv_status;
     PWMCONF_t m_pwmconf;

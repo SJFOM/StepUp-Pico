@@ -213,6 +213,14 @@ void TMCControl::defaultConfiguration()
     m_vactual.sr = VELOCITY_STARTING_STEPS_PER_SECOND;
     tmc2300_writeInt(&tmc2300, m_vactual.address, m_vactual.sr);
 
+    /* Register: SGTHRS
+     * What: Detection threshold for stall - when SG_VAL falls below 2x this.
+     * number Use: Set between 0..255, higher value = higher sensitivity to
+     * stall.
+     */
+    m_sgthrs.sr = DEFAULT_SGTHRS_VALUE;
+    tmc2300_writeInt(&tmc2300, m_sgthrs.address, m_sgthrs.sr);
+
     /* Register: CHOPCONF
      * What: Generic chopper algorithm configuration
      * Use: Configuring output stage power management and step resolution
@@ -356,9 +364,12 @@ void TMCControl::move(int32_t velocity)
     // TODO: Implement Stallguard thresholding logic
     // NOTE: Surely this is the job of Coolstep? Otherwise we will likely always
     // be providing full current
+    // Low value: highest load
+    // High value: high load
+    // Range: 0..510
     /*
-        uint32_t sg_value = tmc2300_readInt(&tmc2300, TMC2300_SG_VALUE);
-        printf("SG: %d\n", sg_value);
+    uint32_t sg_value = tmc2300_readInt(&tmc2300, TMC2300_SG_VALUE);
+    printf("SG: %d\n", sg_value);
         if (sg_value < 50)
         {
             printf("current++\n");
@@ -479,6 +490,8 @@ struct TMCData TMCControl::getTMCData()
     return m_tmc;
 }
 
+static uint16_t sg_val_total;
+
 enum ControllerState TMCControl::processJob(uint32_t tick_count)
 {
     static unsigned int process_count = 0;
@@ -492,14 +505,29 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
         m_tmc.control_state = ControllerState::STATE_READY;
     }
 
+    sg_val_total += tmc2300_readInt(&tmc2300, TMC2300_SG_VALUE);
+
     // Stall detection, over temperature & short-circuit detection are all
     // mapped to the DIAG pin. However, open-circuit flags must be polled and
     // are not mapped to the DIAG pin flag.
     if (s_diag_event || (process_count++ > 10))
     {
         s_diag_event = false;
-        process_count = 0;
         m_tmc.control_state = ControllerState::STATE_NEW_DATA;
+
+        // TODO: Remove, just for diagnostics
+        uint32_t sg_value = tmc2300_readInt(&tmc2300, TMC2300_SG_VALUE);
+        uint8_t motor_effort_percent = ((100 * (510 - sg_value)) / 510);
+        // printf("SG: %d\n", sg_value);
+        // if (sg_value < 30U)
+        // {
+        // printf("High motor load: %d - %d %%\n", sg_value,
+        // motor_effort_percent);
+        printf(">sg_live: %d\n", sg_value);
+        printf(">sg_avg: %d\n", sg_val_total / process_count);
+        sg_val_total = 0;
+        process_count = 0;
+        // }
     }
 
     // Ramp profile using internal TMC step generator
