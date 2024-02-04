@@ -43,7 +43,7 @@ extern "C"
 #define VELOCITY_MAX_STEPS_PER_SECOND (100000U)
 
 // Run and hold current values (0..31U) scaled to 1.4A RMS
-#define DEFAULT_IRUN_VALUE  (10U)
+#define DEFAULT_IRUN_VALUE  (20U)
 #define DEFAULT_IHOLD_VALUE (0U)
 
 // If SG_VALUE falls below 2x SGTHRS_VALUE then a stall detection is triggered
@@ -207,8 +207,8 @@ struct TCOOLTHRS_t
     constexpr static uint8_t address = TMC2300_TCOOLTHRS;
 
     /* This is the lower threshold velocity for switching on smart energy
-     * CoolStep and StallGuard feature. */
-    uint16_t sr : 10;
+     * CoolStep and StallGuard feature. RANGE: 1..2^20-1. DEFAULT: 0 */
+    uint32_t sr : 20;
 };
 
 struct SGTHRS_t
@@ -239,12 +239,14 @@ struct COOLCONF_t
     // WRITE only register
     constexpr static uint8_t address = TMC2300_COOLCONF;
 
-    /* COOLCONF: Smart energy control CoolStep and StallGuard */
+    /* COOLCONF: Smart energy control CoolStep and StallGuard. DEFAULT: 0
+     * (disabled)*/
     union
     {
         uint16_t sr : 16;
         struct
         {
+            /* NOTE: semin = 0, smart current control coolStep = OFF */
             uint8_t semin : 4, : 1, seup : 2, : 1, semax : 4, : 1, sedn : 2;
             bool seimin : 1;
         };
@@ -426,6 +428,8 @@ protected:
     IHOLD_IRUN_t m_ihold_irun;
     VACTUAL_t m_vactual;
     SGTHRS_t m_sgthrs;
+    TCOOLTHRS_t m_tcoolthrs;
+    COOLCONF_t m_coolconf;
     CHOPCONF_t m_chopconf;
     DRV_STATUS_t m_drv_status;
     PWMCONF_t m_pwmconf;
