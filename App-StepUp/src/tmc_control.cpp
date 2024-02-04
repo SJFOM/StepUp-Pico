@@ -79,6 +79,7 @@ bool TMCControl::init()
         gpio_set_dir(TMC_N_STANDBY_PIN, GPIO_OUT);
 
         // Configure DIAG pin as interrupt
+        gpio_init(TMC_DIAG_PIN);
         gpio_set_input_enabled(TMC_DIAG_PIN, true);
         gpio_pull_up(TMC_DIAG_PIN);
 
@@ -145,7 +146,8 @@ void TMCControl::defaultConfiguration()
      * User: Set these to determine high-level system function
      */
     m_gconf.sr = tmc2300_readInt(&tmc2300, m_gconf.address);
-    m_gconf.extcap = true;       // external capacitor available
+    m_gconf.extcap =
+        true;  // external capacitor available, avoid switching delays
     m_gconf.shaft = false;       // don't invert motor direction
     m_gconf.diag_index = false;  // DIAG output normal
     m_gconf.diag_step = false;   // DIAG output normal
@@ -215,11 +217,37 @@ void TMCControl::defaultConfiguration()
 
     /* Register: SGTHRS
      * What: Detection threshold for stall - when SG_VAL falls below 2x this.
-     * number Use: Set between 0..255, higher value = higher sensitivity to
+     * number
+     * Use: Set between 0..255, higher value = higher sensitivity to
      * stall.
      */
     m_sgthrs.sr = DEFAULT_SGTHRS_VALUE;
     tmc2300_writeInt(&tmc2300, m_sgthrs.address, m_sgthrs.sr);
+
+    /* Register: TCOOLTHRS
+     * What: Lower threshold velocity for switching on CoolStep and Stallgaurd.
+     * Use: Velocity in steps/second at which to switch on this feature
+     */
+    // TODO: Update with sane velocity at which to switch mode.
+    m_tcoolthrs.sr = 10000U;
+    tmc2300_writeInt(&tmc2300, m_tcoolthrs.address, m_tcoolthrs.sr);
+
+    /* Register: COOLCONF
+     * What: Configure how CoolStep is employed wrt to Stallgaurd values
+     * Use: See datasheet, page 26
+     */
+    // TODO: Update with stallgaurd value thresholds once known
+    m_coolconf.sr = 0;
+    m_coolconf.seup = 0;  // Step width: 1
+    m_coolconf.sedn = 0;  // SG measurements per decrement: 32
+    m_coolconf.semin = 1;
+    m_coolconf.semax = 15;
+    m_coolconf.seimin = 0;
+    if (m_ihold_irun.irun >= 20U)
+    {
+        m_coolconf.seimin = 1;
+    }
+    tmc2300_writeInt(&tmc2300, m_coolconf.address, m_coolconf.sr);
 
     /* Register: CHOPCONF
      * What: Generic chopper algorithm configuration
@@ -335,8 +363,6 @@ void TMCControl::updateMovementDynamics(int32_t velocity_delta,
         m_target_velocity = ramp_velocity;
 
         enableDriver(true);
-
-        // move(ramp_velocity);
     }
 }
 
@@ -360,27 +386,6 @@ void TMCControl::move(int32_t velocity)
     m_vactual.sr = velocity;
     enableDriver(velocity == 0 ? false : true);
     tmc2300_writeInt(&tmc2300, m_vactual.address, m_vactual.sr);
-
-    // TODO: Implement Stallguard thresholding logic
-    // NOTE: Surely this is the job of Coolstep? Otherwise we will likely always
-    // be providing full current
-    // Low value: highest load
-    // High value: high load
-    // Range: 0..510
-    /*
-    uint32_t sg_value = tmc2300_readInt(&tmc2300, TMC2300_SG_VALUE);
-    printf("SG: %d\n", sg_value);
-        if (sg_value < 50)
-        {
-            printf("current++\n");
-            updateCurrent(1);
-        }
-        if (sg_value > 200)
-        {
-            printf("current--\n");
-            updateCurrent(-1);
-        }
-    */
 }
 
 uint8_t TMCControl::getChipID()
@@ -467,7 +472,8 @@ TMCDiagnostics TMCControl::readTMCDiagnostics()
         tmc_diag.short_circuit = true;
     }
 
-    // FIXME: Seems to trigger whenever a button press occurs
+    // FIXME: Seems to trigger whenever a button press occurs, should filter
+    // this combination of events at the main.cpp level.
     if (m_drv_status.stst)
     {
         tmc_diag.stall_detected = true;
@@ -517,17 +523,40 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
 
         // TODO: Remove, just for diagnostics
         uint32_t sg_value = tmc2300_readInt(&tmc2300, TMC2300_SG_VALUE);
+        IHOLD_IRUN_t irun_ihold;
+        irun_ihold.sr = tmc2300_readInt(&tmc2300, TMC2300_IHOLD_IRUN);
         uint8_t motor_effort_percent = ((100 * (510 - sg_value)) / 510);
+        m_ioin.sr = tmc2300_readInt(&tmc2300, m_ioin.address);
+        m_drv_status.sr = tmc2300_readInt(&tmc2300, m_drv_status.address);
+        m_ihold_irun.sr = tmc2300_readInt(&tmc2300, TMC2300_IHOLD_IRUN);
+        uint8_t stall = 0;
+        uint8_t diag = 0;
+        if (m_ioin.diag)
+        {
+            diag = 1;
+            if (m_drv_status.stst)
+            {
+                stall = 1;
+            }
+        }
         // printf("SG: %d\n", sg_value);
         // if (sg_value < 30U)
         // {
         // printf("High motor load: %d - %d %%\n", sg_value,
         // motor_effort_percent);
+        // }
         printf(">sg_live: %d\n", sg_value);
         printf(">sg_avg: %d\n", sg_val_total / process_count);
+        printf(">vel:%d\n", m_vactual.sr);
+        printf(">diag: %d\n", diag);
+        printf(">diag_pin: %d\n", gpio_get(TMC_DIAG_PIN));
+        printf(">stall: %d\n", stall);
+        printf(">thresh: %d\n", m_sgthrs.sr);
+        printf(">drv_status: %d\n",
+               m_drv_status.sr & m_drv_status.error_bit_mask);
+        printf(">irun: %d\n", m_ihold_irun.irun);
         sg_val_total = 0;
         process_count = 0;
-        // }
     }
 
     // Ramp profile using internal TMC step generator
