@@ -181,7 +181,7 @@ void TMCControl::defaultConfiguration()
      * Use: Read values to understand operating state of motor movements
      */
     m_ioin.en = 0;         // EN pin (0=disable, 1=enable)
-    m_ioin.nstdby = 0;     // NSTBY pin (0=standby, 1=enable)
+    m_ioin.nstdby = 0;     // NSTBY pin (0=enable, 1=disable)
     m_ioin.ad0 = 0;        // AD0 pin (UART address LSB)
     m_ioin.ad1 = 0;        // AD1 pin (UART address MSB)
     m_ioin.diag = 0;       // Diag pin
@@ -255,14 +255,13 @@ void TMCControl::defaultConfiguration()
      * parameters
      */
     m_chopconf.sr = tmc2300_readInt(&tmc2300, m_chopconf.address);
-    m_chopconf.enabledrv = true;  // Driver enable (0=disable, 1=enable)
-    m_chopconf.tbl = 2;           // Comparator blank time in clock-counts
-    m_chopconf.mres = 3;          // Microstep setting (0=256 μsteps)
-    m_chopconf.intpol = true;     // Interpolation to 256 μsteps
-    m_chopconf.dedge = false;     // Enable double edge step pulses
-    m_chopconf.diss2g = false;  // Short to GND protection (0=enable, 1=disable)
-    m_chopconf.diss2vs =
-        false;  // Low side short protection (0=enable, 1=disable)
+    m_chopconf.enabledrv = true;       // Driver enable
+    m_chopconf.tbl = 2;                // Comparator blank time in clock-counts
+    m_chopconf.mres = MRES_FULL_STEP;  // Microstep setting (0=256 μsteps)
+    m_chopconf.intpol = true;          // Interpolation to 256 μsteps
+    m_chopconf.dedge = false;          // Enable double edge step pulses
+    m_chopconf.diss2g = false;         // Disable short to GND protection
+    m_chopconf.diss2vs = false;        // Disable low side short protection
     tmc2300_writeInt(&tmc2300, m_chopconf.address, m_chopconf.sr);
 
     /* Register: DRV_STATUS
@@ -281,9 +280,9 @@ void TMCControl::defaultConfiguration()
     m_pwmconf.pwm_freq = 0;   // PWM frequency selection
     m_pwmconf.pwm_autoscale = true;  // PWM automatic amplitude scaling
     m_pwmconf.pwm_autograd = true;   // PWM automatic gradient adaptation
-    m_pwmconf.freewheel =
-        1;                  // Standstill option when motor current setting is 0
-    m_pwmconf.pwm_reg = 4;  // Regulation loop gradient
+    m_pwmconf.freewheel = FREEWHEEL_FREEWHEELING;  // Standstill option when
+                                                   // motor current setting is 0
+    m_pwmconf.pwm_reg = 4;                         // Regulation loop gradient
     m_pwmconf.pwm_lim =
         12;  // PWM automatic scale amplitude limit when switching on
     tmc2300_writeInt(&tmc2300, m_pwmconf.address, m_pwmconf.sr);

@@ -155,7 +155,8 @@ struct IHOLD_IRUN_t
         uint32_t sr : 20;
         struct
         {
-            uint8_t iholddelay : 5, : 3, irun : 5, : 3, ihold : 5;
+            // TODO: Re-order: check the following is now correct
+            uint8_t ihold : 5, : 3, irun : 5, : 3, iholddelay : 4;
         };
     };
 
@@ -243,7 +244,7 @@ struct COOLCONF_t
      * (disabled)*/
     union
     {
-        uint16_t sr : 16;
+        uint16_t sr;
         struct
         {
             /* NOTE: semin = 0, smart current control coolStep = OFF */
@@ -359,7 +360,7 @@ struct PWM_SCALE_t
         {
             uint8_t pwm_scale_sum : 8;
             uint8_t : 8;
-            uint16_t pwm_scale_auto : 9;
+            int16_t pwm_scale_auto : 9;
         };
     };
 };
@@ -405,6 +406,27 @@ enum MotorMoveState
     MOTOR_IDLE_TO_MOVING = 1U,
     MOTOR_MOVING_TO_IDLE = 2U,
     MOTOR_MOVING,
+};
+
+enum FreewheelMode
+{
+    FREEWHEEL_NORMAL = 0,
+    FREEWHEEL_FREEWHEELING = 1,
+    FREEWHEEL_LS_DRIVER_SHORT = 2,
+    FREEWHEEL_HS_DRIVER_SHORT = 3,
+};
+
+enum MicrostepResolution
+{
+    MRES_FULL_STEP = 8,
+    MRES_2_STEP = 7,
+    MRES_4_STEP = 6,
+    MRES_8_STEP = 5,
+    MRES_16_STEP = 4,
+    MRES_32_STEP = 3,
+    MRES_64_STEP = 2,
+    MRES_12_STEP = 1,
+    MRES_256_STEP = 0,
 };
 
 class TMCControl : public ControlInterface
