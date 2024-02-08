@@ -5,6 +5,7 @@
         "ms-vscode.cmake-tools",
         "marus25.cortex-debug",
         "usernamehw.errorlens",
-        "ms-vscode.vscode-serial-monitor"
+        "ms-vscode.vscode-serial-monitor",
+        "alexnesnes.teleplot"
     ]
 }
