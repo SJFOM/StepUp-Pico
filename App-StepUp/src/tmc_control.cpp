@@ -229,7 +229,7 @@ void TMCControl::defaultConfiguration()
      * Use: Velocity in steps/second at which to switch on this feature
      */
     // TODO: Update with sane velocity at which to switch mode.
-    m_tcoolthrs.sr = 10000U;
+    m_tcoolthrs.sr = 100U;
     tmc2300_writeInt(&tmc2300, m_tcoolthrs.address, m_tcoolthrs.sr);
 
     /* Register: COOLCONF
@@ -237,10 +237,11 @@ void TMCControl::defaultConfiguration()
      * Use: See datasheet, page 26
      */
     // TODO: Update with stallgaurd value thresholds once known
-    m_coolconf.sr = 0;
+    m_coolconf.sr = tmc2300_readInt(&tmc2300, TMC2300_COOLCONF);
+    printf("COOLCONF - BEFORE: 0x%x\n", m_coolconf.sr);
     m_coolconf.seup = 0;  // Step width: 1
     m_coolconf.sedn = 0;  // SG measurements per decrement: 32
-    m_coolconf.semin = 1;
+    m_coolconf.semin = 10;
     m_coolconf.semax = 15;
     m_coolconf.seimin = 0;
     if (m_ihold_irun.irun >= 20U)
@@ -248,6 +249,8 @@ void TMCControl::defaultConfiguration()
         m_coolconf.seimin = 1;
     }
     tmc2300_writeInt(&tmc2300, m_coolconf.address, m_coolconf.sr);
+    m_coolconf.sr = tmc2300_readInt(&tmc2300, TMC2300_COOLCONF);
+    printf("COOLCONF - AFTER: 0x%x\n", m_coolconf.sr);
 
     /* Register: CHOPCONF
      * What: Generic chopper algorithm configuration
@@ -526,8 +529,9 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
         irun_ihold.sr = tmc2300_readInt(&tmc2300, TMC2300_IHOLD_IRUN);
         uint8_t motor_effort_percent = ((100 * (510 - sg_value)) / 510);
         m_ioin.sr = tmc2300_readInt(&tmc2300, m_ioin.address);
-        m_drv_status.sr = tmc2300_readInt(&tmc2300, m_drv_status.address);
+        m_drv_status.sr = tmc2300_readInt(&tmc2300, TMC2300_DRVSTATUS);
         m_ihold_irun.sr = tmc2300_readInt(&tmc2300, TMC2300_IHOLD_IRUN);
+        m_tstep.sr = tmc2300_readInt(&tmc2300, TMC2300_TSTEP);
         uint8_t stall = 0;
         uint8_t diag = 0;
         if (m_ioin.diag)
@@ -554,6 +558,9 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
         printf(">drv_status: %d\n",
                m_drv_status.sr & m_drv_status.error_bit_mask);
         printf(">irun: %d\n", m_ihold_irun.irun);
+        printf(">cs_actual: %d\n", m_drv_status.cs_actual);
+        printf(">tstep: %lu\n", m_tstep.sr);
+        sg_val_total = 0;
         sg_val_total = 0;
         process_count = 0;
     }
