@@ -248,8 +248,11 @@ struct COOLCONF_t
         struct
         {
             /* NOTE: semin = 0, smart current control coolStep = OFF */
-            uint8_t semin : 4, : 1, seup : 2, : 1, semax : 4, : 1, sedn : 2;
+            // FIXME: This register WORKS if the bit order is backwards to the
+            // other registers?.. Look into struct packing, maybe this isn't
+            // consistent?
             bool seimin : 1;
+            uint8_t sedn : 2, : 1, semax : 4, : 1, seup : 2, : 1, semin : 4;
         };
     };
 };
@@ -453,6 +456,7 @@ protected:
     TCOOLTHRS_t m_tcoolthrs;
     COOLCONF_t m_coolconf;
     CHOPCONF_t m_chopconf;
+    TSTEP_t m_tstep;
     DRV_STATUS_t m_drv_status;
     PWMCONF_t m_pwmconf;
     PWM_SCALE_t m_pwm_scale;
