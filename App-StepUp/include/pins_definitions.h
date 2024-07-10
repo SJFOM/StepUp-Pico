@@ -2,14 +2,16 @@
 #define PIN_DEFINITIONS_H_
 
 /***************************/
-/* LED Status pins - START */
+/* Status pins - START */
 /***************************/
-#define LED_PIN_RED   (2U)
-#define LED_PIN_GREEN (3U)
-#define LED_PIN_BLUE  (5U)
+#define LED_PIN_RED   (2U)  // PWM1_A
+#define LED_PIN_GREEN (3U)  // PWM1_B
+#define LED_PIN_BLUE  (5U)  // PWM2_B
+
+#define BUZZER_PIN (16U)  // PWM0_A
 
 /*************************/
-/* LED Status pins - END */
+/* Status pins - END */
 /*************************/
 
 /************************/
@@ -18,17 +20,21 @@
 
 // We are using pins 0 and 1, but see the GPIO function select table in the
 // datasheet for information on which other pins can be used.
-#define TMC_UART_TX_PIN (25U)
-#define TMC_UART_RX_PIN (24U)
+#define TMC_PIN_UART_TX (25U)
+#define TMC_PIN_UART_RX (24U)
 
 // Motor control pins
-#define TMC_ENABLE_PIN    (20U)
-#define TMC_N_STANDBY_PIN (21U)
+#define TMC_PIN_ENABLE    (20U)
+#define TMC_PIN_N_STANDBY (21U)
 
 // Diagnostics pins
-#define TMC_DIAG_PIN (19U)
+#define TMC_PIN_DIAG (19U)
 
-#define TMC_BOOST_EN (18U)
+#define TMC_PIN_BOOST_EN (18U)
+
+// STEP/DIR pins
+#define TMC_PIN_STEP (23U)  // PWM3_B
+#define TMC_PIN_DIR  (22U)
 
 /**********************/
 /* TMC2300 pins - END */
@@ -51,5 +57,35 @@
 /***********************/
 /* Joystick pins - END */
 /***********************/
+
+/********************************/
+/* Voltage monitor pins - START */
+/********************************/
+#define VBAT_MONITOR_ADC_PIN       (38U)
+#define VBAT_MONITOR_ADC_CHANNEL   (0)
+#define VMOTOR_MONITOR_ADC_PIN     (39U)
+#define VMOTOR_MONITOR_ADC_CHANNEL (1U)
+
+#define VUSB_MONITOR_PIN (4U)  // USB_VBUS_DET
+
+/******************************/
+/* Voltage monitor pins - END */
+/******************************/
+
+/**************************/
+/* Spare I/O pins - START */
+/**************************/
+#define GPIO_PIN_8  (8U)
+#define GPIO_PIN_9  (9U)
+#define GPIO_PIN_10 (10U)
+#define GPIO_PIN_11 (11U)
+#define GPIO_PIN_12 (12U)
+#define GPIO_PIN_13 (13U)
+#define GPIO_PIN_14 (14U)
+#define GPIO_PIN_15 (15U)
+
+/************************/
+/* Spare I/O pins - END */
+/************************/
 
 #endif  // PIN_DEFINITIONS_H_

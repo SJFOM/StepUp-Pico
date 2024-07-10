@@ -94,9 +94,9 @@ void setup_tmc2300()
     }
 
     // FIXME: Put in more appropriate location
-    gpio_init(TMC_BOOST_EN);
-    gpio_set_dir(TMC_BOOST_EN, GPIO_OUT);
-    gpio_put(TMC_BOOST_EN, 1);
+    gpio_init(TMC_PIN_BOOST_EN);
+    gpio_set_dir(TMC_PIN_BOOST_EN, GPIO_OUT);
+    gpio_put(TMC_PIN_BOOST_EN, 1);
 }
 
 /**
@@ -383,9 +383,9 @@ void joystick_process_job(void *unused_arg)
  */
 int main()
 {
-    // Enable STDIO
-    // stdio_usb_init();
+    // Enable either STDIO (UART) or USB (don't enable both)
     stdio_init_all();
+    // stdio_usb_init();
     sleep_ms(2000);
     // Log app info
     Utils::log_device_info();
