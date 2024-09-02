@@ -143,12 +143,13 @@ struct IHOLD_IRUN_t
     constexpr static uint8_t address = TMC2300_IHOLD_IRUN;
 
     /* IHOLD_IRUN: Driver Current control */
+
     union
     {
         uint32_t sr : 20;
         struct
         {
-            uint8_t iholddelay : 5, : 3, irun : 5, : 3, ihold : 5;
+            uint8_t iholddelay : 4, : 3, irun : 5, : 3, ihold : 5;
         };
     };
 
