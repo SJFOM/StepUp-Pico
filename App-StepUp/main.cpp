@@ -58,9 +58,13 @@ JoystickControl joystick_control;
  */
 void setup()
 {
+    Utils::log_info("LED setup");
     setup_led();
+    Utils::log_info("TMC2300 setup");
     setup_tmc2300();
+    Utils::log_info("Joystick setup");
     setup_joystick();
+    Utils::log_info("Setup complete!");
 }
 
 /**
@@ -88,6 +92,11 @@ void setup_tmc2300()
     {
         Utils::log_error("TMC version: INVALID!");
     }
+
+    // FIXME: Put in more appropriate location
+    gpio_init(TMC_PIN_BOOST_EN);
+    gpio_set_dir(TMC_PIN_BOOST_EN, GPIO_OUT);
+    gpio_put(TMC_PIN_BOOST_EN, 1);
 }
 
 /**
@@ -116,8 +125,8 @@ void setup_joystick()
  */
 void setup_led()
 {
-    gpio_init(PICO_DEFAULT_LED_PIN);
-    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+    gpio_init(LED_PIN_RED);
+    gpio_set_dir(LED_PIN_RED, GPIO_OUT);
     led_off();
 }
 
@@ -142,7 +151,7 @@ void led_off()
  */
 void led_set(bool state)
 {
-    gpio_put(PICO_DEFAULT_LED_PIN, state);
+    gpio_put(LED_PIN_RED, state);
 }
 
 /*
@@ -158,8 +167,8 @@ void led_task_pico(void *unused_arg)
     uint8_t pico_led_state = 0;
 
     // Configure the Pico's on-board LED
-    gpio_init(PICO_DEFAULT_LED_PIN);
-    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+    gpio_init(LED_PIN_RED);
+    gpio_set_dir(LED_PIN_RED, GPIO_OUT);
 
     while (true)
     {
@@ -167,14 +176,14 @@ void led_task_pico(void *unused_arg)
         // to the FreeRTOS xQUEUE
         // Utils::log_info("PICO LED FLASH");
         pico_led_state = 1;
-        gpio_put(PICO_DEFAULT_LED_PIN, pico_led_state);
+        gpio_put(LED_PIN_RED, pico_led_state);
         xQueueSendToBack(queue, &pico_led_state, 0);
         vTaskDelay(ms_delay);
 
         // Turn Pico LED off an add the LED state
         // to the FreeRTOS xQUEUE
         pico_led_state = 0;
-        gpio_put(PICO_DEFAULT_LED_PIN, pico_led_state);
+        gpio_put(LED_PIN_RED, pico_led_state);
         xQueueSendToBack(queue, &pico_led_state, 0);
         vTaskDelay(ms_delay);
     }
@@ -191,8 +200,8 @@ void led_task_gpio(void *unused_arg)
     uint8_t passed_value_buffer = 0;
 
     // Configure the GPIO LED
-    gpio_init(LED_PIN_YELLOW);
-    gpio_set_dir(LED_PIN_YELLOW, GPIO_OUT);
+    gpio_init(LED_PIN_BLUE);
+    gpio_set_dir(LED_PIN_BLUE, GPIO_OUT);
 
     while (true)
     {
@@ -201,7 +210,7 @@ void led_task_gpio(void *unused_arg)
         {
             // Received a value so flash the GPIO LED accordingly
             // (NOT the sent value)
-            gpio_put(LED_PIN_YELLOW, passed_value_buffer == 1 ? 0 : 1);
+            gpio_put(LED_PIN_BLUE, passed_value_buffer == 1 ? 0 : 1);
         }
     }
 }
@@ -218,8 +227,8 @@ void tmc_process_job(void *unused_arg)
     uint8_t pico_led_state = 0;
 
     // Configure the Pico's on-board LED
-    gpio_init(PICO_DEFAULT_LED_PIN);
-    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+    gpio_init(LED_PIN_RED);
+    gpio_set_dir(LED_PIN_RED, GPIO_OUT);
 
     unsigned long count = 0;
 
@@ -233,7 +242,7 @@ void tmc_process_job(void *unused_arg)
         // printf("count: %lu\n", count++);
         pico_led_state ^= 1;
 
-        gpio_put(PICO_DEFAULT_LED_PIN, pico_led_state);
+        gpio_put(LED_PIN_RED, pico_led_state);
         xQueueSendToBack(queue, &pico_led_state, 0);
         vTaskDelay(tmc_job_delay);
 
@@ -374,9 +383,9 @@ void joystick_process_job(void *unused_arg)
  */
 int main()
 {
-    // Enable STDIO
-    // stdio_usb_init();
+    // Enable either STDIO (UART) or USB (don't enable both)
     stdio_init_all();
+    // stdio_usb_init();
     sleep_ms(2000);
     // Log app info
     Utils::log_device_info();

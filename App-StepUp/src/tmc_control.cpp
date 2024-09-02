@@ -72,15 +72,15 @@ bool TMCControl::init()
         // Initially set as true
         bool _init_routine_success = true;
 
-        gpio_init(TMC_ENABLE_PIN);
-        gpio_set_dir(TMC_ENABLE_PIN, GPIO_OUT);
+        gpio_init(TMC_PIN_ENABLE);
+        gpio_set_dir(TMC_PIN_ENABLE, GPIO_OUT);
 
-        gpio_init(TMC_N_STANDBY_PIN);
-        gpio_set_dir(TMC_N_STANDBY_PIN, GPIO_OUT);
+        gpio_init(TMC_PIN_N_STANDBY);
+        gpio_set_dir(TMC_PIN_N_STANDBY, GPIO_OUT);
 
         // Configure DIAG pin as interrupt
-        gpio_set_input_enabled(TMC_DIAG_PIN, true);
-        gpio_pull_up(TMC_DIAG_PIN);
+        gpio_set_input_enabled(TMC_PIN_DIAG, true);
+        gpio_pull_up(TMC_PIN_DIAG);
 
         // Initialize CRC calculation for TMC2300 UART datagrams
         if (!(tmc_fillCRC8Table(0x07, true, 0) == 1))
@@ -260,7 +260,7 @@ void TMCControl::defaultConfiguration()
 
     // Enable the TMC interrupt and associated callback function
     enableTMCDiagInterrupt(true);
-    gpio_add_raw_irq_handler(TMC_DIAG_PIN, &tmc_diag_callback);
+    gpio_add_raw_irq_handler(TMC_PIN_DIAG, &tmc_diag_callback);
     irq_set_enabled(IO_IRQ_BANK0, true);
 }
 
@@ -389,12 +389,12 @@ void TMCControl::enableUartPins(bool enable_pins)
         Utils::log_info("TMC - UART pins enable");
         // Set the TX and RX pins by using the function select on the GPIO
         // Set datasheet for more information on function select
-        gpio_init(TMC_UART_TX_PIN);
-        gpio_set_dir(TMC_UART_TX_PIN, GPIO_OUT);
-        gpio_init(TMC_UART_RX_PIN);
-        gpio_set_dir(TMC_UART_RX_PIN, GPIO_IN);
-        gpio_set_function(TMC_UART_TX_PIN, GPIO_FUNC_UART);
-        gpio_set_function(TMC_UART_RX_PIN, GPIO_FUNC_UART);
+        gpio_init(TMC_PIN_UART_TX);
+        gpio_set_dir(TMC_PIN_UART_TX, GPIO_OUT);
+        gpio_init(TMC_PIN_UART_RX);
+        gpio_set_dir(TMC_PIN_UART_RX, GPIO_IN);
+        gpio_set_function(TMC_PIN_UART_TX, GPIO_FUNC_UART);
+        gpio_set_function(TMC_PIN_UART_RX, GPIO_FUNC_UART);
 
         m_uart_pins_enabled = true;
     }
@@ -402,16 +402,16 @@ void TMCControl::enableUartPins(bool enable_pins)
     {
         Utils::log_info("TMC - UART pins disable");
         // Set the UART pins as standard IO's
-        gpio_set_function(TMC_UART_TX_PIN, GPIO_FUNC_SIO);
-        gpio_set_function(TMC_UART_RX_PIN, GPIO_FUNC_SIO);
+        gpio_set_function(TMC_PIN_UART_TX, GPIO_FUNC_SIO);
+        gpio_set_function(TMC_PIN_UART_RX, GPIO_FUNC_SIO);
 
         // Disable any pull-ups/downs on the IO pins
-        gpio_disable_pulls(TMC_UART_TX_PIN);
-        gpio_disable_pulls(TMC_UART_RX_PIN);
+        gpio_disable_pulls(TMC_PIN_UART_TX);
+        gpio_disable_pulls(TMC_PIN_UART_RX);
 
         // Set the UART pins as inputs
-        gpio_set_input_enabled(TMC_UART_TX_PIN, true);
-        gpio_set_input_enabled(TMC_UART_RX_PIN, true);
+        gpio_set_input_enabled(TMC_PIN_UART_TX, true);
+        gpio_set_input_enabled(TMC_PIN_UART_RX, true);
 
         m_uart_pins_enabled = false;
     }
@@ -605,7 +605,7 @@ void TMCControl::setStandby(bool enable_standby)
     }
 
     // Set the Standby pin state - after enable so we retain control over driver
-    gpio_put(TMC_N_STANDBY_PIN, enable_standby ? 0 : 1);
+    gpio_put(TMC_PIN_N_STANDBY, enable_standby ? 0 : 1);
 
     // Update the APIs internal standby state
     tmc2300_setStandby(&tmc2300, enable_standby ? 1 : 0);
@@ -613,14 +613,14 @@ void TMCControl::setStandby(bool enable_standby)
 
 bool TMCControl::isDriverEnabled()
 {
-    return gpio_get(TMC_ENABLE_PIN);
+    return gpio_get(TMC_PIN_ENABLE);
 }
 
 void TMCControl::enableTMCDiagInterrupt(bool enable_interrupt)
 {
     // Set up and enable the TMC DIAG pin interrupt when we have finished
     // initialising the TMC
-    gpio_set_irq_enabled(TMC_DIAG_PIN,
+    gpio_set_irq_enabled(TMC_PIN_DIAG,
                          GPIO_IRQ_EDGE_RISE,
                          enable_interrupt);  // monitor pin 1 connected to pin 0
 }
@@ -640,7 +640,7 @@ void TMCControl::enableDriver(bool enable_driver)
 
     // Utils::log_debug((string) "Driver enabled: " +
     //  std::to_string(_enable_driver));
-    gpio_put(TMC_ENABLE_PIN, _enable_driver ? 1 : 0);
+    gpio_put(TMC_PIN_ENABLE, _enable_driver ? 1 : 0);
 }
 
 /******************************/
@@ -649,9 +649,9 @@ void TMCControl::enableDriver(bool enable_driver)
 
 void tmc_diag_callback()
 {
-    if (gpio_get_irq_event_mask(TMC_DIAG_PIN) & GPIO_IRQ_EDGE_RISE)
+    if (gpio_get_irq_event_mask(TMC_PIN_DIAG) & GPIO_IRQ_EDGE_RISE)
     {
-        gpio_acknowledge_irq(TMC_DIAG_PIN, GPIO_IRQ_EDGE_RISE);
+        gpio_acknowledge_irq(TMC_PIN_DIAG, GPIO_IRQ_EDGE_RISE);
         // TODO: Check if this needs de-bouncing
         s_diag_event = true;
     }
