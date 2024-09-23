@@ -77,20 +77,24 @@ void setup()
 void setup_tmc2300()
 {
     // If this fails on a call to writing to TMC then it will be blocking!
-    if (false == tmc_control.init())
+    if (tmc_control.init())
     {
-        Utils::log_error("ERROR:TMC failed to initialise!");
-    }
+        uint8_t tmc_version = tmc_control.getChipID();
 
-    uint8_t tmc_version = tmc_control.getChipID();
+        if (tmc_version == TMC2300_VERSION_COMPATIBLE)
+        {
+            Utils::log_info("TMC2300 silicon version: 0x40");
+        }
+        else
+        {
+            Utils::log_error("TMC version: INVALID!");
+        }
 
-    if (tmc_version == TMC2300_VERSION_COMPATIBLE)
-    {
-        Utils::log_info("TMC2300 silicon version: 0x40");
+        tmc_control.enableFunctionality(true);
     }
     else
     {
-        Utils::log_error("TMC version: INVALID!");
+        Utils::log_error("ERROR:TMC failed to initialise!");
     }
 
     // FIXME: Put in more appropriate location
@@ -108,7 +112,11 @@ void setup_tmc2300()
 void setup_joystick()
 {
     // If this fails on a call to writing to TMC then it will be blocking!
-    if (false == joystick_control.init())
+    if (joystick_control.init())
+    {
+        joystick_control.enableFunctionality(true);
+    }
+    else
     {
         // This will be true if no joystick present OR the josytick is not
         // centered
@@ -337,35 +345,47 @@ void joystick_process_job(void *unused_arg)
     {
         joystick_controller_state =
             joystick_control.processJob(xTaskGetTickCount());
-        if (joystick_controller_state == ControllerState::STATE_NEW_DATA)
+        switch (joystick_controller_state)
         {
-            MotorControlData motor_data = {};
-            joystick_data = joystick_control.getJoystickData();
+            case ControllerState::STATE_IDLE:
+            {
+                break;
+            }
+            case ControllerState::STATE_NEW_DATA:
+            {
+                MotorControlData motor_data = {};
+                joystick_data = joystick_control.getJoystickData();
 
-            // Assign motor direction to the state of the joystick (either
-            // NEGATIVE:-1, IDLE:0, POSITIVE:+1)
-            motor_data.direction = joystick_data.state_x;
+                // Assign motor direction to the state of the joystick (either
+                // NEGATIVE:-1, IDLE:0, POSITIVE:+1)
+                motor_data.direction = joystick_data.state_x;
 
-            // Assign velocity_delta to the state of the joystick (either
-            // NEGATIVE:-1, IDLE:0, POSITIVE:+1) multiplied by the change in
-            // velocity we should incur.
-            motor_data.velocity_delta =
-                joystick_data.state_y * VELOCITY_DELTA_VALUE;
+                // Assign velocity_delta to the state of the joystick (either
+                // NEGATIVE:-1, IDLE:0, POSITIVE:+1) multiplied by the change in
+                // velocity we should incur.
+                motor_data.velocity_delta =
+                    joystick_data.state_y * VELOCITY_DELTA_VALUE;
 
-            // This ensures that, no matter which direction we face, the
-            // joystick will "speed up" or "slow down" consistent with the
-            // direction of rotation of the motor shaft.
-            motor_data.velocity_delta *= motor_data.direction;
+                // This ensures that, no matter which direction we face, the
+                // joystick will "speed up" or "slow down" consistent with the
+                // direction of rotation of the motor shaft.
+                motor_data.velocity_delta *= motor_data.direction;
 
-            motor_data.button_press = joystick_data.button_is_pressed;
+                motor_data.button_press = joystick_data.button_is_pressed;
 
-            // To ensure our new data isn't discarded and successfully makes it
-            // into the queue, we should wait a bit longer than the amount of
-            // time required to process one tmc_job_delay period to allow the
-            // tmc task to complete its latest round of actions.
-            xQueueSendToBack(queue_motor_control_data,
-                             &motor_data,
-                             tmc_job_delay + 1);
+                // To ensure our new data isn't discarded and successfully makes
+                // it into the queue, we should wait a bit longer than the
+                // amount of time required to process one tmc_job_delay period
+                // to allow the tmc task to complete its latest round of
+                // actions.
+                xQueueSendToBack(queue_motor_control_data,
+                                 &motor_data,
+                                 tmc_job_delay + 1);
+                break;
+            }
+            case ControllerState::STATE_BUSY:
+            default:
+                break;
         }
         vTaskDelay(joystick_job_delay);
     }
