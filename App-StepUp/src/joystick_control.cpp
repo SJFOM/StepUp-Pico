@@ -82,10 +82,14 @@ bool JoystickControl::init()
                                        ADC_TO_VOLTAGE_CONVERSION_FACTOR) +
                         " V");
 
-        if ((m_joystick.position.x_offset > ADC_LOWER_HOME_THRESHOLD_RAW &&
-             m_joystick.position.x_offset < ADC_UPPER_HOME_THRESHOLD_RAW) &&
-            (m_joystick.position.y_offset > ADC_LOWER_HOME_THRESHOLD_RAW &&
-             m_joystick.position.y_offset < ADC_UPPER_HOME_THRESHOLD_RAW))
+        if ((m_joystick.position.x_offset >
+                 JOYSTICK_ADC_LOWER_HOME_THRESHOLD_RAW &&
+             m_joystick.position.x_offset <
+                 JOYSTICK_ADC_UPPER_HOME_THRESHOLD_RAW) &&
+            (m_joystick.position.y_offset >
+                 JOYSTICK_ADC_LOWER_HOME_THRESHOLD_RAW &&
+             m_joystick.position.y_offset <
+                 JOYSTICK_ADC_UPPER_HOME_THRESHOLD_RAW))
         {
             // We assume that the joystick is roughly centered and so its
             // current position must be its "home" position
@@ -95,10 +99,12 @@ bool JoystickControl::init()
         }
         else
         {
-            Utils::log_warn((string) "ADC lower bound:" +
-                            std::to_string(ADC_LOWER_HOME_THRESHOLD_RAW));
-            Utils::log_warn((string) "ADC upper bound:" +
-                            std::to_string(ADC_UPPER_HOME_THRESHOLD_RAW));
+            Utils::log_warn(
+                (string) "ADC lower bound:" +
+                std::to_string(JOYSTICK_ADC_LOWER_HOME_THRESHOLD_RAW));
+            Utils::log_warn(
+                (string) "ADC upper bound:" +
+                std::to_string(JOYSTICK_ADC_UPPER_HOME_THRESHOLD_RAW));
             Utils::log_warn((string) "x stage offset: " +
                             std::to_string(m_joystick.position.x_offset));
             Utils::log_warn((string) "y stage offset: " +

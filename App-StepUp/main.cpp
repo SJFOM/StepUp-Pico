@@ -62,6 +62,8 @@ void setup()
     setup_led();
     Utils::log_info("TMC2300 setup");
     setup_tmc2300();
+    Utils::log_info("Boost converter setup");
+    setup_boost_converter();
     Utils::log_info("Joystick setup");
     setup_joystick();
     Utils::log_info("Setup complete!");
@@ -96,11 +98,24 @@ void setup_tmc2300()
     {
         Utils::log_error("ERROR:TMC failed to initialise!");
     }
+}
 
-    // FIXME: Put in more appropriate location
+void setup_boost_converter()
+{
+    // TODO:
+    // 1 - enable boost pin
+    // 2 - check boost voltage is within target
     gpio_init(TMC_PIN_BOOST_EN);
     gpio_set_dir(TMC_PIN_BOOST_EN, GPIO_OUT);
+
     gpio_put(TMC_PIN_BOOST_EN, 1);
+
+    adc_init();
+    adc_gpio_init(VMOTOR_MONITOR_ADC_PIN);
+    adc_select_input(VMOTOR_MONITOR_ADC_CHANNEL);
+    uint16_t boost_converter_voltage_raw = adc_read() && ADC_ENOB_MASK;
+
+    // if (boost_converter_voltage_raw >
 }
 
 /**
@@ -279,12 +294,14 @@ void tmc_process_job(void *unused_arg)
                 if (xQueueReceive(queue_motor_control_data, &motor_data, 0) ==
                     pdPASS)
                 {
-                    // printf("Velocity diff: %d\n", motor_data.velocity_delta);
-                    // printf("Direction: %d\n", motor_data.direction);
+                    // printf("Velocity diff: %d\n",
+                    // motor_data.velocity_delta); printf("Direction: %d\n",
+                    // motor_data.direction);
                     if (motor_data.button_press)
                     {
                         printf("Button press - stopping motor!\n");
-                        // A button press event should instantly stop the motor
+                        // A button press event should instantly stop the
+                        // motor
                         tmc_control.resetMovementDynamics();
                     }
                     else
@@ -356,28 +373,28 @@ void joystick_process_job(void *unused_arg)
                 MotorControlData motor_data = {};
                 joystick_data = joystick_control.getJoystickData();
 
-                // Assign motor direction to the state of the joystick (either
-                // NEGATIVE:-1, IDLE:0, POSITIVE:+1)
+                // Assign motor direction to the state of the joystick
+                // (either NEGATIVE:-1, IDLE:0, POSITIVE:+1)
                 motor_data.direction = joystick_data.state_x;
 
-                // Assign velocity_delta to the state of the joystick (either
-                // NEGATIVE:-1, IDLE:0, POSITIVE:+1) multiplied by the change in
-                // velocity we should incur.
+                // Assign velocity_delta to the state of the joystick
+                // (either NEGATIVE:-1, IDLE:0, POSITIVE:+1) multiplied by
+                // the change in velocity we should incur.
                 motor_data.velocity_delta =
                     joystick_data.state_y * VELOCITY_DELTA_VALUE;
 
                 // This ensures that, no matter which direction we face, the
-                // joystick will "speed up" or "slow down" consistent with the
-                // direction of rotation of the motor shaft.
+                // joystick will "speed up" or "slow down" consistent with
+                // the direction of rotation of the motor shaft.
                 motor_data.velocity_delta *= motor_data.direction;
 
                 motor_data.button_press = joystick_data.button_is_pressed;
 
-                // To ensure our new data isn't discarded and successfully makes
-                // it into the queue, we should wait a bit longer than the
-                // amount of time required to process one tmc_job_delay period
-                // to allow the tmc task to complete its latest round of
-                // actions.
+                // To ensure our new data isn't discarded and successfully
+                // makes it into the queue, we should wait a bit longer than
+                // the amount of time required to process one tmc_job_delay
+                // period to allow the tmc task to complete its latest round
+                // of actions.
                 xQueueSendToBack(queue_motor_control_data,
                                  &motor_data,
                                  tmc_job_delay + 1);
