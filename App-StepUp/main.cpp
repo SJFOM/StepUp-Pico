@@ -96,7 +96,7 @@ void setup_tmc2300()
     }
     else
     {
-        Utils::log_error("ERROR:TMC failed to initialise!");
+        Utils::log_error("TMC failed to initialise!");
     }
 }
 
@@ -104,18 +104,32 @@ void setup_boost_converter()
 {
     // TODO:
     // 1 - enable boost pin
-    // 2 - check boost voltage is within target
+    // 2 - check boost voltage is within target range
     gpio_init(TMC_PIN_BOOST_EN);
     gpio_set_dir(TMC_PIN_BOOST_EN, GPIO_OUT);
 
     gpio_put(TMC_PIN_BOOST_EN, 1);
 
     adc_init();
-    adc_gpio_init(VMOTOR_MONITOR_ADC_PIN);
-    adc_select_input(VMOTOR_MONITOR_ADC_CHANNEL);
-    uint16_t boost_converter_voltage_raw = adc_read() && ADC_ENOB_MASK;
+    uint16_t boost_converter_voltage_raw =
+        Utils::getValidADCResultRaw(VMOTOR_MONITOR_ADC_PIN,
+                                    VMOTOR_MONITOR_ADC_CHANNEL);
 
-    // if (boost_converter_voltage_raw >
+    float boost_converter_voltage_volts =
+        Utils::getValidADCResultVolts(VMOTOR_MONITOR_ADC_PIN,
+                                      VMOTOR_MONITOR_ADC_CHANNEL);
+
+    printf("boost converter voltage - raw: %d\n", boost_converter_voltage_raw);
+    printf("boost converter voltage - volts: %.3f\n",
+           boost_converter_voltage_volts);
+
+    // VMotor voltage should sit around 1.65V if Vmotor = 10.6V
+    if (!Utils::isValueWithinBounds(boost_converter_voltage_raw,
+                                    ADC_MIDWAY_VALUE_RAW - 200,
+                                    ADC_MIDWAY_VALUE_RAW + 200))
+    {
+        Utils::log_error("Boost converter voltage abnormal!");
+    }
 }
 
 /**
@@ -135,7 +149,7 @@ void setup_joystick()
     {
         // This will be true if no joystick present OR the josytick is not
         // centered
-        Utils::log_error("ERROR:Joystick failed to initialise!");
+        Utils::log_error("Joystick failed to initialise!");
     }
 }
 

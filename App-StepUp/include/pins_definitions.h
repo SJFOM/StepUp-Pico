@@ -40,6 +40,20 @@
 /* TMC2300 pins - END */
 /**********************/
 
+/********************************/
+/* Voltage monitor pins - START */
+/********************************/
+#define VBAT_MONITOR_ADC_PIN       (26U)
+#define VBAT_MONITOR_ADC_CHANNEL   (0)
+#define VMOTOR_MONITOR_ADC_PIN     (27U)
+#define VMOTOR_MONITOR_ADC_CHANNEL (1U)
+
+#define VUSB_MONITOR_PIN (4U)  // USB_VBUS_DET
+
+/******************************/
+/* Voltage monitor pins - END */
+/******************************/
+
 /*************************/
 /* Joystick pins - START */
 /*************************/
@@ -57,20 +71,6 @@
 /***********************/
 /* Joystick pins - END */
 /***********************/
-
-/********************************/
-/* Voltage monitor pins - START */
-/********************************/
-#define VBAT_MONITOR_ADC_PIN       (38U)
-#define VBAT_MONITOR_ADC_CHANNEL   (0)
-#define VMOTOR_MONITOR_ADC_PIN     (39U)
-#define VMOTOR_MONITOR_ADC_CHANNEL (1U)
-
-#define VUSB_MONITOR_PIN (4U)  // USB_VBUS_DET
-
-/******************************/
-/* Voltage monitor pins - END */
-/******************************/
 
 /**************************/
 /* Spare I/O pins - START */
