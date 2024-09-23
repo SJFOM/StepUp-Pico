@@ -160,6 +160,11 @@ enum ControllerState JoystickControl::processJob(uint32_t tick_count)
     enum JoystickState _joystick_state_x = m_joystick.state_x;
     enum JoystickState _joystick_state_y = m_joystick.state_y;
 
+    if (!isFunctionalityEnabled())
+    {
+        return ControllerState::STATE_IDLE;
+    }
+
     if (s_button_press_event)
     {
         s_button_press_event = false;
