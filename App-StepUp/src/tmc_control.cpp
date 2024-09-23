@@ -341,6 +341,11 @@ void TMCControl::resetMovementDynamics()
 
 void TMCControl::move(int32_t velocity)
 {
+    if (!isFunctionalityEnabled())
+    {
+        return;
+    }
+
     // Utils::log_debug((string) "velocity: " + std::to_string(velocity));
     if (abs(velocity) > VELOCITY_MAX_STEPS_PER_SECOND)
     {
