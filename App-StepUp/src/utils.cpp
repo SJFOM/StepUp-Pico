@@ -15,6 +15,9 @@ using std::vector;
 namespace Utils
 {
 
+    /*************************
+     * LOGGING UTILS - BEGIN *
+     *************************/
     /**
      * @brief Convert a multi-line string into an array of lines,
      *        split at the specified separator string, eg. `\r\n`.
@@ -182,5 +185,52 @@ namespace Utils
             ;
         }
     }
+
+    /**************************
+     * LOGGING UTILS - FINISH *
+     **************************/
+
+    /*********************
+     * ADC UTILS - BEGIN *
+     *********************/
+    uint16_t getValidADCResultRaw(uint8_t adc_pin, uint8_t adc_channel)
+    {
+        // Ensure valid ADC pins are being used (GPIO 26 -> 29)
+        assert(isValueWithinBounds(adc_pin, 26U, 29U));
+
+        // Ensure valid ADC channels are being used (0 -> 3)
+        assert(isValueWithinBounds(adc_channel, 0, 3U));
+
+        adc_gpio_init(adc_pin);
+        adc_select_input(adc_channel);
+        return (uint16_t)(adc_read() & ADC_ENOB_MASK);
+    }
+
+    float getValidADCResultVolts(uint8_t adc_pin, uint8_t adc_channel)
+    {
+        return (float)((float)getValidADCResultRaw(adc_pin, adc_channel) *
+                       ADC_TO_VOLTAGE_CONVERSION_FACTOR);
+    }
+    /**********************
+     * ADC UTILS - FINISH *
+     **********************/
+
+    /************************
+     * NUMBER UTILS - BEGIN *
+     ************************/
+    bool isValueWithinBounds(unsigned value,
+                             unsigned lower_bound,
+                             unsigned upper_bound)
+    {
+        if ((value <= upper_bound) && (value >= lower_bound))
+        {
+            return true;
+        }
+        return false;
+    }
+
+    /*************************
+     * NUMBER UTILS - FINISH *
+     *************************/
 
 }  // namespace Utils
