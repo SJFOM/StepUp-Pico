@@ -45,6 +45,7 @@ extern "C"
     void setup();
     void setup_led();
     void setup_tmc2300();
+    void setup_boost_converter();
     void setup_joystick();
 
     void led_on();
