@@ -58,6 +58,8 @@ JoystickControl joystick_control;
  */
 void setup()
 {
+    Utils::log_info("ADC setup");
+    adc_init();  // This can take up to 100ms before first reading is valid
     Utils::log_info("LED setup");
     setup_led();
     Utils::log_info("TMC2300 setup");
@@ -103,21 +105,32 @@ void setup_tmc2300()
 void setup_boost_converter()
 {
     // TODO:
-    // 1 - enable boost pin
-    // 2 - check boost voltage is within target range
+    // 1 - enable ADC and pins
+    // 2 - enable boost pin
+    // 3 - check boost voltage is within target range
+
+    if (!Utils::isADCInitialised())
+    {
+        adc_init();
+    }
+
+    adc_gpio_init(VMOTOR_MONITOR_ADC_PIN);
+
+    // Enable boost converter pin control
     gpio_init(TMC_PIN_BOOST_EN);
     gpio_set_dir(TMC_PIN_BOOST_EN, GPIO_OUT);
 
+    // Enable boost converter
     gpio_put(TMC_PIN_BOOST_EN, 1);
 
-    adc_init();
+    // Give time for the voltage on the boost converter ADC pin to settle
+    sleep_ms(100);
+
     uint16_t boost_converter_voltage_raw =
-        Utils::getValidADCResultRaw(VMOTOR_MONITOR_ADC_PIN,
-                                    VMOTOR_MONITOR_ADC_CHANNEL);
+        Utils::getValidADCResultRaw(VMOTOR_MONITOR_ADC_CHANNEL);
 
     float boost_converter_voltage_volts =
-        Utils::getValidADCResultVolts(VMOTOR_MONITOR_ADC_PIN,
-                                      VMOTOR_MONITOR_ADC_CHANNEL);
+        Utils::getValidADCResultVolts(VMOTOR_MONITOR_ADC_CHANNEL);
 
     printf("boost converter voltage - raw: %d\n", boost_converter_voltage_raw);
     printf("boost converter voltage - volts: %.3f\n",

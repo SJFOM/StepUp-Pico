@@ -193,22 +193,23 @@ namespace Utils
     /*********************
      * ADC UTILS - BEGIN *
      *********************/
-    uint16_t getValidADCResultRaw(uint8_t adc_pin, uint8_t adc_channel)
+    bool isADCInitialised()
     {
-        // Ensure valid ADC pins are being used (GPIO 26 -> 29)
-        assert(isValueWithinBounds(adc_pin, 26U, 29U));
+        return (bool)(adc_hw->cs & ADC_CS_READY_BITS);
+    }
 
+    uint16_t getValidADCResultRaw(uint8_t adc_channel)
+    {
         // Ensure valid ADC channels are being used (0 -> 3)
         assert(isValueWithinBounds(adc_channel, 0, 3U));
 
-        adc_gpio_init(adc_pin);
         adc_select_input(adc_channel);
         return (uint16_t)(adc_read() & ADC_ENOB_MASK);
     }
 
-    float getValidADCResultVolts(uint8_t adc_pin, uint8_t adc_channel)
+    float getValidADCResultVolts(uint8_t adc_channel)
     {
-        return (float)((float)getValidADCResultRaw(adc_pin, adc_channel) *
+        return (float)((float)getValidADCResultRaw(adc_channel) *
                        ADC_TO_VOLTAGE_CONVERSION_FACTOR);
     }
     /**********************
