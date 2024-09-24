@@ -24,6 +24,8 @@
 #define JOYSTICK_THRESHOLD_UPPER (1000)
 #define JOYSTICK_THRESHOLD_LOWER (-JOYSTICK_THRESHOLD_UPPER)
 
+#define SETTLING_TIME_BETWEEN_JOYSTICK_READS_IN_MS (50U)
+
 struct JoystickPosition
 {
     int16_t x, y;
@@ -59,6 +61,9 @@ protected:
 private:
     bool m_init_success;
     struct JoystickData m_joystick;
+    uint32_t m_next_joystick_read_deadline_in_ms;
+
+    void getLatestJoystickPosition();
 };
 
 #endif  // JOYSTICK_CONTROL_H_

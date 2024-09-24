@@ -20,7 +20,7 @@ static volatile bool s_button_press_event = false;
 // Button debounce control
 static volatile uint32_t s_time_of_last_button_press;
 // Millisecond delay between valid button press events
-static const uint32_t s_delay_time_ms = 50;
+static const uint32_t s_pin_debounce_delay_time_ms = 50U;
 
 static void joystick_button_callback();
 
@@ -34,6 +34,16 @@ static void enableJoystickButtonInterrupt(bool enable_interrupt)
 /*********************************/
 /* Joystick button control - END */
 /*********************************/
+
+/*************************************/
+/* Joystick ADC read control - START */
+/*************************************/
+// Millisecond delay between valid joystick ADC read events
+static const uint32_t s_adc_settling_time_between_reads_in_ms = 50U;
+
+/***********************************/
+/* Joystick ADC read control - END */
+/***********************************/
 
 JoystickControl::JoystickControl()
 {
@@ -57,17 +67,17 @@ bool JoystickControl::init()
         gpio_set_input_enabled(JOYSTICK_BUTTON_PIN, true);
         gpio_pull_up(JOYSTICK_BUTTON_PIN);
 
-        adc_init();
+        if (!Utils::isADCInitialised())
+        {
+            adc_init();
+        }
 
-        // Make sure GPIO is high-impedance, no pullups etc
         adc_gpio_init(JOYSTICK_ADC_PIN_X);
         adc_gpio_init(JOYSTICK_ADC_PIN_Y);
-
-        adc_select_input(JOYSTICK_ADC_CHANNEL_X);
-        m_joystick.position.x_offset = adc_read();
-
-        adc_select_input(JOYSTICK_ADC_CHANNEL_Y);
-        m_joystick.position.y_offset = adc_read();
+        m_joystick.position.x_offset =
+            Utils::getValidADCResultRaw(JOYSTICK_ADC_CHANNEL_X);
+        m_joystick.position.y_offset =
+            Utils::getValidADCResultRaw(JOYSTICK_ADC_CHANNEL_Y);
 
         Utils::log_info((string) "X - Raw value: " +
                         std::to_string(m_joystick.position.x_offset) +
@@ -176,18 +186,9 @@ enum ControllerState JoystickControl::processJob(uint32_t tick_count)
         s_button_press_event = false;
         m_joystick.button_is_pressed = true;
     }
-    adc_select_input(JOYSTICK_ADC_CHANNEL_X);
-    // m_joystick.position.x = adc_read() -
-    // m_joystick.position.x_offset;
-    m_joystick.position.x = adc_read() & ADC_ENOB_MASK;
-    // printf("x stage before = %d\n", m_joystick.position.x);
-    m_joystick.position.x -= m_joystick.position.x_offset;
-    // printf("x stage after = %d\n", m_joystick.position.x);
 
-    adc_select_input(JOYSTICK_ADC_CHANNEL_Y);
-    m_joystick.position.y =
-        (adc_read() & ADC_ENOB_MASK) - m_joystick.position.y_offset;
-    // printf("y stage after = %d\n", m_joystick.position.y);
+    // Get latest ADC values for both X & Y positions
+    getLatestJoystickPosition();
 
     if (m_joystick.position.x < JOYSTICK_THRESHOLD_LOWER)
     {
@@ -227,6 +228,25 @@ enum ControllerState JoystickControl::processJob(uint32_t tick_count)
     return m_joystick.control_state;
 }
 
+void JoystickControl::getLatestJoystickPosition()
+{
+    if (to_ms_since_boot(get_absolute_time()) >
+        m_next_joystick_read_deadline_in_ms)
+    {
+        // Reset flag
+        m_next_joystick_read_deadline_in_ms = to_ms_since_boot(
+            make_timeout_time_ms(s_adc_settling_time_between_reads_in_ms));
+
+        m_joystick.position.x =
+            Utils::getValidADCResultRaw(JOYSTICK_ADC_CHANNEL_X) -
+            m_joystick.position.x_offset;
+
+        m_joystick.position.y =
+            Utils::getValidADCResultRaw(JOYSTICK_ADC_CHANNEL_Y) -
+            m_joystick.position.y_offset;
+    }
+}
+
 int64_t debounce_timer_callback(alarm_id_t id, void *user_data)
 {
     if (false == gpio_get(JOYSTICK_BUTTON_PIN))
@@ -246,7 +266,11 @@ void joystick_button_callback()
         // Disable interrupt until debounce timer has elapsed
         enableJoystickButtonInterrupt(false);
 
-        // Call debounce_timer_callback in s_delay_time_ms milli-seconds
-        add_alarm_in_ms(s_delay_time_ms, debounce_timer_callback, NULL, false);
+        // Call debounce_timer_callback in s_pin_debounce_delay_time_ms
+        // milli-seconds
+        add_alarm_in_ms(s_pin_debounce_delay_time_ms,
+                        debounce_timer_callback,
+                        NULL,
+                        false);
     }
 }

@@ -64,8 +64,10 @@ namespace Utils
     /*********************
      * ADC UTILS - BEGIN *
      *********************/
-    uint16_t getValidADCResultRaw(uint8_t adc_pin, uint8_t adc_channel);
-    float getValidADCResultVolts(uint8_t adc_pin, uint8_t adc_channel);
+    bool isADCInitialised();
+
+    uint16_t getValidADCResultRaw(uint8_t adc_channel);
+    float getValidADCResultVolts(uint8_t adc_channel);
 
     /**********************
      * ADC UTILS - FINISH *
