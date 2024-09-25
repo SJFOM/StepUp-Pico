@@ -48,6 +48,7 @@ UBaseType_t job_priority_joystick_control = 3U;
 // Create class instances of control interfaces
 TMCControl tmc_control;
 JoystickControl joystick_control;
+BuzzerControl buzzer_control;
 
 /*
  * SETUP FUNCTIONS
@@ -59,7 +60,7 @@ JoystickControl joystick_control;
 void setup()
 {
     Utils::log_info("ADC setup");
-    adc_init();  // This can take up to 100ms before first reading is valid
+    adc_init();
     Utils::log_info("LED setup");
     setup_led();
     Utils::log_info("TMC2300 setup");
@@ -68,6 +69,8 @@ void setup()
     setup_boost_converter();
     Utils::log_info("Joystick setup");
     setup_joystick();
+    Utils::log_info("Buzzer setup");
+    setup_buzzer();
     Utils::log_info("Setup complete!");
 }
 
@@ -146,14 +149,11 @@ void setup_boost_converter()
 }
 
 /**
- * @brief Set the up Joystick module
- *
- * @details // TODO: Fill in details
+ * @brief Set the up joystick object
  *
  */
 void setup_joystick()
 {
-    // If this fails on a call to writing to TMC then it will be blocking!
     if (joystick_control.init())
     {
         joystick_control.enableFunctionality(true);
@@ -163,6 +163,19 @@ void setup_joystick()
         // This will be true if no joystick present OR the josytick is not
         // centered
         Utils::log_error("Joystick failed to initialise!");
+    }
+}
+
+void setup_buzzer()
+{
+    if (buzzer_control.init())
+    {
+        buzzer_control.enableFunctionality(true);
+    }
+    else
+    {
+        // FIXME: When will this ever be true?
+        Utils::log_error("Buzzer failed to initialise!");
     }
 }
 
