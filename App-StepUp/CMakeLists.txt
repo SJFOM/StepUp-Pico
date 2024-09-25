@@ -19,6 +19,7 @@ add_executable(${APP_NAME}
     ${APP_SRC_DIRECTORY}/main.cpp
     ${APP_SRC_DIRECTORY}/src/tmc_control.cpp
     ${APP_SRC_DIRECTORY}/src/joystick_control.cpp
+    ${APP_SRC_DIRECTORY}/src/buzzer_control.cpp
     ${APP_SRC_DIRECTORY}/src//utils.cpp
     ${TMC_API_CODE_DIRECTORY}/ic/TMC2300.c
     ${TMC_API_CODE_DIRECTORY}/helpers/CRC.c
@@ -28,6 +29,7 @@ add_executable(${APP_NAME}
 target_link_libraries(${APP_NAME} LINK_PUBLIC
     pico_stdlib
     hardware_adc
+    hardware_pwm
     FreeRTOS)
 
 # Enable/disable STDIO via USB and UART

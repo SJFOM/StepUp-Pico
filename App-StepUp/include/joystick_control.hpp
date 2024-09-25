@@ -54,7 +54,6 @@ public:
     bool init();
     void deinit();
     enum ControllerState processJob(uint32_t tick_count);
-    enum JoystickState getJoystickState();
     struct JoystickData getJoystickData();
 
 protected:

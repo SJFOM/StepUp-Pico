@@ -31,6 +31,7 @@
 #include "pins_definitions.h"
 #include "utils.h"
 // Control includes
+#include "buzzer_control.hpp"
 #include "joystick_control.hpp"
 #include "tmc_control.hpp"
 
@@ -47,6 +48,7 @@ extern "C"
     void setup_tmc2300();
     void setup_boost_converter();
     void setup_joystick();
+    void setup_buzzer();
 
     void led_on();
     void led_off();
