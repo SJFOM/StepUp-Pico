@@ -1,11 +1,12 @@
 /**
  * @file buzzer_control.hpp
- * @author your name (you@domain.com)
+ * @author Sam (@SJFOM)
  * @brief
  * @version 0.1
  * @date 2024-09-25
  *
  * @copyright Copyright (c) 2024
+ * @license   MIT
  *
  */
 

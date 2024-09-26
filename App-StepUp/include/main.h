@@ -1,5 +1,12 @@
 /**
- * Main header file for App-StepUp
+ * @file main.h
+ * @author Sam (@SJFOM)
+ * @brief Main header file for App-StepUp
+ * @version 0.1
+ * @date 2024-09-25
+ *
+ * @copyright Copyright (c) 2024
+ * @license   MIT
  *
  * Adapted from:
  * @copyright 2022, Tony Smith (@smittytone)

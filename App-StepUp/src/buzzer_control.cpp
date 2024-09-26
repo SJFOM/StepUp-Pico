@@ -1,11 +1,12 @@
 /**
  * @file buzzer_control.cpp
- * @author your name (you@domain.com)
+ * @author Sam (@SJFOM)
  * @brief
  * @version 0.1
  * @date 2024-09-25
  *
  * @copyright Copyright (c) 2024
+ * @license   MIT
  *
  */
 
@@ -34,7 +35,7 @@ bool BuzzerControl::init()
     pwm_config config = pwm_get_default_config();
 
     // Set divider, reduces counter clock to sysclock/this value (sysclock =
-    // 125MHz default)
+    // 125MHz default), 125MHz / 15625 = 8kHz
     pwm_config_set_clkdiv(&config, 15625.f);  // should give 8kHz div clk
 
     setBuzzerFrequency(4000);
@@ -59,7 +60,7 @@ void BuzzerControl::deinit()
 
 enum ControllerState BuzzerControl::processJob(uint32_t tick_count)
 {
-    return ControllerState::STATE_IDLE;
+    return ControllerState::STATE_READY;
 }
 
 void BuzzerControl::setBuzzerFrequency(uint16_t frequency_in_hz)
