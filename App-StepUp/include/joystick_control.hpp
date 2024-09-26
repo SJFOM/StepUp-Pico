@@ -1,3 +1,15 @@
+/**
+ * @file joystick_control.hpp
+ * @author Sam (@SJFOM)
+ * @brief
+ * @version 0.1
+ * @date 2024-09-26
+ *
+ * @copyright Copyright (c) 2024
+ * @license   MIT
+ *
+ */
+
 #ifndef JOYSTICK_CONTROL_H_
 #define JOYSTICK_CONTROL_H_
 
@@ -38,6 +50,7 @@ enum JoystickState
     JOYSTICK_STATE_IDLE = 0,
     JOYSTICK_STATE_POS = 1,
 };
+
 struct JoystickData
 {
     JoystickPosition position;

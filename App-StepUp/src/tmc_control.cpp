@@ -1,6 +1,6 @@
 /**
  * @file tmc_control.cpp
- * @author SJFOM (you@domain.com)
+ * @author Sam (@SJFOM)
  * @brief
  * @version 0.1
  * @date 2023-02-11

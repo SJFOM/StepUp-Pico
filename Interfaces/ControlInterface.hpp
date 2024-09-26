@@ -1,6 +1,6 @@
 /**
  * @file ControlInterface.h
- * @author your name (you@domain.com)
+ * @author Sam (@SJFOM)
  * @brief
  * @version 0.1
  * @date 2023-02-11
