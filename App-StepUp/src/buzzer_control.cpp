@@ -46,15 +46,6 @@ bool BuzzerControl::init()
 
     setBuzzerFrequency(4000);
 
-    // Set the PWM running
-    pwm_set_enabled(m_pwm_slice_num, true);
-    sleep_ms(100);
-    pwm_set_enabled(m_pwm_slice_num, false);
-    sleep_ms(100);
-    pwm_set_enabled(m_pwm_slice_num, true);
-    sleep_ms(100);
-    pwm_set_enabled(m_pwm_slice_num, false);
-
     // TODO: Ensure buzzer resets output DC signal to 0V once complete as a
     // permanent DC bias on the buzzer can damage the piezo hardware. If this
     // needs more than just setting pwm_set_enabled() to false then we should
@@ -128,6 +119,8 @@ void BuzzerControl::setBuzzerFunction(enum BuzzerFunction buzzer_function)
                         melody_timer_callback,
                         NULL,
                         false);
+
+        s_note_index_in_melody++;
     }
 }
 
@@ -166,7 +159,7 @@ void BuzzerControl::setBuzzerFrequency(uint16_t frequency_in_hz)
 
 int64_t melody_timer_callback(alarm_id_t id, void *user_data)
 {
-    if (s_note_index_in_melody++ < MELODY_MAX_NOTE_COUNT)
+    if (s_note_index_in_melody < MELODY_MAX_NOTE_COUNT)
     {
         // Update with new tone
         pwm_set_gpio_level(BUZZER_PIN,
@@ -179,6 +172,8 @@ int64_t melody_timer_callback(alarm_id_t id, void *user_data)
                         melody_timer_callback,
                         NULL,
                         false);
+
+        s_note_index_in_melody++;
     }
     else
     {
