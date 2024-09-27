@@ -33,17 +33,20 @@ struct MotorControlData
 const TickType_t ms_delay = 500 / portTICK_PERIOD_MS;
 const TickType_t tmc_job_delay = 20 / portTICK_PERIOD_MS;
 const TickType_t joystick_job_delay = 10 / portTICK_PERIOD_MS;
+const TickType_t buzzer_job_delay = 100 / portTICK_PERIOD_MS;
 
 // FROM 1.0.1 Record references to the tasks
 TaskHandle_t gpio_task_handle = NULL;
 TaskHandle_t pico_task_handle = NULL;
 TaskHandle_t tmc_task_handle = NULL;
 TaskHandle_t joystick_task_handle = NULL;
+TaskHandle_t buzzer_task_handle = NULL;
 
 // Task priorities (higher value = higher priority)
 UBaseType_t job_priority_led_control = 1U;
 UBaseType_t job_priority_tmc_control = 2U;
 UBaseType_t job_priority_joystick_control = 3U;
+UBaseType_t job_priority_buzzer_control = 4U;
 
 // Create class instances of control interfaces
 TMCControl tmc_control;
@@ -171,6 +174,7 @@ void setup_buzzer()
     if (buzzer_control.init())
     {
         buzzer_control.enableFunctionality(true);
+        buzzer_control.setBuzzerFunction(BuzzerFunction::BUZZER_BOOT);
     }
     else
     {
@@ -448,6 +452,37 @@ void joystick_process_job(void *unused_arg)
     }
 }
 
+void buzzer_process_job(void *unused_arg)
+{
+    unsigned long count = 0;
+    ControllerState buzzer_controller_state = ControllerState::STATE_IDLE;
+
+    while (true)
+    {
+        buzzer_controller_state =
+            buzzer_control.processJob(xTaskGetTickCount());
+        switch (buzzer_controller_state)
+        {
+            case ControllerState::STATE_IDLE:
+            {
+                break;
+            }
+            case ControllerState::STATE_READY:
+            {
+                break;
+            }
+            case ControllerState::STATE_NEW_DATA:
+            {
+                break;
+            }
+            case ControllerState::STATE_BUSY:
+            default:
+                break;
+        }
+        vTaskDelay(buzzer_job_delay);
+    }
+}
+
 /*
  * RUNTIME START
  */
@@ -485,6 +520,13 @@ int main()
                                              job_priority_joystick_control,
                                              &joystick_task_handle);
 
+    BaseType_t buzzer_status = xTaskCreate(buzzer_process_job,
+                                           "BUZZER_JOB_TASK",
+                                           512,
+                                           NULL,
+                                           job_priority_buzzer_control,
+                                           &buzzer_task_handle);
+
     // Set up the event queue
     queue = xQueueCreate(4, sizeof(uint8_t));
     queue_motor_control_data = xQueueCreate(2, sizeof(struct MotorControlData));
@@ -492,7 +534,7 @@ int main()
     // Start the FreeRTOS scheduler
     // FROM 1.0.1: Only proceed with valid tasks
     if (gpio_status == pdPASS && tmc_status == pdPASS &&
-        joystick_status == pdPASS)
+        joystick_status == pdPASS && buzzer_status == pdPASS)
     {
         vTaskStartScheduler();
     }

@@ -45,7 +45,8 @@ enum NoteDuration
     NOTE_HALF = 500U,
     NOTE_QUARTER = 250U,
     NOTE_EIGHT = 125U,
-    NOTE_MAX_COUNT = 4U
+    NOTE_SIXTEENTH = 63U,
+    NOTE_MAX_COUNT = 5U
 };
 
 enum NotePitch
@@ -88,23 +89,8 @@ struct Melody
 };
 
 static struct Melody melody_sweep_up = {
-    .note = {NotePitch::NOTE_G7,
-             NotePitch::NOTE_Gs7,
-             NotePitch::NOTE_A7,
-             NotePitch::NOTE_As7,
-             NotePitch::NOTE_B7,
-             NotePitch::NOTE_C8,
-             NotePitch::NOTE_Cs8,
-             NotePitch::NOTE_D8,
-             NotePitch::NOTE_Ds8},
+    .note = {NotePitch::NOTE_E7, NotePitch::NOTE_B7, NotePitch::NOTE_F8},
     .duration = {NoteDuration::NOTE_EIGHT,
-                 NoteDuration::NOTE_EIGHT,
-                 NoteDuration::NOTE_EIGHT,
-                 NoteDuration::NOTE_EIGHT,
-                 NoteDuration::NOTE_EIGHT,
-                 NoteDuration::NOTE_EIGHT,
-                 NoteDuration::NOTE_EIGHT,
-                 NoteDuration::NOTE_EIGHT,
                  NoteDuration::NOTE_EIGHT,
                  NoteDuration::NOTE_EIGHT}};
 
@@ -113,10 +99,10 @@ static struct Melody melody_double_beep = {
              NotePitch::NOTE_OFF,
              NotePitch::NOTE_C8,
              NotePitch::NOTE_OFF},
-    .duration = {NoteDuration::NOTE_EIGHT,
-                 NoteDuration::NOTE_EIGHT,
-                 NoteDuration::NOTE_EIGHT,
-                 NoteDuration::NOTE_EIGHT}};
+    .duration = {NoteDuration::NOTE_SIXTEENTH,
+                 NoteDuration::NOTE_SIXTEENTH,
+                 NoteDuration::NOTE_SIXTEENTH,
+                 NoteDuration::NOTE_SIXTEENTH}};
 
 class BuzzerControl : public ControlInterface
 {
