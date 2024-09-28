@@ -94,7 +94,7 @@ static struct Melody melody_sweep_up = {
                  NoteDuration::NOTE_EIGHT,
                  NoteDuration::NOTE_EIGHT}};
 
-static struct Melody melody_double_beep = {
+static struct Melody melody_short_double_beep = {
     .note = {NotePitch::NOTE_C8,
              NotePitch::NOTE_OFF,
              NotePitch::NOTE_C8,
@@ -103,6 +103,26 @@ static struct Melody melody_double_beep = {
                  NoteDuration::NOTE_SIXTEENTH,
                  NoteDuration::NOTE_SIXTEENTH,
                  NoteDuration::NOTE_SIXTEENTH}};
+
+static struct Melody melody_short_quadruple_beep = {
+    .note = {NotePitch::NOTE_C8,
+             NotePitch::NOTE_OFF,
+             NotePitch::NOTE_C8,
+             NotePitch::NOTE_OFF,
+             NotePitch::NOTE_C8,
+             NotePitch::NOTE_OFF,
+             NotePitch::NOTE_C8,
+             NotePitch::NOTE_OFF},
+    .duration = {
+        NoteDuration::NOTE_SIXTEENTH,
+        NoteDuration::NOTE_SIXTEENTH,
+        NoteDuration::NOTE_SIXTEENTH,
+        NoteDuration::NOTE_SIXTEENTH,
+        NoteDuration::NOTE_SIXTEENTH,
+        NoteDuration::NOTE_SIXTEENTH,
+        NoteDuration::NOTE_SIXTEENTH,
+        NoteDuration::NOTE_SIXTEENTH,
+    }};
 
 class BuzzerControl : public ControlInterface
 {
@@ -120,7 +140,6 @@ private:
     uint16_t m_pwm_slice_num;
     enum ControllerState m_control_state;
     enum BuzzerFunction m_buzzer_function;
-    void setBuzzerFrequency(uint16_t frequency_in_hz);
     void disableBuzzer();
 };
 
