@@ -15,7 +15,8 @@
 static volatile uint8_t s_note_index_in_melody = 0;
 static struct Melody *s_active_melody = nullptr;
 
-int64_t melody_timer_callback(alarm_id_t id, void *user_data);
+int64_t melodyTimerCallback(alarm_id_t id, void *user_data);
+void playNextNoteInMelody();
 
 BuzzerControl::BuzzerControl()
 {
@@ -43,8 +44,6 @@ bool BuzzerControl::init()
     // Set divider, reduces counter clock to sysclock/this value (sysclock =
     // 125MHz default), 125MHz / 15625 = 8kHz
     pwm_config_set_clkdiv(&config, 15625.f);  // should give 8kHz div clk
-
-    setBuzzerFrequency(4000);
 
     // TODO: Ensure buzzer resets output DC signal to 0V once complete as a
     // permanent DC bias on the buzzer can damage the piezo hardware. If this
@@ -81,19 +80,19 @@ void BuzzerControl::setBuzzerFunction(enum BuzzerFunction buzzer_function)
         }
         case BuzzerFunction::BUZZER_INFO:
         {
-            s_active_melody = &melody_double_beep;
+            s_active_melody = &melody_short_double_beep;
             break;
         }
         case BuzzerFunction::BUZZER_WARN:
         {
             // TODO: Create appropriate melody
-            s_active_melody = &melody_double_beep;
+            s_active_melody = &melody_short_double_beep;
             break;
         }
         case BuzzerFunction::BUZZER_ERROR:
         {
             // TODO: Create appropriate melody
-            s_active_melody = &melody_double_beep;
+            s_active_melody = &melody_short_double_beep;
             break;
         }
         case BuzzerFunction::BUZZER_OFF:
@@ -110,17 +109,7 @@ void BuzzerControl::setBuzzerFunction(enum BuzzerFunction buzzer_function)
     {
         pwm_set_enabled(m_pwm_slice_num, true);
 
-        // Update with new tone
-        pwm_set_gpio_level(BUZZER_PIN,
-                           s_active_melody->note[s_note_index_in_melody]);
-
-        // Schedule next timeout/note play duration
-        add_alarm_in_ms(s_active_melody->duration[s_note_index_in_melody],
-                        melody_timer_callback,
-                        NULL,
-                        false);
-
-        s_note_index_in_melody++;
+        playNextNoteInMelody();
     }
 }
 
@@ -133,9 +122,10 @@ void BuzzerControl::disableBuzzer()
 enum ControllerState BuzzerControl::processJob(uint32_t tick_count)
 {
     if (m_control_state == ControllerState::STATE_BUSY &&
-        s_note_index_in_melody == 0)
+        s_note_index_in_melody == MELODY_MAX_NOTE_COUNT)
     {
         disableBuzzer();
+        s_note_index_in_melody = 0;
         // Melody was playing but has now completed, update state to represent
         // this
         m_control_state = ControllerState::STATE_READY;
@@ -143,21 +133,7 @@ enum ControllerState BuzzerControl::processJob(uint32_t tick_count)
     return m_control_state;
 }
 
-void BuzzerControl::setBuzzerFrequency(uint16_t frequency_in_hz)
-{
-    // 4kHz = 8000/2 = 65535/2 ~= 32768 = 2^15
-
-    // Base clock has been divided to an 8kHz clock which is 16 bits wide
-    // (65535) The means we must scale the 8kHz bandwidth over 65535 chunks,
-    // each with a frequency band of ~0.12 Hz (our resolution)
-
-    // TODO: Speed up this operation, don't need accuracy here - can pre-compute
-    // some of these values if needed
-    uint16_t pwm_level = frequency_in_hz * 65535 / 8000;
-    pwm_set_gpio_level(BUZZER_PIN, pwm_level);
-}
-
-int64_t melody_timer_callback(alarm_id_t id, void *user_data)
+void playNextNoteInMelody()
 {
     if (s_note_index_in_melody < MELODY_MAX_NOTE_COUNT)
     {
@@ -169,15 +145,17 @@ int64_t melody_timer_callback(alarm_id_t id, void *user_data)
         // TODO: Experiment with the fire_if_past flag if experiencing issues...
         // May need to add some error handling here if timer cannot be created
         add_alarm_in_ms(s_active_melody->duration[s_note_index_in_melody],
-                        melody_timer_callback,
+                        melodyTimerCallback,
                         NULL,
                         false);
 
         s_note_index_in_melody++;
     }
-    else
-    {
-        s_note_index_in_melody = 0;
-    }
+}
+
+int64_t melodyTimerCallback(alarm_id_t id, void *user_data)
+{
+    // TODO: Handle the alarm_id_t & user_data params
+    playNextNoteInMelody();
     return 0;
 }
