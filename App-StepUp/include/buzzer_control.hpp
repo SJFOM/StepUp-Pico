@@ -124,6 +124,26 @@ static struct Melody melody_short_quadruple_beep = {
         NoteDuration::NOTE_SIXTEENTH,
     }};
 
+static struct Melody melody_long_quadruple_beep = {
+    .note = {NotePitch::NOTE_C8,
+             NotePitch::NOTE_OFF,
+             NotePitch::NOTE_C8,
+             NotePitch::NOTE_OFF,
+             NotePitch::NOTE_C8,
+             NotePitch::NOTE_OFF,
+             NotePitch::NOTE_C8,
+             NotePitch::NOTE_OFF},
+    .duration = {
+        NoteDuration::NOTE_HALF,
+        NoteDuration::NOTE_SIXTEENTH,
+        NoteDuration::NOTE_HALF,
+        NoteDuration::NOTE_SIXTEENTH,
+        NoteDuration::NOTE_HALF,
+        NoteDuration::NOTE_SIXTEENTH,
+        NoteDuration::NOTE_HALF,
+        NoteDuration::NOTE_SIXTEENTH,
+    }};
+
 class BuzzerControl : public ControlInterface
 {
 public:
