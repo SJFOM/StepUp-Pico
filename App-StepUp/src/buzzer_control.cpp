@@ -85,14 +85,12 @@ void BuzzerControl::setBuzzerFunction(enum BuzzerFunction buzzer_function)
         }
         case BuzzerFunction::BUZZER_WARN:
         {
-            // TODO: Create appropriate melody
-            s_active_melody = &melody_short_double_beep;
+            s_active_melody = &melody_short_quadruple_beep;
             break;
         }
         case BuzzerFunction::BUZZER_ERROR:
         {
-            // TODO: Create appropriate melody
-            s_active_melody = &melody_short_double_beep;
+            s_active_melody = &melody_long_quadruple_beep;
             break;
         }
         case BuzzerFunction::BUZZER_OFF:
@@ -100,6 +98,7 @@ void BuzzerControl::setBuzzerFunction(enum BuzzerFunction buzzer_function)
         {
             s_active_melody = nullptr;
             // TODO: If we need to power down buzzer, do it here
+            // FIXME: If we put disableBuzzer() here it will set state to OFF..
             m_control_state = ControllerState::STATE_READY;
             break;
         }
@@ -107,6 +106,7 @@ void BuzzerControl::setBuzzerFunction(enum BuzzerFunction buzzer_function)
 
     if (m_control_state == ControllerState::STATE_BUSY)
     {
+        // Enable the buzzer
         pwm_set_enabled(m_pwm_slice_num, true);
 
         playNextNoteInMelody();
