@@ -51,6 +51,7 @@ extern "C"
      * PROTOTYPES
      */
     void setup();
+    void setup_adc();
     void setup_led();
     void setup_tmc2300();
     void setup_boost_converter();

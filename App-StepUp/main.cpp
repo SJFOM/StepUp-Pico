@@ -63,19 +63,19 @@ BuzzerControl buzzer_control;
  */
 void setup()
 {
-    Utils::log_info("ADC setup");
-    adc_init();
-    Utils::log_info("LED setup");
+    setup_adc();
     setup_led();
-    Utils::log_info("TMC2300 setup");
     setup_tmc2300();
-    Utils::log_info("Boost converter setup");
     setup_boost_converter();
-    Utils::log_info("Joystick setup");
     setup_joystick();
-    Utils::log_info("Buzzer setup");
     setup_buzzer();
-    Utils::log_info("Setup complete!");
+}
+
+void setup_adc()
+{
+    Utils::log_info("ADC setup...");
+    adc_init();
+    Utils::log_info("ADC setup... OK");
 }
 
 /**
@@ -87,30 +87,36 @@ void setup()
  */
 void setup_tmc2300()
 {
+    Utils::log_info("TMC2300 setup...");
+
+    bool tmc_setup_success = true;
     // If this fails on a call to writing to TMC then it will be blocking!
-    if (tmc_control.init())
+    tmc_setup_success &= tmc_control.init();
+
+    if (tmc_control.getChipID() == TMC2300_VERSION_COMPATIBLE)
     {
-        uint8_t tmc_version = tmc_control.getChipID();
-
-        if (tmc_version == TMC2300_VERSION_COMPATIBLE)
-        {
-            Utils::log_info("TMC2300 silicon version: 0x40");
-        }
-        else
-        {
-            Utils::log_error("TMC version: INVALID!");
-        }
-
-        tmc_control.enableFunctionality(true);
+        Utils::log_info("TMC2300 silicon version: 0x40");
     }
     else
     {
-        Utils::log_error("TMC failed to initialise!");
+        Utils::log_warn("TMC version: UNSUPPORTED!");
+        tmc_setup_success = false;
+    }
+
+    if (tmc_setup_success)
+    {
+        tmc_control.enableFunctionality(true);
+        Utils::log_info("TMC2300 setup... OK");
+    }
+    else
+    {
+        Utils::log_error("TMC2300 setup... FAIL");
     }
 }
 
 void setup_boost_converter()
 {
+    Utils::log_info("Boost converter setup...");
     // TODO:
     // 1 - enable ADC and pins
     // 2 - enable boost pin
@@ -139,17 +145,19 @@ void setup_boost_converter()
     float boost_converter_voltage_volts =
         Utils::getValidADCResultVolts(VMOTOR_MONITOR_ADC_CHANNEL);
 
-    printf("boost converter voltage - raw: %d\n", boost_converter_voltage_raw);
-    printf("boost converter voltage - volts: %.3f\n",
-           boost_converter_voltage_volts);
+    Utils::log_info(
+        (string) "Boost converter - raw value: " +
+        std::to_string(boost_converter_voltage_raw) +
+        " - voltage: " + std::to_string(boost_converter_voltage_volts) + " V");
 
     // VMotor voltage should sit around 1.65V if Vmotor = 10.6V
     if (!Utils::isValueWithinBounds(boost_converter_voltage_raw,
                                     ADC_MIDWAY_VALUE_RAW - 200,
                                     ADC_MIDWAY_VALUE_RAW + 200))
     {
-        Utils::log_error("Boost converter voltage abnormal!");
+        Utils::log_error("Boost converter setup... FAIL");
     }
+    Utils::log_info("Boost converter setup... OK");
 }
 
 /**
@@ -158,6 +166,8 @@ void setup_boost_converter()
  */
 void setup_joystick()
 {
+    Utils::log_info("Joystick setup...");
+
     if (joystick_control.init())
     {
         joystick_control.enableFunctionality(true);
@@ -166,12 +176,14 @@ void setup_joystick()
     {
         // This will be true if no joystick present OR the josytick is not
         // centered
-        Utils::log_error("Joystick failed to initialise!");
+        Utils::log_error("Joystick setup... FAIL");
     }
+    Utils::log_info("Joystick setup... OK");
 }
 
 void setup_buzzer()
 {
+    Utils::log_info("Buzzer setup...");
     if (buzzer_control.init())
     {
         buzzer_control.enableFunctionality(true);
@@ -180,8 +192,9 @@ void setup_buzzer()
     else
     {
         // FIXME: When will this ever be true?
-        Utils::log_error("Buzzer failed to initialise!");
+        Utils::log_error("Buzzer setup... FAIL");
     }
+    Utils::log_info("Buzzer setup... OK");
 }
 
 /*
@@ -193,9 +206,11 @@ void setup_buzzer()
  */
 void setup_led()
 {
+    Utils::log_info("LED setup");
     gpio_init(LED_PIN_RED);
     gpio_set_dir(LED_PIN_RED, GPIO_OUT);
     led_off();
+    Utils::log_info("LED setup... OK");
 }
 
 /**
@@ -348,7 +363,7 @@ void tmc_process_job(void *unused_arg)
                     // motor_data.direction);
                     if (motor_data.button_press)
                     {
-                        printf("Button press - stopping motor!\n");
+                        Utils::log_info("Button press - stopping motor!");
                         // A button press event should instantly stop the
                         // motor
                         tmc_control.resetMovementDynamics();
@@ -516,7 +531,7 @@ int main()
 
     Utils::log_info("Setting up peripherals...");
     setup();
-    Utils::log_info("Setting up peripherals - OK!");
+    Utils::log_info("Setting up peripherals... OK!");
 
     // FROM 1.0.1 Store handles referencing the tasks; get return values
     // NOTE Arg 3 is the stack depth -- in words, not bytes
