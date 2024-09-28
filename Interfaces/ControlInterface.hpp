@@ -28,6 +28,21 @@ static const char *ControllerStateString[ControllerState::STATE_COUNT] = {
     "STATE_NEW_DATA",
 };
 
+enum ControllerNotification
+{
+    NOTIFY_BOOT = 0U,
+    NOTIFY_INFO = 1U,
+    NOTIFY_WARN = 2U,
+    NOTIFY_ERROR = 3U,
+    NOTIFY_FUNC_MAX_COUNT
+};
+
+static const char *ControllerNotificationString
+    [ControllerNotification::NOTIFY_FUNC_MAX_COUNT] = {"NOTIFY_BOOT",
+                                                       "NOTIFY_INFO",
+                                                       "NOTIFY_WARN",
+                                                       "NOTIFY_ERROR"};
+
 class ControlInterface
 {
 public:

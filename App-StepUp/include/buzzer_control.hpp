@@ -28,16 +28,6 @@
 
 #define MELODY_MAX_NOTE_COUNT (10U)
 
-enum BuzzerFunction
-{
-    BUZZER_OFF = 0U,
-    BUZZER_BOOT = 1U,
-    BUZZER_INFO = 2U,
-    BUZZER_WARN = 3U,
-    BUZZER_ERROR = 4U,
-    BUZZER_FUNC_MAX_COUNT
-};
-
 enum NoteDuration
 {
     // These have all been prescribed as durations in milli-seconds
@@ -152,14 +142,13 @@ public:
     bool init();
     void deinit();
     enum ControllerState processJob(uint32_t tick_count);
-    void setBuzzerFunction(enum BuzzerFunction buzzer_function);
+    void setBuzzerFunction(enum ControllerNotification controller_notification);
 
 protected:
 private:
     bool m_init_success;
     uint16_t m_pwm_slice_num;
     enum ControllerState m_control_state;
-    enum BuzzerFunction m_buzzer_function;
     void disableBuzzer();
 };
 
