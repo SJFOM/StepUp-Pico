@@ -16,8 +16,9 @@ using std::vector;
  * GLOBALS
  */
 // This is the inter-task queue
-volatile QueueHandle_t queue = NULL;
+volatile QueueHandle_t queue_led_task = NULL;
 volatile QueueHandle_t queue_motor_control_data = NULL;
+volatile QueueHandle_t queue_notification_task = NULL;
 
 // Motor control define(s)
 #define VELOCITY_DELTA_VALUE (500U)
@@ -174,7 +175,7 @@ void setup_buzzer()
     if (buzzer_control.init())
     {
         buzzer_control.enableFunctionality(true);
-        buzzer_control.setBuzzerFunction(BuzzerFunction::BUZZER_BOOT);
+        buzzer_control.setBuzzerFunction(ControllerNotification::NOTIFY_BOOT);
     }
     else
     {
@@ -244,14 +245,14 @@ void led_task_pico(void *unused_arg)
         // Utils::log_info("PICO LED FLASH");
         pico_led_state = 1;
         gpio_put(LED_PIN_RED, pico_led_state);
-        xQueueSendToBack(queue, &pico_led_state, 0);
+        xQueueSendToBack(queue_led_task, &pico_led_state, 0);
         vTaskDelay(ms_delay);
 
         // Turn Pico LED off an add the LED state
         // to the FreeRTOS xQUEUE
         pico_led_state = 0;
         gpio_put(LED_PIN_RED, pico_led_state);
-        xQueueSendToBack(queue, &pico_led_state, 0);
+        xQueueSendToBack(queue_led_task, &pico_led_state, 0);
         vTaskDelay(ms_delay);
     }
 }
@@ -273,7 +274,9 @@ void led_task_gpio(void *unused_arg)
     while (true)
     {
         // Check for an item in the FreeRTOS xQueue
-        if (xQueueReceive(queue, &passed_value_buffer, portMAX_DELAY) == pdPASS)
+        if (xQueueReceive(queue_led_task,
+                          &passed_value_buffer,
+                          portMAX_DELAY) == pdPASS)
         {
             // Received a value so flash the GPIO LED accordingly
             // (NOT the sent value)
@@ -287,6 +290,8 @@ void led_task_gpio(void *unused_arg)
  */
 void tmc_process_job(void *unused_arg)
 {
+    enum ControllerNotification tmc_notify =
+        ControllerNotification::NOTIFY_BOOT;
     ControllerState tmc_state = ControllerState::STATE_IDLE;
     TMCData tmc_data = {};
 
@@ -310,7 +315,7 @@ void tmc_process_job(void *unused_arg)
         pico_led_state ^= 1;
 
         gpio_put(LED_PIN_RED, pico_led_state);
-        xQueueSendToBack(queue, &pico_led_state, 0);
+        xQueueSendToBack(queue_led_task, &pico_led_state, 0);
         vTaskDelay(tmc_job_delay);
 
         tmc_state = tmc_control.processJob(xTaskGetTickCount());
@@ -347,6 +352,12 @@ void tmc_process_job(void *unused_arg)
                         // A button press event should instantly stop the
                         // motor
                         tmc_control.resetMovementDynamics();
+
+                        tmc_notify = ControllerNotification::NOTIFY_INFO;
+
+                        xQueueSendToBack(queue_notification_task,
+                                         &tmc_notify,
+                                         0);
                     }
                     else
                     {
@@ -399,6 +410,8 @@ void tmc_process_job(void *unused_arg)
 void joystick_process_job(void *unused_arg)
 {
     unsigned long count = 0;
+    enum ControllerNotification joystick_notify =
+        ControllerNotification::NOTIFY_BOOT;
     ControllerState joystick_controller_state = ControllerState::STATE_IDLE;
     JoystickData joystick_data = {};
 
@@ -455,29 +468,35 @@ void joystick_process_job(void *unused_arg)
 void buzzer_process_job(void *unused_arg)
 {
     unsigned long count = 0;
+    enum ControllerNotification buzzer_notify =
+        ControllerNotification::NOTIFY_BOOT;
     ControllerState buzzer_controller_state = ControllerState::STATE_IDLE;
 
     while (true)
     {
         buzzer_controller_state =
             buzzer_control.processJob(xTaskGetTickCount());
-        switch (buzzer_controller_state)
+        if (xQueueReceive(queue_notification_task, &buzzer_notify, 0) == pdPASS)
         {
-            case ControllerState::STATE_IDLE:
+            // printf("Buzzer queue read, state: %s\n",
+            //        ControllerStateString[buzzer_controller_state]);
+
+            switch (buzzer_controller_state)
             {
-                break;
+                case ControllerState::STATE_IDLE:
+                {
+                    break;
+                }
+                case ControllerState::STATE_READY:
+                {
+                    buzzer_control.setBuzzerFunction(buzzer_notify);
+                    break;
+                }
+                case ControllerState::STATE_NEW_DATA:
+                case ControllerState::STATE_BUSY:
+                default:
+                    break;
             }
-            case ControllerState::STATE_READY:
-            {
-                break;
-            }
-            case ControllerState::STATE_NEW_DATA:
-            {
-                break;
-            }
-            case ControllerState::STATE_BUSY:
-            default:
-                break;
         }
         vTaskDelay(buzzer_job_delay);
     }
@@ -528,8 +547,10 @@ int main()
                                            &buzzer_task_handle);
 
     // Set up the event queue
-    queue = xQueueCreate(4, sizeof(uint8_t));
+    queue_led_task = xQueueCreate(4, sizeof(uint8_t));
     queue_motor_control_data = xQueueCreate(2, sizeof(struct MotorControlData));
+    queue_notification_task =
+        xQueueCreate(2, sizeof(enum ControllerNotification));
 
     // Start the FreeRTOS scheduler
     // FROM 1.0.1: Only proceed with valid tasks

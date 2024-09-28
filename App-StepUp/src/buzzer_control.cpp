@@ -62,7 +62,8 @@ void BuzzerControl::deinit()
     m_init_success = false;
 }
 
-void BuzzerControl::setBuzzerFunction(enum BuzzerFunction buzzer_function)
+void BuzzerControl::setBuzzerFunction(
+    enum ControllerNotification controller_notification)
 {
     // TODO: Potentially need to guard against setting a new buzzer melody here
     // if one is already playing. Although, we should be able to guard against
@@ -71,34 +72,32 @@ void BuzzerControl::setBuzzerFunction(enum BuzzerFunction buzzer_function)
 
     m_control_state = ControllerState::STATE_BUSY;
 
-    switch (buzzer_function)
+    switch (controller_notification)
     {
-        case BuzzerFunction::BUZZER_BOOT:
+        case ControllerNotification::NOTIFY_BOOT:
         {
             s_active_melody = &melody_sweep_up;
             break;
         }
-        case BuzzerFunction::BUZZER_INFO:
+        case ControllerNotification::NOTIFY_INFO:
         {
             s_active_melody = &melody_short_double_beep;
             break;
         }
-        case BuzzerFunction::BUZZER_WARN:
+        case ControllerNotification::NOTIFY_WARN:
         {
             s_active_melody = &melody_short_quadruple_beep;
             break;
         }
-        case BuzzerFunction::BUZZER_ERROR:
+        case ControllerNotification::NOTIFY_ERROR:
         {
             s_active_melody = &melody_long_quadruple_beep;
             break;
         }
-        case BuzzerFunction::BUZZER_OFF:
         default:
         {
             s_active_melody = nullptr;
-            // TODO: If we need to power down buzzer, do it here
-            // FIXME: If we put disableBuzzer() here it will set state to OFF..
+            disableBuzzer();
             m_control_state = ControllerState::STATE_READY;
             break;
         }
@@ -116,7 +115,6 @@ void BuzzerControl::setBuzzerFunction(enum BuzzerFunction buzzer_function)
 void BuzzerControl::disableBuzzer()
 {
     pwm_set_enabled(m_pwm_slice_num, false);
-    m_buzzer_function = BuzzerFunction::BUZZER_OFF;
 }
 
 enum ControllerState BuzzerControl::processJob(uint32_t tick_count)
@@ -144,12 +142,25 @@ void playNextNoteInMelody()
         // Schedule next timeout/note play duration
         // TODO: Experiment with the fire_if_past flag if experiencing issues...
         // May need to add some error handling here if timer cannot be created
-        add_alarm_in_ms(s_active_melody->duration[s_note_index_in_melody],
-                        melodyTimerCallback,
-                        NULL,
-                        false);
+        alarm_id_t alarm_id =
+            add_alarm_in_ms(s_active_melody->duration[s_note_index_in_melody],
+                            melodyTimerCallback,
+                            NULL,
+                            false);
 
-        s_note_index_in_melody++;
+        // Only play the next note if we have valid alarm id's to use.
+        // The alarm ID will be invalid (i.e. <= 0) if the timer duration is too
+        // short (e.g. 0ms), as is the case when a note duration of 0ms is
+        // detected.
+        if (alarm_id > 0)
+        {
+            s_note_index_in_melody++;
+        }
+        else
+        {
+            // Terminate the melody early
+            s_note_index_in_melody = MELODY_MAX_NOTE_COUNT;
+        }
     }
 }
 
