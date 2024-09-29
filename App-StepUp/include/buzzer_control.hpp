@@ -152,4 +152,4 @@ private:
     void disableBuzzer();
 };
 
-#endif  // JOYSTICK_CONTROL_H_
+#endif  // BUZZER_CONTROL_H_
