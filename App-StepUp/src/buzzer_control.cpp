@@ -34,7 +34,7 @@ bool BuzzerControl::init()
     // Configure the buzzer pin and direction
     gpio_set_function(BUZZER_PIN, GPIO_FUNC_PWM);
 
-    // Find out which PWM slice is connected to GPIO 0 (it's slice 0)
+    // Find out which PWM slice is connected to BUZZER_PIN
     m_pwm_slice_num = pwm_gpio_to_slice_num(BUZZER_PIN);
 
     // Get some sensible defaults for the slice configuration. By default, the
@@ -133,7 +133,8 @@ enum ControllerState BuzzerControl::processJob(uint32_t tick_count)
 
 void playNextNoteInMelody()
 {
-    if (s_note_index_in_melody < MELODY_MAX_NOTE_COUNT)
+    if (s_note_index_in_melody < MELODY_MAX_NOTE_COUNT &&
+        s_active_melody != nullptr)
     {
         // Update with new tone
         pwm_set_gpio_level(BUZZER_PIN,
@@ -145,8 +146,8 @@ void playNextNoteInMelody()
         alarm_id_t alarm_id =
             add_alarm_in_ms(s_active_melody->duration[s_note_index_in_melody],
                             melodyTimerCallback,
-                            NULL,
-                            false);
+                            NULL,    // user_data
+                            false);  // fire_if_past
 
         // Only play the next note if we have valid alarm id's to use.
         // The alarm ID will be invalid (i.e. <= 0) if the timer duration is too
