@@ -40,6 +40,7 @@
 // Control includes
 #include "buzzer_control.hpp"
 #include "joystick_control.hpp"
+#include "led_control.hpp"
 #include "tmc_control.hpp"
 
 #ifdef __cplusplus

@@ -23,6 +23,7 @@ volatile QueueHandle_t queue_notification_task = NULL;
 // Motor control define(s)
 #define VELOCITY_DELTA_VALUE (500U)
 
+// TODO: Should this really be global?
 struct MotorControlData
 {
     int32_t velocity_delta;
@@ -37,22 +38,22 @@ const TickType_t joystick_job_delay = 10 / portTICK_PERIOD_MS;
 const TickType_t buzzer_job_delay = 100 / portTICK_PERIOD_MS;
 
 // FROM 1.0.1 Record references to the tasks
-TaskHandle_t gpio_task_handle = NULL;
-TaskHandle_t pico_task_handle = NULL;
-TaskHandle_t tmc_task_handle = NULL;
 TaskHandle_t joystick_task_handle = NULL;
+TaskHandle_t tmc_task_handle = NULL;
 TaskHandle_t buzzer_task_handle = NULL;
+TaskHandle_t led_task_handle = NULL;
 
 // Task priorities (higher value = higher priority)
-UBaseType_t job_priority_led_control = 1U;
+UBaseType_t job_priority_joystick_control = 1U;
 UBaseType_t job_priority_tmc_control = 2U;
-UBaseType_t job_priority_joystick_control = 3U;
-UBaseType_t job_priority_buzzer_control = 4U;
+UBaseType_t job_priority_buzzer_control = 3U;
+UBaseType_t job_priority_led_control = 4U;
 
 // Create class instances of control interfaces
 TMCControl tmc_control;
 JoystickControl joystick_control;
 BuzzerControl buzzer_control;
+LEDControl led_control;
 
 /*
  * SETUP FUNCTIONS
@@ -197,108 +198,25 @@ void setup_buzzer()
     Utils::log_info("Buzzer setup... OK");
 }
 
-/*
- * LED FUNCTIONS
- */
-
-/**
- * @brief Configure the on-board LED.
- */
 void setup_led()
 {
-    Utils::log_info("LED setup");
-    gpio_init(LED_PIN_RED);
-    gpio_set_dir(LED_PIN_RED, GPIO_OUT);
-    led_off();
+    Utils::log_info("LED setup...");
+    if (led_control.init())
+    {
+        led_control.enableFunctionality(true);
+        led_control.setLEDFunction(ControllerNotification::NOTIFY_BOOT);
+    }
+    else
+    {
+        // FIXME: When will this ever be true?
+        Utils::log_error("LED setup... FAIL");
+    }
     Utils::log_info("LED setup... OK");
-}
-
-/**
- * @brief Turn the on-board LED on.
- */
-void led_on()
-{
-    led_set();
-}
-
-/**
- * @brief Turn the on-board LED off.
- */
-void led_off()
-{
-    led_set(false);
-}
-
-/**
- * @brief Set the on-board LED's state.
- */
-void led_set(bool state)
-{
-    gpio_put(LED_PIN_RED, state);
 }
 
 /*
  * TASK FUNCTIONS
  */
-
-/**
- * @brief Repeatedly flash the Pico's built-in LED.
- */
-void led_task_pico(void *unused_arg)
-{
-    // Store the Pico LED state
-    uint8_t pico_led_state = 0;
-
-    // Configure the Pico's on-board LED
-    gpio_init(LED_PIN_RED);
-    gpio_set_dir(LED_PIN_RED, GPIO_OUT);
-
-    while (true)
-    {
-        // Turn Pico LED on an add the LED state
-        // to the FreeRTOS xQUEUE
-        // Utils::log_info("PICO LED FLASH");
-        pico_led_state = 1;
-        gpio_put(LED_PIN_RED, pico_led_state);
-        xQueueSendToBack(queue_led_task, &pico_led_state, 0);
-        vTaskDelay(ms_delay);
-
-        // Turn Pico LED off an add the LED state
-        // to the FreeRTOS xQUEUE
-        pico_led_state = 0;
-        gpio_put(LED_PIN_RED, pico_led_state);
-        xQueueSendToBack(queue_led_task, &pico_led_state, 0);
-        vTaskDelay(ms_delay);
-    }
-}
-
-/**
- * @brief Repeatedly flash an LED connected to GPIO pin 20
- *        based on the value passed via the inter-task queue.
- */
-void led_task_gpio(void *unused_arg)
-{
-    // This variable will take a copy of the value
-    // added to the FreeRTOS xQueue
-    uint8_t passed_value_buffer = 0;
-
-    // Configure the GPIO LED
-    gpio_init(LED_PIN_BLUE);
-    gpio_set_dir(LED_PIN_BLUE, GPIO_OUT);
-
-    while (true)
-    {
-        // Check for an item in the FreeRTOS xQueue
-        if (xQueueReceive(queue_led_task,
-                          &passed_value_buffer,
-                          portMAX_DELAY) == pdPASS)
-        {
-            // Received a value so flash the GPIO LED accordingly
-            // (NOT the sent value)
-            gpio_put(LED_PIN_BLUE, passed_value_buffer == 1 ? 0 : 1);
-        }
-    }
-}
 
 /**
  * @brief Repeatedly flash the Pico's built-in LED.
@@ -517,6 +435,42 @@ void buzzer_process_job(void *unused_arg)
     }
 }
 
+void led_process_job(void *unused_arg)
+{
+    unsigned long count = 0;
+    enum ControllerNotification led_notify =
+        ControllerNotification::NOTIFY_BOOT;
+    ControllerState led_controller_state = ControllerState::STATE_IDLE;
+
+    while (true)
+    {
+        led_controller_state = led_control.processJob(xTaskGetTickCount());
+        if (xQueueReceive(queue_notification_task, &led_notify, 0) == pdPASS)
+        {
+            // printf("LED queue read, state: %s\n",
+            //        ControllerStateString[buzzer_controller_state]);
+
+            switch (led_controller_state)
+            {
+                case ControllerState::STATE_IDLE:
+                {
+                    break;
+                }
+                case ControllerState::STATE_READY:
+                {
+                    led_control.setLEDFunction(led_notify);
+                    break;
+                }
+                case ControllerState::STATE_NEW_DATA:
+                case ControllerState::STATE_BUSY:
+                default:
+                    break;
+            }
+        }
+        vTaskDelay(buzzer_job_delay);
+    }
+}
+
 /*
  * RUNTIME START
  */
@@ -535,12 +489,12 @@ int main()
 
     // FROM 1.0.1 Store handles referencing the tasks; get return values
     // NOTE Arg 3 is the stack depth -- in words, not bytes
-    BaseType_t gpio_status = xTaskCreate(led_task_gpio,
-                                         "GPIO_LED_TASK",
-                                         128,
-                                         NULL,
-                                         job_priority_led_control,
-                                         &gpio_task_handle);
+    BaseType_t led_status = xTaskCreate(led_process_job,
+                                        "GPIO_LED_TASK",
+                                        128,
+                                        NULL,
+                                        job_priority_led_control,
+                                        &led_task_handle);
     BaseType_t tmc_status = xTaskCreate(tmc_process_job,
                                         "TMC_JOB_TASK",
                                         256,
@@ -569,7 +523,7 @@ int main()
 
     // Start the FreeRTOS scheduler
     // FROM 1.0.1: Only proceed with valid tasks
-    if (gpio_status == pdPASS && tmc_status == pdPASS &&
+    if (led_status == pdPASS && tmc_status == pdPASS &&
         joystick_status == pdPASS && buzzer_status == pdPASS)
     {
         vTaskStartScheduler();
