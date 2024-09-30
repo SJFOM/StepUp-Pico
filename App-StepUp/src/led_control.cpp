@@ -39,10 +39,6 @@ bool LEDControl::init()
     // 125MHz default), 125MHz / 15625 = 8kHz
     pwm_config_set_clkdiv(&config, 15625.f);  // should give 8kHz div clk
 
-    // TODO: Ensure LED resets output DC signal to 0V once complete as a
-    // permanent DC bias on the LED can damage the piezo hardware. If this
-    // needs more than just setting pwm_set_enabled() to false then we should
-    // consider a separate method to handle this.
     disableLED();
 
     m_control_state = ControllerState::STATE_READY;
