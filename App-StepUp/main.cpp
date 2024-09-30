@@ -20,22 +20,10 @@ volatile QueueHandle_t queue_led_task = NULL;
 volatile QueueHandle_t queue_motor_control_data = NULL;
 volatile QueueHandle_t queue_notification_task = NULL;
 
-// Motor control define(s)
-#define VELOCITY_DELTA_VALUE (500U)
-
-// TODO: Should this really be global?
-struct MotorControlData
-{
-    int32_t velocity_delta;
-    int8_t direction;
-    bool button_press;
-};
-
-// Set a delay time of exactly 500ms
-const TickType_t ms_delay = 500 / portTICK_PERIOD_MS;
-const TickType_t tmc_job_delay = 20 / portTICK_PERIOD_MS;
-const TickType_t joystick_job_delay = 10 / portTICK_PERIOD_MS;
-const TickType_t buzzer_job_delay = 100 / portTICK_PERIOD_MS;
+// Set loop delay times (in ms)
+const TickType_t joystick_job_delay_ms = 10 / portTICK_PERIOD_MS;
+const TickType_t tmc_job_delay_ms = 20 / portTICK_PERIOD_MS;
+const TickType_t buzzer_job_delay_ms = 100 / portTICK_PERIOD_MS;
 
 // FROM 1.0.1 Record references to the tasks
 TaskHandle_t joystick_task_handle = NULL;
@@ -44,10 +32,10 @@ TaskHandle_t buzzer_task_handle = NULL;
 TaskHandle_t led_task_handle = NULL;
 
 // Task priorities (higher value = higher priority)
-UBaseType_t job_priority_joystick_control = 1U;
-UBaseType_t job_priority_tmc_control = 2U;
-UBaseType_t job_priority_buzzer_control = 3U;
-UBaseType_t job_priority_led_control = 4U;
+UBaseType_t job_priority_joystick_control = 4U;
+UBaseType_t job_priority_tmc_control = 3U;
+UBaseType_t job_priority_buzzer_control = 2U;
+UBaseType_t job_priority_led_control = 2U;
 
 // Create class instances of control interfaces
 TMCControl tmc_control;
@@ -228,9 +216,6 @@ void tmc_process_job(void *unused_arg)
     ControllerState tmc_state = ControllerState::STATE_IDLE;
     TMCData tmc_data = {};
 
-    // Store the Pico LED state
-    uint8_t pico_led_state = 0;
-
     // Configure the Pico's on-board LED
     gpio_init(LED_PIN_RED);
     gpio_set_dir(LED_PIN_RED, GPIO_OUT);
@@ -241,15 +226,7 @@ void tmc_process_job(void *unused_arg)
 
     while (true)
     {
-        // Turn Pico LED on an add the LED state
-        // to the FreeRTOS xQUEUE
-        // Utils::log_info("TMC PROCESS JOB");
-        // printf("count: %lu\n", count++);
-        pico_led_state ^= 1;
-
-        gpio_put(LED_PIN_RED, pico_led_state);
-        xQueueSendToBack(queue_led_task, &pico_led_state, 0);
-        vTaskDelay(tmc_job_delay);
+        vTaskDelay(tmc_job_delay_ms);
 
         tmc_state = tmc_control.processJob(xTaskGetTickCount());
 
@@ -382,19 +359,19 @@ void joystick_process_job(void *unused_arg)
 
                 // To ensure our new data isn't discarded and successfully
                 // makes it into the queue, we should wait a bit longer than
-                // the amount of time required to process one tmc_job_delay
+                // the amount of time required to process one tmc_job_delay_ms
                 // period to allow the tmc task to complete its latest round
                 // of actions.
                 xQueueSendToBack(queue_motor_control_data,
                                  &motor_data,
-                                 tmc_job_delay + 1);
+                                 tmc_job_delay_ms + 1);
                 break;
             }
             case ControllerState::STATE_BUSY:
             default:
                 break;
         }
-        vTaskDelay(joystick_job_delay);
+        vTaskDelay(joystick_job_delay_ms);
     }
 }
 
@@ -411,8 +388,8 @@ void buzzer_process_job(void *unused_arg)
             buzzer_control.processJob(xTaskGetTickCount());
         if (xQueueReceive(queue_notification_task, &buzzer_notify, 0) == pdPASS)
         {
-            // printf("Buzzer queue read, state: %s\n",
-            //        ControllerStateString[buzzer_controller_state]);
+            printf("Buzzer queue read, state: %s\n",
+                   ControllerStateString[buzzer_controller_state]);
 
             switch (buzzer_controller_state)
             {
@@ -431,7 +408,7 @@ void buzzer_process_job(void *unused_arg)
                     break;
             }
         }
-        vTaskDelay(buzzer_job_delay);
+        vTaskDelay(buzzer_job_delay_ms);
     }
 }
 
@@ -467,7 +444,7 @@ void led_process_job(void *unused_arg)
                     break;
             }
         }
-        vTaskDelay(buzzer_job_delay);
+        vTaskDelay(buzzer_job_delay_ms);
     }
 }
 

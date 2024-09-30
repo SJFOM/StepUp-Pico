@@ -43,10 +43,19 @@
 #include "led_control.hpp"
 #include "tmc_control.hpp"
 
+// Global defines
+#define VELOCITY_DELTA_VALUE (500U)
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+    struct MotorControlData
+    {
+        int32_t velocity_delta;
+        int8_t direction;
+        bool button_press;
+    };
 
     /**
      * PROTOTYPES
