@@ -1,3 +1,15 @@
+/**
+ * @file tmc_control.hpp
+ * @author Sam (@SJFOM)
+ * @brief
+ * @version 0.1
+ * @date 2024-09-26
+ *
+ * @copyright Copyright (c) 2024
+ * @license   MIT
+ *
+ */
+
 #ifndef TMC_CONTROL_H_
 #define TMC_CONTROL_H_
 
