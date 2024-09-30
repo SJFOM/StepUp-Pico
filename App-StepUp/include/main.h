@@ -1,5 +1,12 @@
 /**
- * Main header file for App-StepUp
+ * @file main.h
+ * @author Sam (@SJFOM)
+ * @brief Main header file for App-StepUp
+ * @version 0.1
+ * @date 2024-09-25
+ *
+ * @copyright Copyright (c) 2024
+ * @license   MIT
  *
  * Adapted from:
  * @copyright 2022, Tony Smith (@smittytone)
@@ -31,21 +38,35 @@
 #include "pins_definitions.h"
 #include "utils.h"
 // Control includes
+#include "buzzer_control.hpp"
 #include "joystick_control.hpp"
+#include "led_control.hpp"
 #include "tmc_control.hpp"
+
+// Global defines
+#define VELOCITY_DELTA_VALUE (500U)
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+    struct MotorControlData
+    {
+        int32_t velocity_delta;
+        int8_t direction;
+        bool button_press;
+    };
 
     /**
      * PROTOTYPES
      */
     void setup();
+    void setup_adc();
     void setup_led();
     void setup_tmc2300();
+    void setup_boost_converter();
     void setup_joystick();
+    void setup_buzzer();
 
     void led_on();
     void led_off();

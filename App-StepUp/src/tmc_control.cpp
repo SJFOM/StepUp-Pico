@@ -1,6 +1,6 @@
 /**
  * @file tmc_control.cpp
- * @author SJFOM (you@domain.com)
+ * @author Sam (@SJFOM)
  * @brief
  * @version 0.1
  * @date 2023-02-11
@@ -341,6 +341,11 @@ void TMCControl::resetMovementDynamics()
 
 void TMCControl::move(int32_t velocity)
 {
+    if (!isFunctionalityEnabled())
+    {
+        return;
+    }
+
     // Utils::log_debug((string) "velocity: " + std::to_string(velocity));
     if (abs(velocity) > VELOCITY_MAX_STEPS_PER_SECOND)
     {
