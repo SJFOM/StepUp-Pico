@@ -48,8 +48,8 @@
             },
             "linux": {
                 "configFiles": [
-                    "${env:PICO_INSTALL_PATH}/openocd/scripts/interface/cmsis-dap.cfg",
-                    "${env:PICO_INSTALL_PATH}/openocd/scripts/target/rp2040.cfg"
+                    "${env:PICO_INSTALL_PATH}/openocd/tcl/interface/cmsis-dap.cfg",
+                    "${env:PICO_INSTALL_PATH}/openocd/tcl/target/rp2040.cfg"
                 ],
                 "searchDir": [
                     "${env:PICO_INSTALL_PATH}/openocd/tcl"
@@ -90,8 +90,8 @@
             },
             "linux": {
                 "configFiles": [
-                    "${env:PICO_INSTALL_PATH}/openocd/scripts/interface/cmsis-dap.cfg",
-                    "${env:PICO_INSTALL_PATH}/openocd/scripts/target/rp2040.cfg"
+                    "${env:PICO_INSTALL_PATH}/openocd/tcl/interface/cmsis-dap.cfg",
+                    "${env:PICO_INSTALL_PATH}/openocd/tcl/target/rp2040.cfg"
                 ],
                 "searchDir": [
                     "${env:PICO_INSTALL_PATH}/openocd/tcl"

@@ -1,6 +1,6 @@
 /**
  * @file ControlInterface.h
- * @author your name (you@domain.com)
+ * @author Sam (@SJFOM)
  * @brief
  * @version 0.1
  * @date 2023-02-11
@@ -28,14 +28,53 @@ static const char *ControllerStateString[ControllerState::STATE_COUNT] = {
     "STATE_NEW_DATA",
 };
 
-class ControlInterface {
+enum ControllerNotification
+{
+    NOTIFY_BOOT = 0U,
+    NOTIFY_INFO = 1U,
+    NOTIFY_WARN = 2U,
+    NOTIFY_ERROR = 3U,
+    NOTIFY_FUNC_MAX_COUNT
+};
+
+static const char *ControllerNotificationString
+    [ControllerNotification::NOTIFY_FUNC_MAX_COUNT] = {"NOTIFY_BOOT",
+                                                       "NOTIFY_INFO",
+                                                       "NOTIFY_WARN",
+                                                       "NOTIFY_ERROR"};
+
+class ControlInterface
+{
 public:
     virtual bool init() = 0;
     virtual void deinit() = 0;
+
+    /**
+     * @brief Control the functional state of the peripheral
+     *
+     * @param enable_disable
+     */
+    virtual void enableFunctionality(bool enable_disable)
+    {
+        m_is_enabled = enable_disable;
+    }
+
+    /**
+     * @brief Get peripherals functional state
+     *
+     * @return true if peripheral can be used
+     * @return false if peripheral should not yet be used
+     */
+    virtual bool isFunctionalityEnabled()
+    {
+        return m_is_enabled;
+    }
     virtual enum ControllerState processJob(uint32_t tick_count) = 0;
+
 protected:
 private:
     bool m_init_success;
+    bool m_is_enabled;
 };
 
-#endif // CONTROL_INTERFACE_H_
+#endif  // CONTROL_INTERFACE_H_
