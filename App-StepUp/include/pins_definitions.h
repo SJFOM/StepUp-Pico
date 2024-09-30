@@ -2,13 +2,16 @@
 #define PIN_DEFINITIONS_H_
 
 /***************************/
-/* LED Status pins - START */
+/* Status pins - START */
 /***************************/
-#define LED_PIN_YELLOW (17U)
-#define LED_PIN_GREEN  (20U)
+#define LED_PIN_RED   (2U)  // PWM1_A
+#define LED_PIN_GREEN (3U)  // PWM1_B
+#define LED_PIN_BLUE  (5U)  // PWM2_B
+
+#define BUZZER_PIN (16U)  // PWM0_A
 
 /*************************/
-/* LED Status pins - END */
+/* Status pins - END */
 /*************************/
 
 /************************/
@@ -17,36 +20,72 @@
 
 // We are using pins 0 and 1, but see the GPIO function select table in the
 // datasheet for information on which other pins can be used.
-#define TMC_UART_TX_PIN (4U)
-#define TMC_UART_RX_PIN (5U)
+#define TMC_PIN_UART_TX (25U)
+#define TMC_PIN_UART_RX (24U)
 
 // Motor control pins
-#define TMC_ENABLE_PIN    (14U)
-#define TMC_N_STANDBY_PIN (15U)
+#define TMC_PIN_ENABLE    (20U)
+#define TMC_PIN_N_STANDBY (21U)
 
 // Diagnostics pins
-#define TMC_DIAG_PIN (16U)
+#define TMC_PIN_DIAG (19U)
+
+#define TMC_PIN_BOOST_EN (18U)
+
+// STEP/DIR pins
+#define TMC_PIN_STEP (23U)  // PWM3_B
+#define TMC_PIN_DIR  (22U)
 
 /**********************/
 /* TMC2300 pins - END */
 /**********************/
+
+/********************************/
+/* Voltage monitor pins - START */
+/********************************/
+#define VBAT_MONITOR_ADC_PIN       (26U)
+#define VBAT_MONITOR_ADC_CHANNEL   (0)
+#define VMOTOR_MONITOR_ADC_PIN     (27U)
+#define VMOTOR_MONITOR_ADC_CHANNEL (1U)
+
+#define VUSB_MONITOR_PIN (4U)  // USB_VBUS_DET
+
+/******************************/
+/* Voltage monitor pins - END */
+/******************************/
 
 /*************************/
 /* Joystick pins - START */
 /*************************/
 
 // Joystick ADC pins
-#define JOYSTICK_ADC_PIN_X            (26U)
-#define JOYSTICK_ADC_CHANNEL_X        (0U)
-#define JOYSTICK_ADC_PIN_Y            (27U)
-#define JOYSTICK_ADC_CHANNEL_Y        (1U)
+#define JOYSTICK_ADC_PIN_X            (29U)
+#define JOYSTICK_ADC_CHANNEL_X        (3U)
+#define JOYSTICK_ADC_PIN_Y            (28U)
+#define JOYSTICK_ADC_CHANNEL_Y        (2U)
 #define JOYSTICK_ADC_ROUND_ROBIN_MASK (0x03)
 
 // Joystick Button pin
-#define JOYSTICK_BUTTON_PIN (22U)
+#define JOYSTICK_BUTTON_PIN (17U)
 
 /***********************/
 /* Joystick pins - END */
 /***********************/
+
+/**************************/
+/* Spare I/O pins - START */
+/**************************/
+#define GPIO_PIN_8  (8U)
+#define GPIO_PIN_9  (9U)
+#define GPIO_PIN_10 (10U)
+#define GPIO_PIN_11 (11U)
+#define GPIO_PIN_12 (12U)
+#define GPIO_PIN_13 (13U)
+#define GPIO_PIN_14 (14U)
+#define GPIO_PIN_15 (15U)
+
+/************************/
+/* Spare I/O pins - END */
+/************************/
 
 #endif  // PIN_DEFINITIONS_H_

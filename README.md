@@ -102,6 +102,29 @@ To get openocd to play ball, you must install the following libraries as describ
 brew install libtool automake libusb libusb-compat hidapi libftdi
 ```
 
+### Debugging in Linux
+
+#### 1. Enable `arm-none-eabi-gdb`
+To debug in Linux, you need to ensure you have `arm-none-eabi-gdb` installed. If you can build firmware for the Pico, odds are this is already installed on your PC but not symlinked correctly. To link this, run the following with elevated priveleges (`sudo`)
+```shell
+ln -s /usr/bin/gdb-multiarch /usr/bin/arm-none-eabi-gdb
+```
+You should now see that running `arm-none-eabi-gdb` works as expected.
+
+#### 2. Configure Linux to recognise device
+By following the very useful steps outlined [here](https://forums.raspberrypi.com/viewtopic.php?t=364698), you can configure your udev rules to recognise the Pico plugged in as a CMSIS-DAP interface.
+
+The relevant steps in the linked guide are as follows:
+1. Create a file `10-my-usb.rules` in `/etc/udev/rules.d` containing
+```
+SUBSYSTEM=="usb", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="000c", MODE="666", GROUP="plugdev"
+```
+2. Now, restart the udev service using
+```shell
+sudo udevadm control --reload
+sudo udevadm trigger
+```
+
 ## Note on debugging (all platforms)
 Ensure that both `cortex-debug.openocdPath` in `settings.json` and `configFiles` and `searchDir` key values in `launch.json` refer to the current `Pico SDK v1.5.X` version at time of install.
 
