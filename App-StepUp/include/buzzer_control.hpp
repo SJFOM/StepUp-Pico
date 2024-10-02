@@ -78,6 +78,9 @@ struct Melody
     uint16_t duration[MELODY_MAX_NOTE_COUNT];
 };
 
+static struct Melody melody_off = {.note = {NotePitch::NOTE_OFF},
+                                   .duration = {NoteDuration::NOTE_EIGHT}};
+
 static struct Melody melody_sweep_up = {
     .note = {NotePitch::NOTE_E7, NotePitch::NOTE_B7, NotePitch::NOTE_F8},
     .duration = {NoteDuration::NOTE_EIGHT,
