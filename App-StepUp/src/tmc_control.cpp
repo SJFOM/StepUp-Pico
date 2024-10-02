@@ -14,8 +14,12 @@
 static TMC2300TypeDef tmc2300;
 static ConfigurationTypeDef tmc2300_config;
 
+// Static non-class-member debug variables
+// FIXME: Remove this, just for testing
+static bool s_plot_diagnostics = false;
+
 // Static non-class-member callback variables
-static volatile bool s_is_callback_complete = false;
+static volatile bool s_is_tmc_comms_callback_complete = false;
 static volatile bool s_diag_event = false;
 
 // Static non-class-member variables
@@ -44,7 +48,7 @@ void callback(TMC2300TypeDef *tmc2300, ConfigState cfg_state)
     {
         Utils::log_info("TMC is ready for use");
         // Configuration restore complete
-        s_is_callback_complete = true;
+        s_is_tmc_comms_callback_complete = true;
         // The driver may only be enabled once the configuration is done
         driver_can_be_enabled = true;
     }
@@ -443,11 +447,6 @@ TMCDiagnostics TMCControl::readTMCDiagnostics()
     TMCDiagnostics tmc_diag;
     m_drv_status.sr = tmc2300_readInt(&tmc2300, m_drv_status.address);
 
-    m_pwm_scale.sr = tmc2300_readInt(&tmc2300, m_pwm_scale.address);
-
-    // Utils::log_debug((string) "PWM_SCALE_SUM: " +
-    //                  std::to_string(m_pwm_scale.pwm_scale_sum));
-
     if (m_drv_status.otpw || m_drv_status.ot || m_drv_status.t120 ||
         m_drv_status.t150)
     {
@@ -457,10 +456,10 @@ TMCDiagnostics TMCControl::readTMCDiagnostics()
     // The TMC2300 datasheet mentions the motor should be moving "slowly" for
     // this open-circuit detection to be valid - see description of the ola &
     // olb flags in the DRV_STATUS register map
-    // NOTE: If we have a known PWM_SCALE_SUM value at "low speed" for the motor
-    // and we suddenly detect a wildly different value here then we might also
-    // consider relying on using that as additional information for open-load
-    // detection.
+    // We need to generate enough back EMF to delineate a connected spinning
+    // motor between a disconnected motor with noise on the sense resistors
+    // NOTE: In practice, these flags are not always the most reliable way of
+    // detecting an open circuit event
     if ((m_drv_status.ola || m_drv_status.olb) &&
         (abs(m_vactual.sr) <= VELOCITY_SLOW_SPEED_STEPS_PER_SECOND))
     {
@@ -471,13 +470,6 @@ TMCDiagnostics TMCControl::readTMCDiagnostics()
         m_drv_status.s2vsb)
     {
         tmc_diag.short_circuit = true;
-    }
-
-    // FIXME: Seems to trigger whenever a button press occurs, should filter
-    // this combination of events at the main.cpp level.
-    if (m_drv_status.stst)
-    {
-        tmc_diag.stall_detected = true;
     }
 
     if (m_drv_status.sr & m_drv_status.error_bit_mask)
@@ -504,7 +496,7 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
     static unsigned int process_count = 0;
     tmc2300_periodicJob(&tmc2300, tick_count);
 
-    if (s_is_callback_complete &&
+    if (s_is_tmc_comms_callback_complete &&
         m_tmc.control_state == ControllerState::STATE_BUSY)
     {
         // TODO: Unsure if the callback is triggered for every TMC register
@@ -518,79 +510,77 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
     /* MOTOR LIVE DIAGNOSTICS */
     /**************************/
 
-#ifdef TMC_MOTOR_DIAGNOSTIC_PRINT_ENABLED
-
     // Stall detection, over temperature & short-circuit detection are all
     // mapped to the DIAG pin. However, open-circuit flags must be polled and
     // are not mapped to the DIAG pin flag.
-    if (s_diag_event || (process_count++ > 10))
+    // if (s_diag_event || (process_count++ > 10))
+    if (s_diag_event)
     {
         s_diag_event = false;
         m_tmc.control_state = ControllerState::STATE_NEW_DATA;
 
         // TODO: Remove, just for diagnostics
-        uint32_t sg_value = tmc2300_readInt(&tmc2300, TMC2300_SG_VALUE);
-        IHOLD_IRUN_t irun_ihold;
-        irun_ihold.sr = tmc2300_readInt(&tmc2300, TMC2300_IHOLD_IRUN);
-        uint8_t motor_effort_percent = ((100 * (510 - sg_value)) / 510);
-        m_ioin.sr = tmc2300_readInt(&tmc2300, m_ioin.address);
-        m_drv_status.sr = tmc2300_readInt(&tmc2300, TMC2300_DRVSTATUS);
-        m_ihold_irun.sr = tmc2300_readInt(&tmc2300, TMC2300_IHOLD_IRUN);
-        m_tstep.sr = tmc2300_readInt(&tmc2300, TMC2300_TSTEP);
-        uint8_t stall = 0;
-        uint8_t diag = 0;
-        if (m_ioin.diag)
+        if (s_plot_diagnostics)
         {
-            diag = 1;
-            if (m_drv_status.stst)
+            uint32_t sg_value = tmc2300_readInt(&tmc2300, TMC2300_SG_VALUE);
+            IHOLD_IRUN_t irun_ihold;
+            irun_ihold.sr = tmc2300_readInt(&tmc2300, TMC2300_IHOLD_IRUN);
+            uint8_t motor_effort_percent = ((100 * (510 - sg_value)) / 510);
+            m_ioin.sr = tmc2300_readInt(&tmc2300, m_ioin.address);
+            m_drv_status.sr = tmc2300_readInt(&tmc2300, TMC2300_DRVSTATUS);
+            m_ihold_irun.sr = tmc2300_readInt(&tmc2300, TMC2300_IHOLD_IRUN);
+            m_tstep.sr = tmc2300_readInt(&tmc2300, TMC2300_TSTEP);
+            uint8_t stall = 0;
+            uint8_t diag = 0;
+            if (m_ioin.diag)
             {
-                stall = 1;
+                diag = 1;
+                if (m_drv_status.stst)
+                {
+                    stall = 1;
+                }
             }
-        }
-        // printf("SG: %d\n", sg_value);
-        // if (sg_value < 30U)
-        // {
-        // printf("High motor load: %d - %d %%\n", sg_value,
-        // motor_effort_percent);
-        // }
-        printf(">sg_live: %d\n", sg_value);
-        printf(">sg_avg: %d\n", sg_val_total / process_count);
-        printf(">vel:%d\n", m_vactual.sr);
-        printf(">diag: %d\n", diag);
-        printf(">diag_pin: %d\n", gpio_get(TMC_PIN_DIAG));
-        // printf(">stall: %d\n", stall);
-        // printf(">thresh: %d\n", m_sgthrs.sr);
-        // printf(">drv_status: %d\n",
-        //    m_drv_status.sr & m_drv_status.error_bit_mask);
+            // printf("SG: %d\n", sg_value);
+            // if (sg_value < 30U)
+            // {
+            // printf("High motor load: %d - %d %%\n", sg_value,
+            // motor_effort_percent);
+            // }
+            // printf(">sg_live: %d\n", sg_value);
+            // printf(">sg_avg: %d\n", sg_val_total / process_count);
+            // printf(">vel:%d\n", m_vactual.sr);
+            printf(">diag: %d\n", diag);
+            // printf(">diag_pin: %d\n", gpio_get(TMC_PIN_DIAG));
+            // printf(">stall: %d\n", stall);
+            // printf(">thresh: %d\n", m_sgthrs.sr);
+            // printf(">drv_status: %d\n",
+            //    m_drv_status.sr & m_drv_status.error_bit_mask);
 
-        /* DRV_STATUS bits */
-        // bool otpw : 1, ot : 1, s2ga : 1, s2gb : 1, s2vsa : 1, s2vsb : 1,ola :
-        // 1, olb : 1, t120 : 1, t150 : 1;
-        // uint8_t : 6;
-        // uint8_t cs_actual : 5;
-        // uint16_t : 10;
-        // bool stst : 1;
-        // printf(">s2ga_b: %d\n",
-        //    (uint8_t)(m_drv_status.s2ga | m_drv_status.s2gb));
-        // printf(">s2vsa_b: %d\n", m_drv_status.s2vsa | m_drv_status.s2vsb);
-        printf(">s2ga: %d\n", (uint8_t)(m_drv_status.s2ga));
-        printf(">s2gb: %d\n", (uint8_t)(m_drv_status.s2gb));
-        printf(">s2vsa: %d\n", m_drv_status.s2vsa);
-        printf(">s2vsb: %d\n", m_drv_status.s2vsb);
-        printf(">ola: %d\n", (uint8_t)(m_drv_status.ola));
-        printf(">olb: %d\n", (uint8_t)(m_drv_status.olb));
-        printf(">pwm_scale_sum: %d\n", (uint8_t)(m_pwm_scale.pwm_scale_sum));
-        // printf(">ola_b: %d\n", m_drv_status.ola | m_drv_status.olb);
-        printf(">ot_pw: %d\n", m_drv_status.ot | m_drv_status.otpw);
-        // printf(">drv_status: %d\n", m_drv_status.sr);
-        printf(">irun: %d\n", m_ihold_irun.irun);
-        printf(">cs_actual: %d\n", m_drv_status.cs_actual);
-        // printf(">tstep: %lu\n", m_tstep.sr);
-        sg_val_total = 0;
-        sg_val_total = 0;
+            /* DRV_STATUS bits */
+            // bool otpw : 1, ot : 1, s2ga : 1, s2gb : 1, s2vsa : 1, s2vsb :
+            // 1,ola : 1, olb : 1, t120 : 1, t150 : 1; uint8_t : 6; uint8_t
+            // cs_actual : 5; uint16_t : 10; bool stst : 1; printf(">s2ga_b:
+            // %d\n",
+            //    (uint8_t)(m_drv_status.s2ga | m_drv_status.s2gb));
+            // printf(">s2vsa_b: %d\n", m_drv_status.s2vsa |
+            // m_drv_status.s2vsb);
+            printf(">s2ga: %d\n", (uint8_t)(m_drv_status.s2ga));
+            printf(">s2gb: %d\n", (uint8_t)(m_drv_status.s2gb));
+            printf(">s2vsa: %d\n", m_drv_status.s2vsa);
+            printf(">s2vsb: %d\n", m_drv_status.s2vsb);
+            printf(">ola: %d\n", (uint8_t)(m_drv_status.ola));
+            printf(">olb: %d\n", (uint8_t)(m_drv_status.olb));
+            printf(">ot_pw: %d\n", m_drv_status.ot | m_drv_status.otpw);
+            // printf(">pwm_scale_sum: %d\n",
+            // (uint8_t)(m_pwm_scale.pwm_scale_sum)); printf(">drv_status:
+            // %d\n", m_drv_status.sr); printf(">irun: %d\n",
+            // m_ihold_irun.irun); printf(">cs_actual: %d\n",
+            // m_drv_status.cs_actual); printf(">tstep: %lu\n", m_tstep.sr);
+            sg_val_total = 0;
+            sg_val_total = 0;
+        }
         process_count = 0;
     }
-#endif
 
     // Ramp profile using internal TMC step generator
     switch (m_motor_move_state)
