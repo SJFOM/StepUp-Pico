@@ -12,6 +12,9 @@ using std::string;
 using std::stringstream;
 using std::vector;
 
+// FIXME: Remove, just for printing motor diagnostic values
+// #define TMC_MOTOR_DIAGNOSTIC_PRINT_ENABLED
+
 /*
  * GLOBALS
  */
