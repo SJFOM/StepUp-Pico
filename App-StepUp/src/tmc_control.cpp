@@ -79,9 +79,9 @@ bool TMCControl::init()
         gpio_set_dir(TMC_PIN_N_STANDBY, GPIO_OUT);
 
         // Configure DIAG pin as interrupt
-        gpio_init(TMC_DIAG_PIN);
-        gpio_set_input_enabled(TMC_DIAG_PIN, true);
-        gpio_pull_up(TMC_DIAG_PIN);
+        gpio_init(TMC_PIN_DIAG);
+        gpio_set_input_enabled(TMC_PIN_DIAG, true);
+        gpio_pull_up(TMC_PIN_DIAG);
 
         // Initialize CRC calculation for TMC2300 UART datagrams
         if (!(tmc_fillCRC8Table(0x07, true, 0) == 1))
@@ -557,14 +557,35 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
         printf(">sg_avg: %d\n", sg_val_total / process_count);
         printf(">vel:%d\n", m_vactual.sr);
         printf(">diag: %d\n", diag);
-        printf(">diag_pin: %d\n", gpio_get(TMC_DIAG_PIN));
-        printf(">stall: %d\n", stall);
-        printf(">thresh: %d\n", m_sgthrs.sr);
-        printf(">drv_status: %d\n",
-               m_drv_status.sr & m_drv_status.error_bit_mask);
+        printf(">diag_pin: %d\n", gpio_get(TMC_PIN_DIAG));
+        // printf(">stall: %d\n", stall);
+        // printf(">thresh: %d\n", m_sgthrs.sr);
+        // printf(">drv_status: %d\n",
+        //    m_drv_status.sr & m_drv_status.error_bit_mask);
+
+        /* DRV_STATUS bits */
+        // bool otpw : 1, ot : 1, s2ga : 1, s2gb : 1, s2vsa : 1, s2vsb : 1,ola :
+        // 1, olb : 1, t120 : 1, t150 : 1;
+        // uint8_t : 6;
+        // uint8_t cs_actual : 5;
+        // uint16_t : 10;
+        // bool stst : 1;
+        // printf(">s2ga_b: %d\n",
+        //    (uint8_t)(m_drv_status.s2ga | m_drv_status.s2gb));
+        // printf(">s2vsa_b: %d\n", m_drv_status.s2vsa | m_drv_status.s2vsb);
+        printf(">s2ga: %d\n", (uint8_t)(m_drv_status.s2ga));
+        printf(">s2gb: %d\n", (uint8_t)(m_drv_status.s2gb));
+        printf(">s2vsa: %d\n", m_drv_status.s2vsa);
+        printf(">s2vsb: %d\n", m_drv_status.s2vsb);
+        printf(">ola: %d\n", (uint8_t)(m_drv_status.ola));
+        printf(">olb: %d\n", (uint8_t)(m_drv_status.olb));
+        printf(">pwm_scale_sum: %d\n", (uint8_t)(m_pwm_scale.pwm_scale_sum));
+        // printf(">ola_b: %d\n", m_drv_status.ola | m_drv_status.olb);
+        printf(">ot_pw: %d\n", m_drv_status.ot | m_drv_status.otpw);
+        // printf(">drv_status: %d\n", m_drv_status.sr);
         printf(">irun: %d\n", m_ihold_irun.irun);
         printf(">cs_actual: %d\n", m_drv_status.cs_actual);
-        printf(">tstep: %lu\n", m_tstep.sr);
+        // printf(">tstep: %lu\n", m_tstep.sr);
         sg_val_total = 0;
         sg_val_total = 0;
         process_count = 0;
@@ -595,24 +616,31 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
                 }
                 else
                 {
-                    // If we are not yet at our target velocity, increment our
-                    // ramp velocity by a set increment value in the direction
-                    // of motor rotation.
-                    if (m_target_velocity < 0)
+                    m_pwm_scale.sr =
+                        tmc2300_readInt(&tmc2300, m_pwm_scale.address);
+                    printf(">pwm_scale_sum_with_velocity: %d\n",
+                           (uint8_t)(m_pwm_scale.pwm_scale_sum));
+                    if (m_pwm_scale.pwm_scale_sum <= 220)
                     {
-                        ramp_velocity -=
-                            VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
-                    }
-                    else
-                    {
-                        ramp_velocity +=
-                            VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
+                        // If we are not yet at our target velocity, increment
+                        // our ramp velocity by a set increment value in the
+                        // direction of motor rotation.
+                        if (m_target_velocity < 0)
+                        {
+                            ramp_velocity -=
+                                VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
+                        }
+                        else
+                        {
+                            ramp_velocity +=
+                                VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
+                        }
                     }
                 }
-                // printf("%d -> %d -> %d\n",
-                //        m_vactual.sr,
-                //        ramp_velocity,
-                //        m_target_velocity);
+                printf("%d -> %d -> %d\n",
+                       m_vactual.sr,
+                       ramp_velocity,
+                       m_target_velocity);
                 move(ramp_velocity);
             }
             break;
