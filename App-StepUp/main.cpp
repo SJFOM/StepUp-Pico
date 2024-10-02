@@ -12,9 +12,6 @@ using std::string;
 using std::stringstream;
 using std::vector;
 
-// FIXME: Remove, just for printing motor diagnostic values
-// #define TMC_MOTOR_DIAGNOSTIC_PRINT_ENABLED
-
 /*
  * GLOBALS
  */
@@ -294,20 +291,16 @@ void tmc_process_job(void *unused_arg)
                     // TODO: Deal with the issue at hand and report to user
                     if (tmc_data.diag.open_circuit)
                     {
-                        Utils::log_debug("Open circuit");
+                        Utils::log_debug("Open circuit detected!");
                     }
                     if (tmc_data.diag.overheating)
                     {
-                        Utils::log_debug("Overheating");
+                        Utils::log_debug("Overheating!");
                         tmc_control.enableFunctionality(false);
                     }
                     if (tmc_data.diag.short_circuit)
                     {
-                        Utils::log_debug("Short circuit");
-                    }
-                    if (tmc_data.diag.stall_detected)
-                    {
-                        Utils::log_debug("Stall detected");
+                        Utils::log_debug("Short circuit detected!");
                     }
                 }
                 break;

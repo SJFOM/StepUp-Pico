@@ -407,7 +407,6 @@ struct TMCDiagnostics
     bool overheating = false;
     bool short_circuit = false;
     bool open_circuit = false;
-    bool stall_detected = false;
 };
 
 struct TMCData
