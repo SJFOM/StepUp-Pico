@@ -54,8 +54,15 @@ extern "C"
 
 #define VELOCITY_MAX_STEPS_PER_SECOND (100000U)
 
-#define DEFAULT_IRUN_VALUE  (10U)
+// Run and hold current values (0..31U) scaled to 1.4A RMS
+#define DEFAULT_IRUN_VALUE  (20U)
 #define DEFAULT_IHOLD_VALUE (0U)
+
+// If SG_VALUE falls below 2x SGTHRS_VALUE then a stall detection is triggered
+// SG_VALUE = 0..510 (higher number, lighter loading)
+// 90% loading = 510 - 0.9*510 = 0.1*510 - 51
+// SGTHRS = 51/2 ~= 25
+#define DEFAULT_SGTHRS_VALUE (25U)
 
 /*****************************/
 /* General Registers - START */
@@ -161,7 +168,8 @@ struct IHOLD_IRUN_t
         uint32_t sr : 20;
         struct
         {
-            uint8_t iholddelay : 4, : 3, irun : 5, : 3, ihold : 5;
+            // TODO: Re-order: check the following is now correct
+            uint8_t ihold : 5, : 3, irun : 5, : 3, iholddelay : 4;
         };
     };
 
@@ -213,8 +221,8 @@ struct TCOOLTHRS_t
     constexpr static uint8_t address = TMC2300_TCOOLTHRS;
 
     /* This is the lower threshold velocity for switching on smart energy
-     * CoolStep and StallGuard feature. */
-    uint16_t sr : 10;
+     * CoolStep and StallGuard feature. RANGE: 1..2^20-1. DEFAULT: 0 */
+    uint32_t sr : 20;
 };
 
 struct SGTHRS_t
@@ -245,14 +253,19 @@ struct COOLCONF_t
     // WRITE only register
     constexpr static uint8_t address = TMC2300_COOLCONF;
 
-    /* COOLCONF: Smart energy control CoolStep and StallGuard */
+    /* COOLCONF: Smart energy control CoolStep and StallGuard. DEFAULT: 0
+     * (disabled)*/
     union
     {
-        uint16_t sr : 16;
+        uint16_t sr;
         struct
         {
-            uint8_t semin : 4, : 1, seup : 2, : 1, semax : 4, : 1, sedn : 2;
+            /* NOTE: semin = 0, smart current control coolStep = OFF */
+            // FIXME: This register WORKS if the bit order is backwards to the
+            // other registers?.. Look into struct packing, maybe this isn't
+            // consistent?
             bool seimin : 1;
+            uint8_t sedn : 2, : 1, semax : 4, : 1, seup : 2, : 1, semin : 4;
         };
     };
 };
@@ -363,7 +376,7 @@ struct PWM_SCALE_t
         {
             uint8_t pwm_scale_sum : 8;
             uint8_t : 8;
-            uint16_t pwm_scale_auto : 9;
+            int16_t pwm_scale_auto : 9;
         };
     };
 };
@@ -411,6 +424,27 @@ enum MotorMoveState
     MOTOR_MOVING,
 };
 
+enum FreewheelMode
+{
+    FREEWHEEL_NORMAL = 0,
+    FREEWHEEL_FREEWHEELING = 1,
+    FREEWHEEL_LS_DRIVER_SHORT = 2,
+    FREEWHEEL_HS_DRIVER_SHORT = 3,
+};
+
+enum MicrostepResolution
+{
+    MRES_FULL_STEP = 8,
+    MRES_2_STEP = 7,
+    MRES_4_STEP = 6,
+    MRES_8_STEP = 5,
+    MRES_16_STEP = 4,
+    MRES_32_STEP = 3,
+    MRES_64_STEP = 2,
+    MRES_12_STEP = 1,
+    MRES_256_STEP = 0,
+};
+
 class TMCControl : public ControlInterface
 {
 public:
@@ -431,7 +465,11 @@ protected:
     IOIN_t m_ioin;
     IHOLD_IRUN_t m_ihold_irun;
     VACTUAL_t m_vactual;
+    SGTHRS_t m_sgthrs;
+    TCOOLTHRS_t m_tcoolthrs;
+    COOLCONF_t m_coolconf;
     CHOPCONF_t m_chopconf;
+    TSTEP_t m_tstep;
     DRV_STATUS_t m_drv_status;
     PWMCONF_t m_pwmconf;
     PWM_SCALE_t m_pwm_scale;

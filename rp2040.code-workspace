@@ -59,5 +59,10 @@
       "cstdbool": "cpp",
       "time.h": "c"
     }
+  },
+  "extensions": {
+    "recommendations": [
+      "alexnesnes.teleplot"
+    ]
   }
 }
