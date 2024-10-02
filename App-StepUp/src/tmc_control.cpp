@@ -228,29 +228,23 @@ void TMCControl::defaultConfiguration()
      * What: Lower threshold velocity for switching on CoolStep and Stallgaurd.
      * Use: Velocity in steps/second at which to switch on this feature
      */
-    // TODO: Update with sane velocity at which to switch mode.
-    m_tcoolthrs.sr = 100U;
+    // NOTE: If using, update with sane velocity at which to switch mode.
+    m_tcoolthrs.sr = 0U;  // Default value
     tmc2300_writeInt(&tmc2300, m_tcoolthrs.address, m_tcoolthrs.sr);
 
     /* Register: COOLCONF
      * What: Configure how CoolStep is employed wrt to Stallgaurd values
      * Use: See datasheet, page 26
      */
-    // TODO: Update with stallgaurd value thresholds once known
+    // NOTE: If using, update with stallgaurd value thresholds once known
     m_coolconf.sr = tmc2300_readInt(&tmc2300, TMC2300_COOLCONF);
-    printf("COOLCONF - BEFORE: 0x%x\n", m_coolconf.sr);
-    m_coolconf.seup = 0;  // Step width: 1
-    m_coolconf.sedn = 0;  // SG measurements per decrement: 32
-    m_coolconf.semin = 10;
-    m_coolconf.semax = 15;
+    m_coolconf.seup = 0;   // Step width: 1
+    m_coolconf.sedn = 0;   // SG measurements per decrement: 32
+    m_coolconf.semin = 0;  // NOTE: semin = 0, coolStep = OFF
+    m_coolconf.semax = 0;
     m_coolconf.seimin = 0;
-    if (m_ihold_irun.irun >= 20U)
-    {
-        m_coolconf.seimin = 1;
-    }
     tmc2300_writeInt(&tmc2300, m_coolconf.address, m_coolconf.sr);
     m_coolconf.sr = tmc2300_readInt(&tmc2300, TMC2300_COOLCONF);
-    printf("COOLCONF - AFTER: 0x%x\n", m_coolconf.sr);
 
     /* Register: CHOPCONF
      * What: Generic chopper algorithm configuration
@@ -520,6 +514,12 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
 
     sg_val_total += tmc2300_readInt(&tmc2300, TMC2300_SG_VALUE);
 
+    /**************************/
+    /* MOTOR LIVE DIAGNOSTICS */
+    /**************************/
+
+#ifdef TMC_MOTOR_DIAGNOSTIC_PRINT_ENABLED
+
     // Stall detection, over temperature & short-circuit detection are all
     // mapped to the DIAG pin. However, open-circuit flags must be polled and
     // are not mapped to the DIAG pin flag.
@@ -590,6 +590,7 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
         sg_val_total = 0;
         process_count = 0;
     }
+#endif
 
     // Ramp profile using internal TMC step generator
     switch (m_motor_move_state)
@@ -616,31 +617,24 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
                 }
                 else
                 {
-                    m_pwm_scale.sr =
-                        tmc2300_readInt(&tmc2300, m_pwm_scale.address);
-                    printf(">pwm_scale_sum_with_velocity: %d\n",
-                           (uint8_t)(m_pwm_scale.pwm_scale_sum));
-                    if (m_pwm_scale.pwm_scale_sum <= 220)
+                    // If we are not yet at our target velocity, increment
+                    // our ramp velocity by a set increment value in the
+                    // direction of motor rotation.
+                    if (m_target_velocity < 0)
                     {
-                        // If we are not yet at our target velocity, increment
-                        // our ramp velocity by a set increment value in the
-                        // direction of motor rotation.
-                        if (m_target_velocity < 0)
-                        {
-                            ramp_velocity -=
-                                VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
-                        }
-                        else
-                        {
-                            ramp_velocity +=
-                                VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
-                        }
+                        ramp_velocity -=
+                            VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
+                    }
+                    else
+                    {
+                        ramp_velocity +=
+                            VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
                     }
                 }
-                printf("%d -> %d -> %d\n",
-                       m_vactual.sr,
-                       ramp_velocity,
-                       m_target_velocity);
+                // printf("%d -> %d -> %d\n",
+                //        m_vactual.sr,
+                //        ramp_velocity,
+                //        m_target_velocity);
                 move(ramp_velocity);
             }
             break;
