@@ -17,6 +17,9 @@ static ConfigurationTypeDef tmc2300_config;
 // Static non-class-member debug variables
 // FIXME: Remove this, just for testing
 static bool s_plot_diagnostics = false;
+static uint16_t sg_val_total;
+static uint16_t sg_val_current, sg_val_previous, sg_val_match_count;
+static bool open_circuit_detected = false;
 
 // Static non-class-member callback variables
 static volatile bool s_is_tmc_comms_callback_complete = false;
@@ -460,9 +463,11 @@ TMCDiagnostics TMCControl::readTMCDiagnostics()
     // motor between a disconnected motor with noise on the sense resistors
     // NOTE: In practice, these flags are not always the most reliable way of
     // detecting an open circuit event
-    if ((m_drv_status.ola || m_drv_status.olb) &&
-        (abs(m_vactual.sr) <= VELOCITY_SLOW_SPEED_STEPS_PER_SECOND))
+    if (open_circuit_detected ||
+        ((m_drv_status.ola || m_drv_status.olb) &&
+         (abs(m_vactual.sr) <= VELOCITY_SLOW_SPEED_STEPS_PER_SECOND)))
     {
+        open_circuit_detected = false;
         tmc_diag.open_circuit = true;
     }
 
@@ -472,7 +477,10 @@ TMCDiagnostics TMCControl::readTMCDiagnostics()
         tmc_diag.short_circuit = true;
     }
 
-    if (m_drv_status.sr & m_drv_status.error_bit_mask)
+    // Note, open circuit can be due to status flags being set OR our algorithm
+    // detecting an open circuit
+    if ((m_drv_status.sr & m_drv_status.error_bit_mask) ||
+        tmc_diag.open_circuit)
     {
         tmc_diag.normal_operation = false;
     }
@@ -489,8 +497,6 @@ struct TMCData TMCControl::getTMCData()
     return m_tmc;
 }
 
-static uint16_t sg_val_total;
-
 enum ControllerState TMCControl::processJob(uint32_t tick_count)
 {
     static unsigned int process_count = 0;
@@ -504,7 +510,22 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
         m_tmc.control_state = ControllerState::STATE_READY;
     }
 
-    sg_val_total += tmc2300_readInt(&tmc2300, TMC2300_SG_VALUE);
+    // sg_val_total += tmc2300_readInt(&tmc2300, TMC2300_SG_VALUE);
+    sg_val_current = tmc2300_readInt(&tmc2300, TMC2300_SG_VALUE);
+    m_pwm_scale.sr = tmc2300_readInt(&tmc2300, m_pwm_scale.address);
+    if (sg_val_previous == sg_val_current && m_pwm_scale.pwm_scale_sum == 255U)
+    {
+        sg_val_match_count++;
+        if (sg_val_match_count == 5U)
+        {
+            open_circuit_detected = true;
+        }
+    }
+    else
+    {
+        sg_val_match_count = 0;
+        sg_val_previous = sg_val_current;
+    }
 
     /**************************/
     /* MOTOR LIVE DIAGNOSTICS */
@@ -514,10 +535,12 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
     // mapped to the DIAG pin. However, open-circuit flags must be polled and
     // are not mapped to the DIAG pin flag.
     // if (s_diag_event || (process_count++ > 10))
-    if (s_diag_event)
+    if (s_diag_event || open_circuit_detected)
     {
         s_diag_event = false;
         m_tmc.control_state = ControllerState::STATE_NEW_DATA;
+
+        sg_val_match_count = 0;
 
         // TODO: Remove, just for diagnostics
         if (s_plot_diagnostics)
