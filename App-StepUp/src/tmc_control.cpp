@@ -500,7 +500,7 @@ void TMCControl::resetOpenCircuitDetectionAlgorithm()
     m_open_circuit_detected = false;
 }
 
-bool TMCControl::isOpenCircuitDetected()
+bool TMCControl::isOpenCircuitDetected(uint16_t sg_value, uint8_t pwm_scale_sum)
 {
     bool is_open_circuit_detected = false;
 
@@ -510,11 +510,9 @@ bool TMCControl::isOpenCircuitDetected()
     // 2 - The PWM_SCALE_SUM value max'ing out to 255 as it attempts to drive a
     // motor which isn't present
     bool is_driver_enabled = isDriverEnabled();
-    m_sgval.sr = tmc2300_readInt(&tmc2300, m_sgval.address);
-    m_pwm_scale.sr = tmc2300_readInt(&tmc2300, m_pwm_scale.address);
     if (is_driver_enabled &&
-        m_open_circuit_algo_data.sg_val_previous == m_sgval.sr &&
-        m_pwm_scale.pwm_scale_sum == UINT8_MAX)
+        m_open_circuit_algo_data.sg_val_previous == sg_value &&
+        pwm_scale_sum == UINT8_MAX)
     {
         m_open_circuit_algo_data.sg_val_match_count++;
         if (m_open_circuit_algo_data.sg_val_match_count ==
@@ -526,7 +524,7 @@ bool TMCControl::isOpenCircuitDetected()
     else
     {
         m_open_circuit_algo_data.sg_val_match_count = 0;
-        m_open_circuit_algo_data.sg_val_previous = m_sgval.sr;
+        m_open_circuit_algo_data.sg_val_previous = sg_value;
     }
 
     return is_open_circuit_detected;
@@ -549,7 +547,14 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
     /* MOTOR LIVE DIAGNOSTICS */
     /**************************/
 
-    m_open_circuit_detected = isOpenCircuitDetected();
+    // Read key values from the TMC
+    // NOTE: Preference is to keep number of live reads to a minimum as the
+    // 1-wire link is not the fastest
+    m_sgval.sr = tmc2300_readInt(&tmc2300, m_sgval.address);
+    m_pwm_scale.sr = tmc2300_readInt(&tmc2300, m_pwm_scale.address);
+
+    m_open_circuit_detected =
+        isOpenCircuitDetected(m_sgval.sr, m_pwm_scale.pwm_scale_sum);
 
     // Stall detection, over temperature & short-circuit detection are all
     // mapped to the DIAG pin. However, open-circuit flags must be polled and
@@ -562,13 +567,12 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
         // TODO: Remove, just for diagnostics
         if (s_plot_diagnostics)
         {
-            uint32_t sg_value = tmc2300_readInt(&tmc2300, m_sgval.address);
+            uint16_t sg_value = m_sgval.sr;
+            uint8_t motor_effort_percent = ((100 * (510 - sg_value)) / 510);
             IHOLD_IRUN_t irun_ihold;
             irun_ihold.sr = tmc2300_readInt(&tmc2300, TMC2300_IHOLD_IRUN);
-            uint8_t motor_effort_percent = ((100 * (510 - sg_value)) / 510);
             m_ioin.sr = tmc2300_readInt(&tmc2300, m_ioin.address);
             m_drv_status.sr = tmc2300_readInt(&tmc2300, TMC2300_DRVSTATUS);
-            m_ihold_irun.sr = tmc2300_readInt(&tmc2300, TMC2300_IHOLD_IRUN);
             m_tstep.sr = tmc2300_readInt(&tmc2300, TMC2300_TSTEP);
             uint8_t stall = 0;
             uint8_t diag = 0;
@@ -644,18 +648,25 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
                 }
                 else
                 {
-                    // If we are not yet at our target velocity, increment
-                    // our ramp velocity by a set increment value in the
-                    // direction of motor rotation.
-                    if (m_target_velocity < 0)
+                    // Limit max motor velocity to what is achievable by the TMC
+                    // driver based on its internal readout of PWM_SCALE_SUM (a
+                    // proxy metric of motor driver "effort")
+                    if (m_pwm_scale.pwm_scale_sum <=
+                        MAX_MOTOR_EFFORT_AS_PWM_SCALE_SUM_VALUE)
                     {
-                        ramp_velocity -=
-                            VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
-                    }
-                    else
-                    {
-                        ramp_velocity +=
-                            VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
+                        // If we are not yet at our target velocity, increment
+                        // our ramp velocity by a set increment value in the
+                        // direction of motor rotation.
+                        if (m_target_velocity < 0)
+                        {
+                            ramp_velocity -=
+                                VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
+                        }
+                        else
+                        {
+                            ramp_velocity +=
+                                VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
+                        }
                     }
                 }
                 // printf("%d -> %d -> %d\n",
