@@ -417,7 +417,9 @@ struct TMCData
 
 struct TMCOpenCircuitAlgoData
 {
-    uint16_t sg_val_previous, sg_val_match_count;
+    const uint8_t sg_val_match_count_threshold = 5U;
+    uint8_t sg_val_match_count;
+    uint16_t sg_val_previous;
 };
 
 enum MotorMoveState

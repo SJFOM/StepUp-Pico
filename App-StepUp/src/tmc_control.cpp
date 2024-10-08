@@ -464,9 +464,8 @@ TMCDiagnostics TMCControl::readTMCDiagnostics()
         ((m_drv_status.ola || m_drv_status.olb) &&
          (abs(m_vactual.sr) <= VELOCITY_SLOW_SPEED_STEPS_PER_SECOND)))
     {
-        m_open_circuit_detected = false;
-        tmc_diag.open_circuit = true;
         resetOpenCircuitDetectionAlgorithm();
+        tmc_diag.open_circuit = true;
     }
 
     if (m_drv_status.s2ga || m_drv_status.s2gb || m_drv_status.s2vsa ||
@@ -498,6 +497,7 @@ struct TMCData TMCControl::getTMCData()
 void TMCControl::resetOpenCircuitDetectionAlgorithm()
 {
     m_open_circuit_algo_data.sg_val_match_count = 0;
+    m_open_circuit_detected = false;
 }
 
 bool TMCControl::isOpenCircuitDetected()
@@ -509,13 +509,16 @@ bool TMCControl::isOpenCircuitDetected()
     // 1 - An unchanging Stallgaurd value
     // 2 - The PWM_SCALE_SUM value max'ing out to 255 as it attempts to drive a
     // motor which isn't present
+    bool is_driver_enabled = isDriverEnabled();
     m_sgval.sr = tmc2300_readInt(&tmc2300, m_sgval.address);
     m_pwm_scale.sr = tmc2300_readInt(&tmc2300, m_pwm_scale.address);
-    if (m_open_circuit_algo_data.sg_val_previous == m_sgval.sr &&
-        m_pwm_scale.pwm_scale_sum == 255U)
+    if (is_driver_enabled &&
+        m_open_circuit_algo_data.sg_val_previous == m_sgval.sr &&
+        m_pwm_scale.pwm_scale_sum == UINT8_MAX)
     {
         m_open_circuit_algo_data.sg_val_match_count++;
-        if (m_open_circuit_algo_data.sg_val_match_count == 5U)
+        if (m_open_circuit_algo_data.sg_val_match_count ==
+            m_open_circuit_algo_data.sg_val_match_count_threshold)
         {
             is_open_circuit_detected = true;
         }
