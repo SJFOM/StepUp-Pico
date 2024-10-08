@@ -24,6 +24,7 @@ volatile QueueHandle_t queue_notification_task = NULL;
 const TickType_t joystick_job_delay_ms = 10 / portTICK_PERIOD_MS;
 const TickType_t tmc_job_delay_ms = 20 / portTICK_PERIOD_MS;
 const TickType_t buzzer_job_delay_ms = 100 / portTICK_PERIOD_MS;
+const TickType_t led_job_delay_ms = 100 / portTICK_PERIOD_MS;
 
 // FROM 1.0.1 Record references to the tasks
 TaskHandle_t joystick_task_handle = NULL;
@@ -34,7 +35,7 @@ TaskHandle_t led_task_handle = NULL;
 // Task priorities (higher value = higher priority)
 UBaseType_t job_priority_joystick_control = 4U;
 UBaseType_t job_priority_tmc_control = 3U;
-UBaseType_t job_priority_buzzer_control = 2U;
+UBaseType_t job_priority_buzzer_control = 3U;
 UBaseType_t job_priority_led_control = 2U;
 
 // Create class instances of control interfaces
@@ -209,7 +210,7 @@ void setup_led()
 /**
  * @brief Repeatedly flash the Pico's built-in LED.
  */
-void tmc_process_job(void *unused_arg)
+[[noreturn]] void tmc_process_job(void *unused_arg)
 {
     enum ControllerNotification tmc_notify =
         ControllerNotification::NOTIFY_BOOT;
@@ -288,13 +289,19 @@ void tmc_process_job(void *unused_arg)
                 }
                 else
                 {
-                    // TODO: Deal with the issue at hand and report to user
+                    // Most likely case is to emit a WARN signal if we enter
+                    // this state
+                    tmc_notify = ControllerNotification::NOTIFY_WARN;
+
                     if (tmc_data.diag.open_circuit)
                     {
                         Utils::log_debug("Open circuit detected!");
                     }
                     if (tmc_data.diag.overheating)
                     {
+                        // Overheat event warrants a more assertive notification
+                        // to the user
+                        tmc_notify = ControllerNotification::NOTIFY_ERROR;
                         Utils::log_debug("Overheating!");
                         tmc_control.enableFunctionality(false);
                     }
@@ -302,6 +309,8 @@ void tmc_process_job(void *unused_arg)
                     {
                         Utils::log_debug("Short circuit detected!");
                     }
+
+                    xQueueSendToBack(queue_notification_task, &tmc_notify, 0);
                 }
                 break;
             }
@@ -313,7 +322,7 @@ void tmc_process_job(void *unused_arg)
     }
 }
 
-void joystick_process_job(void *unused_arg)
+[[noreturn]] void joystick_process_job(void *unused_arg)
 {
     unsigned long count = 0;
     enum ControllerNotification joystick_notify =
@@ -371,7 +380,7 @@ void joystick_process_job(void *unused_arg)
     }
 }
 
-void buzzer_process_job(void *unused_arg)
+[[noreturn]] void buzzer_process_job(void *unused_arg)
 {
     unsigned long count = 0;
     enum ControllerNotification buzzer_notify =
@@ -382,33 +391,35 @@ void buzzer_process_job(void *unused_arg)
     {
         buzzer_controller_state =
             buzzer_control.processJob(xTaskGetTickCount());
-        if (xQueueReceive(queue_notification_task, &buzzer_notify, 0) == pdPASS)
-        {
-            printf("Buzzer queue read, state: %s\n",
-                   ControllerStateString[buzzer_controller_state]);
+        // printf("Buzzer queue read, state: %s\n",
+        //        ControllerStateString[buzzer_controller_state]);
 
-            switch (buzzer_controller_state)
+        switch (buzzer_controller_state)
+        {
+            case ControllerState::STATE_IDLE:
             {
-                case ControllerState::STATE_IDLE:
-                {
-                    break;
-                }
-                case ControllerState::STATE_READY:
+                break;
+            }
+            case ControllerState::STATE_READY:
+            {
+                if (xQueueReceive(queue_notification_task,
+                                  &buzzer_notify,
+                                  portMAX_DELAY) == pdPASS)
                 {
                     buzzer_control.setBuzzerFunction(buzzer_notify);
-                    break;
                 }
-                case ControllerState::STATE_NEW_DATA:
-                case ControllerState::STATE_BUSY:
-                default:
-                    break;
+                break;
             }
+            case ControllerState::STATE_NEW_DATA:
+            case ControllerState::STATE_BUSY:
+            default:
+                break;
         }
         vTaskDelay(buzzer_job_delay_ms);
     }
 }
 
-void led_process_job(void *unused_arg)
+[[noreturn]] void led_process_job(void *unused_arg)
 {
     unsigned long count = 0;
     enum ControllerNotification led_notify =
@@ -418,29 +429,32 @@ void led_process_job(void *unused_arg)
     while (true)
     {
         led_controller_state = led_control.processJob(xTaskGetTickCount());
-        if (xQueueReceive(queue_notification_task, &led_notify, 0) == pdPASS)
-        {
-            // printf("LED queue read, state: %s\n",
-            //        ControllerStateString[buzzer_controller_state]);
 
-            switch (led_controller_state)
+        // printf("LED queue read, state: %s\n",
+        //        ControllerStateString[led_controller_state]);
+
+        switch (led_controller_state)
+        {
+            case ControllerState::STATE_IDLE:
             {
-                case ControllerState::STATE_IDLE:
-                {
-                    break;
-                }
-                case ControllerState::STATE_READY:
+                break;
+            }
+            case ControllerState::STATE_READY:
+            {
+                if (xQueueReceive(queue_notification_task,
+                                  &led_notify,
+                                  portMAX_DELAY) == pdPASS)
                 {
                     led_control.setLEDFunction(led_notify);
-                    break;
                 }
-                case ControllerState::STATE_NEW_DATA:
-                case ControllerState::STATE_BUSY:
-                default:
-                    break;
+                break;
             }
+            case ControllerState::STATE_NEW_DATA:
+            case ControllerState::STATE_BUSY:
+            default:
+                break;
         }
-        vTaskDelay(buzzer_job_delay_ms);
+        vTaskDelay(led_job_delay_ms);
     }
 }
 
