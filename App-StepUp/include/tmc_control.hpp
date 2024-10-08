@@ -415,6 +415,11 @@ struct TMCData
     TMCDiagnostics diag;
 };
 
+struct TMCOpenCircuitAlgoData
+{
+    uint16_t sg_val_previous, sg_val_match_count;
+};
+
 enum MotorMoveState
 {
     MOTOR_IDLE = 0U,
@@ -465,6 +470,7 @@ protected:
     IHOLD_IRUN_t m_ihold_irun;
     VACTUAL_t m_vactual;
     SGTHRS_t m_sgthrs;
+    SGVALUE_t m_sgval;
     TCOOLTHRS_t m_tcoolthrs;
     COOLCONF_t m_coolconf;
     CHOPCONF_t m_chopconf;
@@ -478,6 +484,8 @@ private:
     bool m_init_success, m_uart_pins_enabled;
     struct TMCData m_tmc;
     int32_t m_target_velocity;
+    TMCOpenCircuitAlgoData m_open_circuit_algo_data;
+    bool m_open_circuit_detected = false;
 
     void enableTMCDiagInterrupt(bool enable_interrupt);
     void enableUartPins(bool enable_pins);
@@ -487,6 +495,8 @@ private:
     void move(int32_t velocity);
     void setCurrent(uint8_t i_run, uint8_t i_hold);
     void updateCurrent(uint8_t i_run_delta);
+    bool isOpenCircuitDetected();
+    void resetOpenCircuitDetectionAlgorithm();
     TMCDiagnostics readTMCDiagnostics();
 };
 
