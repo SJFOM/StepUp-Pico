@@ -77,8 +77,8 @@ void BuzzerControl::setBuzzerFunction(
         case ControllerNotification::NOTIFY_BOOT:
         {
             // FIXME: Undo
-            s_active_melody = &melody_off;
-            // s_active_melody = &melody_sweep_up;
+            // s_active_melody = &melody_off;
+            s_active_melody = &melody_sweep_up;
             break;
         }
         case ControllerNotification::NOTIFY_INFO:

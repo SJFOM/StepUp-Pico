@@ -33,10 +33,10 @@ TaskHandle_t buzzer_task_handle = NULL;
 TaskHandle_t led_task_handle = NULL;
 
 // Task priorities (higher value = higher priority)
-UBaseType_t job_priority_joystick_control = 4U;
-UBaseType_t job_priority_tmc_control = 3U;
+UBaseType_t job_priority_joystick_control = 3U;
+UBaseType_t job_priority_tmc_control = 2U;
 UBaseType_t job_priority_buzzer_control = 2U;
-UBaseType_t job_priority_led_control = 2U;
+UBaseType_t job_priority_led_control = 1U;
 
 // Create class instances of control interfaces
 TMCControl tmc_control;
@@ -231,7 +231,8 @@ void setup_led()
 
         tmc_state = tmc_control.processJob(xTaskGetTickCount());
 
-        printf("TMC state: %s\n", ControllerStateString[tmc_state]);
+        // Utils::log_debug("TMC state: " +
+        //                  (string)ControllerStateString[tmc_state]);
 
         switch (tmc_state)
         {
@@ -263,12 +264,6 @@ void setup_led()
                         // A button press event should instantly stop the
                         // motor
                         tmc_control.resetMovementDynamics();
-
-                        tmc_notify = ControllerNotification::NOTIFY_INFO;
-
-                        xQueueSendToBack(queue_notification_task,
-                                         &tmc_notify,
-                                         0);
                     }
                     else
                     {
@@ -310,8 +305,7 @@ void setup_led()
                         Utils::log_debug("Short circuit detected!");
                     }
 
-                    // xQueueSendToBack(queue_notification_task, &tmc_notify,
-                    // 0);
+                    xQueueSendToBack(queue_notification_task, &tmc_notify, 0);
                 }
                 break;
             }
@@ -363,6 +357,15 @@ void setup_led()
 
                 motor_data.button_press = joystick_data.button_is_pressed;
 
+                if (motor_data.button_press)
+                {
+                    joystick_notify = ControllerNotification::NOTIFY_INFO;
+
+                    xQueueSendToBack(queue_notification_task,
+                                     &joystick_notify,
+                                     0);
+                }
+
                 // To ensure our new data isn't discarded and successfully
                 // makes it into the queue, we should wait a bit longer than
                 // the amount of time required to process one tmc_job_delay_ms
@@ -394,7 +397,6 @@ void setup_led()
             buzzer_control.processJob(xTaskGetTickCount());
         // printf("Buzzer queue read, state: %s\n",
         //        ControllerStateString[buzzer_controller_state]);
-
         switch (buzzer_controller_state)
         {
             case ControllerState::STATE_IDLE:
@@ -498,16 +500,16 @@ int main()
 
     BaseType_t buzzer_status = xTaskCreate(buzzer_process_job,
                                            "BUZZER_JOB_TASK",
-                                           512,
+                                           256,
                                            NULL,
                                            job_priority_buzzer_control,
                                            &buzzer_task_handle);
 
     // Set up the event queue
-    queue_led_task = xQueueCreate(4, sizeof(uint8_t));
+    queue_led_task = xQueueCreate(1, sizeof(uint8_t));
     queue_motor_control_data = xQueueCreate(2, sizeof(struct MotorControlData));
     queue_notification_task =
-        xQueueCreate(2, sizeof(enum ControllerNotification));
+        xQueueCreate(1, sizeof(enum ControllerNotification));
 
     // Start the FreeRTOS scheduler
     // FROM 1.0.1: Only proceed with valid tasks
