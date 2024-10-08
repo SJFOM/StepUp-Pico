@@ -43,6 +43,10 @@
 /********************************/
 /* Voltage monitor pins - START */
 /********************************/
+
+#define VMOTOR_ADC_SCALING_FACTOR (6U)
+#define VBAT_ADC_SCALING_FACTOR   (2U)
+
 #define VBAT_MONITOR_ADC_PIN       (26U)
 #define VBAT_MONITOR_ADC_CHANNEL   (0)
 #define VMOTOR_MONITOR_ADC_PIN     (27U)
