@@ -35,7 +35,7 @@ TaskHandle_t led_task_handle = NULL;
 // Task priorities (higher value = higher priority)
 UBaseType_t job_priority_joystick_control = 4U;
 UBaseType_t job_priority_tmc_control = 3U;
-UBaseType_t job_priority_buzzer_control = 3U;
+UBaseType_t job_priority_buzzer_control = 2U;
 UBaseType_t job_priority_led_control = 2U;
 
 // Create class instances of control interfaces
@@ -231,7 +231,7 @@ void setup_led()
 
         tmc_state = tmc_control.processJob(xTaskGetTickCount());
 
-        // printf("TMC state: %s\n", ControllerStateString[tmc_state]);
+        printf("TMC state: %s\n", ControllerStateString[tmc_state]);
 
         switch (tmc_state)
         {
@@ -310,7 +310,8 @@ void setup_led()
                         Utils::log_debug("Short circuit detected!");
                     }
 
-                    xQueueSendToBack(queue_notification_task, &tmc_notify, 0);
+                    // xQueueSendToBack(queue_notification_task, &tmc_notify,
+                    // 0);
                 }
                 break;
             }
