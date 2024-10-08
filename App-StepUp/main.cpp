@@ -65,6 +65,37 @@ void setup_adc()
 {
     Utils::log_info("ADC setup...");
     adc_init();
+
+    adc_gpio_init(VBAT_MONITOR_ADC_PIN);
+
+    // Give time for the voltage on the boost converter ADC pin to settle
+    sleep_ms(100);
+
+    uint16_t battery_voltage_raw =
+        Utils::getValidADCResultRaw(VBAT_MONITOR_ADC_CHANNEL);
+
+    float battery_voltage_volts =
+        Utils::getValidADCResultVolts(VBAT_MONITOR_ADC_CHANNEL);
+
+    Utils::log_info((string) "Battery voltage - raw value: " +
+                    std::to_string(battery_voltage_raw) + " - voltage: " +
+                    std::to_string(battery_voltage_volts) + " V");
+
+    float battery_voltage_scaled =
+        battery_voltage_volts * VBAT_ADC_SCALING_FACTOR;
+
+    Utils::log_info(
+        (string) "Battery voltage - scaled: " +
+        std::to_string(battery_voltage_volts * VBAT_ADC_SCALING_FACTOR) + " V");
+
+    // VBat voltage should be greater than 3.3V (ADC: 2048) and less than 4.3
+    // volts (ADC: ~2793)
+    // TODO: Encode these values in a header file for a VBAT monitoring task
+    if (!Utils::isValueWithinBounds(battery_voltage_raw, 2048, 2793))
+    {
+        Utils::log_error("Battery voltage out of range... FAIL");
+    }
+
     Utils::log_info("ADC setup... OK");
 }
 
@@ -112,11 +143,6 @@ void setup_boost_converter()
     // 2 - enable boost pin
     // 3 - check boost voltage is within target range
 
-    if (!Utils::isADCInitialised())
-    {
-        adc_init();
-    }
-
     adc_gpio_init(VMOTOR_MONITOR_ADC_PIN);
 
     // Enable boost converter pin control
@@ -139,6 +165,11 @@ void setup_boost_converter()
         (string) "Boost converter - raw value: " +
         std::to_string(boost_converter_voltage_raw) +
         " - voltage: " + std::to_string(boost_converter_voltage_volts) + " V");
+
+    Utils::log_info((string) "Boost converter - output voltage: " +
+                    std::to_string(boost_converter_voltage_volts *
+                                   VMOTOR_ADC_SCALING_FACTOR) +
+                    " V");
 
     // VMotor voltage should sit around 1.65V if Vmotor = 10.6V
     if (!Utils::isValueWithinBounds(boost_converter_voltage_raw,
