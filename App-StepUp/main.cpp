@@ -12,9 +12,6 @@ using std::string;
 using std::stringstream;
 using std::vector;
 
-// FIXME: Remove, just for printing motor diagnostic values
-// #define TMC_MOTOR_DIAGNOSTIC_PRINT_ENABLED
-
 /*
  * GLOBALS
  */
@@ -27,6 +24,7 @@ volatile QueueHandle_t queue_notification_task = NULL;
 const TickType_t joystick_job_delay_ms = 10 / portTICK_PERIOD_MS;
 const TickType_t tmc_job_delay_ms = 20 / portTICK_PERIOD_MS;
 const TickType_t buzzer_job_delay_ms = 100 / portTICK_PERIOD_MS;
+const TickType_t led_job_delay_ms = 100 / portTICK_PERIOD_MS;
 
 // FROM 1.0.1 Record references to the tasks
 TaskHandle_t joystick_task_handle = NULL;
@@ -35,10 +33,10 @@ TaskHandle_t buzzer_task_handle = NULL;
 TaskHandle_t led_task_handle = NULL;
 
 // Task priorities (higher value = higher priority)
-UBaseType_t job_priority_joystick_control = 4U;
-UBaseType_t job_priority_tmc_control = 3U;
+UBaseType_t job_priority_joystick_control = 3U;
+UBaseType_t job_priority_tmc_control = 2U;
 UBaseType_t job_priority_buzzer_control = 2U;
-UBaseType_t job_priority_led_control = 2U;
+UBaseType_t job_priority_led_control = 1U;
 
 // Create class instances of control interfaces
 TMCControl tmc_control;
@@ -212,7 +210,7 @@ void setup_led()
 /**
  * @brief Repeatedly flash the Pico's built-in LED.
  */
-void tmc_process_job(void *unused_arg)
+[[noreturn]] void tmc_process_job(void *unused_arg)
 {
     enum ControllerNotification tmc_notify =
         ControllerNotification::NOTIFY_BOOT;
@@ -233,7 +231,8 @@ void tmc_process_job(void *unused_arg)
 
         tmc_state = tmc_control.processJob(xTaskGetTickCount());
 
-        // printf("TMC state: %s\n", ControllerStateString[tmc_state]);
+        // Utils::log_debug("TMC state: " +
+        //                  (string)ControllerStateString[tmc_state]);
 
         switch (tmc_state)
         {
@@ -265,12 +264,6 @@ void tmc_process_job(void *unused_arg)
                         // A button press event should instantly stop the
                         // motor
                         tmc_control.resetMovementDynamics();
-
-                        tmc_notify = ControllerNotification::NOTIFY_INFO;
-
-                        xQueueSendToBack(queue_notification_task,
-                                         &tmc_notify,
-                                         0);
                     }
                     else
                     {
@@ -291,24 +284,28 @@ void tmc_process_job(void *unused_arg)
                 }
                 else
                 {
-                    // TODO: Deal with the issue at hand and report to user
+                    // Most likely case is to emit a WARN signal if we enter
+                    // this state
+                    tmc_notify = ControllerNotification::NOTIFY_WARN;
+
                     if (tmc_data.diag.open_circuit)
                     {
-                        Utils::log_debug("Open circuit");
+                        Utils::log_debug("Open circuit detected!");
                     }
                     if (tmc_data.diag.overheating)
                     {
-                        Utils::log_debug("Overheating");
+                        // Overheat event warrants a more assertive notification
+                        // to the user
+                        tmc_notify = ControllerNotification::NOTIFY_ERROR;
+                        Utils::log_debug("Overheating!");
                         tmc_control.enableFunctionality(false);
                     }
                     if (tmc_data.diag.short_circuit)
                     {
-                        Utils::log_debug("Short circuit");
+                        Utils::log_debug("Short circuit detected!");
                     }
-                    if (tmc_data.diag.stall_detected)
-                    {
-                        Utils::log_debug("Stall detected");
-                    }
+
+                    xQueueSendToBack(queue_notification_task, &tmc_notify, 0);
                 }
                 break;
             }
@@ -320,7 +317,7 @@ void tmc_process_job(void *unused_arg)
     }
 }
 
-void joystick_process_job(void *unused_arg)
+[[noreturn]] void joystick_process_job(void *unused_arg)
 {
     unsigned long count = 0;
     enum ControllerNotification joystick_notify =
@@ -360,6 +357,15 @@ void joystick_process_job(void *unused_arg)
 
                 motor_data.button_press = joystick_data.button_is_pressed;
 
+                if (motor_data.button_press)
+                {
+                    joystick_notify = ControllerNotification::NOTIFY_INFO;
+
+                    xQueueSendToBack(queue_notification_task,
+                                     &joystick_notify,
+                                     0);
+                }
+
                 // To ensure our new data isn't discarded and successfully
                 // makes it into the queue, we should wait a bit longer than
                 // the amount of time required to process one tmc_job_delay_ms
@@ -378,7 +384,7 @@ void joystick_process_job(void *unused_arg)
     }
 }
 
-void buzzer_process_job(void *unused_arg)
+[[noreturn]] void buzzer_process_job(void *unused_arg)
 {
     unsigned long count = 0;
     enum ControllerNotification buzzer_notify =
@@ -389,33 +395,34 @@ void buzzer_process_job(void *unused_arg)
     {
         buzzer_controller_state =
             buzzer_control.processJob(xTaskGetTickCount());
-        if (xQueueReceive(queue_notification_task, &buzzer_notify, 0) == pdPASS)
+        // printf("Buzzer queue read, state: %s\n",
+        //        ControllerStateString[buzzer_controller_state]);
+        switch (buzzer_controller_state)
         {
-            printf("Buzzer queue read, state: %s\n",
-                   ControllerStateString[buzzer_controller_state]);
-
-            switch (buzzer_controller_state)
+            case ControllerState::STATE_IDLE:
             {
-                case ControllerState::STATE_IDLE:
-                {
-                    break;
-                }
-                case ControllerState::STATE_READY:
+                break;
+            }
+            case ControllerState::STATE_READY:
+            {
+                if (xQueueReceive(queue_notification_task,
+                                  &buzzer_notify,
+                                  portMAX_DELAY) == pdPASS)
                 {
                     buzzer_control.setBuzzerFunction(buzzer_notify);
-                    break;
                 }
-                case ControllerState::STATE_NEW_DATA:
-                case ControllerState::STATE_BUSY:
-                default:
-                    break;
+                break;
             }
+            case ControllerState::STATE_NEW_DATA:
+            case ControllerState::STATE_BUSY:
+            default:
+                break;
         }
         vTaskDelay(buzzer_job_delay_ms);
     }
 }
 
-void led_process_job(void *unused_arg)
+[[noreturn]] void led_process_job(void *unused_arg)
 {
     unsigned long count = 0;
     enum ControllerNotification led_notify =
@@ -425,29 +432,32 @@ void led_process_job(void *unused_arg)
     while (true)
     {
         led_controller_state = led_control.processJob(xTaskGetTickCount());
-        if (xQueueReceive(queue_notification_task, &led_notify, 0) == pdPASS)
-        {
-            // printf("LED queue read, state: %s\n",
-            //        ControllerStateString[buzzer_controller_state]);
 
-            switch (led_controller_state)
+        // printf("LED queue read, state: %s\n",
+        //        ControllerStateString[led_controller_state]);
+
+        switch (led_controller_state)
+        {
+            case ControllerState::STATE_IDLE:
             {
-                case ControllerState::STATE_IDLE:
-                {
-                    break;
-                }
-                case ControllerState::STATE_READY:
+                break;
+            }
+            case ControllerState::STATE_READY:
+            {
+                if (xQueueReceive(queue_notification_task,
+                                  &led_notify,
+                                  portMAX_DELAY) == pdPASS)
                 {
                     led_control.setLEDFunction(led_notify);
-                    break;
                 }
-                case ControllerState::STATE_NEW_DATA:
-                case ControllerState::STATE_BUSY:
-                default:
-                    break;
+                break;
             }
+            case ControllerState::STATE_NEW_DATA:
+            case ControllerState::STATE_BUSY:
+            default:
+                break;
         }
-        vTaskDelay(buzzer_job_delay_ms);
+        vTaskDelay(led_job_delay_ms);
     }
 }
 
@@ -490,16 +500,16 @@ int main()
 
     BaseType_t buzzer_status = xTaskCreate(buzzer_process_job,
                                            "BUZZER_JOB_TASK",
-                                           512,
+                                           256,
                                            NULL,
                                            job_priority_buzzer_control,
                                            &buzzer_task_handle);
 
     // Set up the event queue
-    queue_led_task = xQueueCreate(4, sizeof(uint8_t));
+    queue_led_task = xQueueCreate(1, sizeof(uint8_t));
     queue_motor_control_data = xQueueCreate(2, sizeof(struct MotorControlData));
     queue_notification_task =
-        xQueueCreate(2, sizeof(enum ControllerNotification));
+        xQueueCreate(1, sizeof(enum ControllerNotification));
 
     // Start the FreeRTOS scheduler
     // FROM 1.0.1: Only proceed with valid tasks
