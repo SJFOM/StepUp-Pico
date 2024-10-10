@@ -44,6 +44,9 @@ JoystickControl joystick_control;
 BuzzerControl buzzer_control;
 LEDControl led_control;
 
+// FIXME: Remove this prototype function
+bool flash_test();
+
 /*
  * SETUP FUNCTIONS
  */
@@ -53,12 +56,81 @@ LEDControl led_control;
  */
 void setup()
 {
+    assert(flash_test() == true);
     setup_adc();
     setup_led();
     setup_tmc2300();
     setup_boost_converter();
     setup_joystick();
     setup_buzzer();
+}
+
+void print_buf(const uint8_t *buf, size_t len)
+{
+    for (size_t i = 0; i < len; ++i)
+    {
+        printf("%02x", buf[i]);
+        if (i % 16 == 15)
+            printf("\n");
+        else
+            printf(" ");
+    }
+}
+
+bool flash_test()
+{
+    // 128Mbit / 8 -> 16MByte
+    // NOTE: Artificially capping this to 2MB here as there are several .h
+    // definitions which say the flash is actually 2MB in size (as per the Pico
+    // dev board). This would require changes to openocd also.
+    const uint32_t flash_chip_size_mb =
+        2 * 1024 * 1024;  // 2048Kb = 2MB = 0x200000
+    // const uint32_t flash_chip_size_mb = 256 * 1024;  // 256kb = 0x40000
+    const uint32_t flash_target_offset =
+        (flash_chip_size_mb - FLASH_SECTOR_SIZE);
+
+    const uint8_t *flash_target_contents =
+        (const uint8_t *)(XIP_BASE + flash_target_offset);
+
+    uint8_t random_data[FLASH_PAGE_SIZE];
+    for (uint i = 0; i < FLASH_PAGE_SIZE; ++i)
+    {
+        random_data[i] = (rand() >> 16);
+    }
+
+    printf("Generated random data:\n");
+    print_buf(random_data, FLASH_PAGE_SIZE);
+
+    // N.B.: Erase is REQUIRED before writing to flash - learned this the hard
+    // way!!! Note that a whole number of sectors must be erased at a time.
+    printf("\nErasing target region...\n");
+    flash_range_erase(flash_target_offset, FLASH_SECTOR_SIZE);
+    printf("Done. Read back target region:\n");
+    print_buf(flash_target_contents, FLASH_PAGE_SIZE);
+
+    printf("\nProgramming target region...\n");
+    flash_range_program(flash_target_offset, random_data, FLASH_PAGE_SIZE);
+    printf("Done. Read back target region:\n");
+    print_buf(flash_target_contents, FLASH_PAGE_SIZE);
+
+    bool mismatch = false;
+    for (uint i = 0; i < FLASH_PAGE_SIZE; ++i)
+    {
+        if (random_data[i] != flash_target_contents[i])
+        {
+            mismatch = true;
+        }
+    }
+    if (mismatch)
+    {
+        printf("Programming failed!\n");
+    }
+    else
+    {
+        printf("Programming successful!\n");
+    }
+
+    return !mismatch;
 }
 
 void setup_adc()
