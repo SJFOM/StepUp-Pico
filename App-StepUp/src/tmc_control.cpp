@@ -16,7 +16,7 @@ static ConfigurationTypeDef tmc2300_config;
 
 // Static non-class-member debug variables
 // FIXME: Remove this, just for testing
-static bool s_plot_diagnostics = true;
+static bool s_plot_diagnostics = false;
 static uint16_t s_plot_diagnostics_counter = 0;
 
 // Static non-class-member callback variables
@@ -517,12 +517,6 @@ bool TMCControl::isOpenCircuitDetected()
     bool is_driver_enabled = isDriverEnabled();
     m_sgval.sr = tmc2300_readInt(&tmc2300, m_sgval.address);
     m_pwm_scale.sr = tmc2300_readInt(&tmc2300, m_pwm_scale.address);
-    printf(">sg_live: %d\n", m_sgval.sr);
-    printf(">sg_live_previous: %d\n", m_open_circuit_algo_data.sg_val_previous);
-    printf(">pwm_scale_sum: %d\n", (uint8_t)(m_pwm_scale.pwm_scale_sum));
-    printf(">sg_match: %d\n",
-           (uint8_t)((m_open_circuit_algo_data.sg_val_previous == m_sgval.sr) *
-                     UINT8_MAX));
     if (is_driver_enabled &&
         (m_open_circuit_algo_data.sg_val_previous == m_sgval.sr) &&
         (m_pwm_scale.pwm_scale_sum == UINT8_MAX))
@@ -602,8 +596,12 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
             // }
             // printf(">sg_live: %d\n", sg_value);
             printf(">vel:%d\n", m_vactual.sr);
-            // printf(">pwm_scale_sum: %d\n",
-            //        (uint8_t)(m_pwm_scale.pwm_scale_sum));
+            printf(">sg_match: %d\n",
+                   (uint8_t)((m_open_circuit_algo_data.sg_val_previous ==
+                              m_sgval.sr) *
+                             UINT8_MAX));
+            printf(">pwm_scale_sum: %d\n",
+                   (uint8_t)(m_pwm_scale.pwm_scale_sum));
             // printf(">diag: %d\n", diag);
             // printf(">diag_pin: %d\n", gpio_get(TMC_PIN_DIAG));
             // printf(">stall: %d\n", stall);
