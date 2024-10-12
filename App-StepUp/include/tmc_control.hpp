@@ -54,7 +54,7 @@ extern "C"
 
 #define VELOCITY_MAX_STEPS_PER_SECOND (100000U)
 
-// Run and hold current values (0..31U) scaled to 1.4A RMS
+// Run and hold current values (0..31U) scaled to 1.2A RMS
 #define DEFAULT_IRUN_VALUE  (20U)
 #define DEFAULT_IHOLD_VALUE (0U)
 
@@ -417,7 +417,7 @@ struct TMCData
 
 struct TMCOpenCircuitAlgoData
 {
-    const uint8_t sg_val_match_count_threshold = 5U;
+    const uint8_t sg_val_match_count_threshold = 10U;
     uint8_t sg_val_match_count;
     uint16_t sg_val_previous;
 };
