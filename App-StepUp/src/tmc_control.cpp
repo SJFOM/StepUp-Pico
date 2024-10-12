@@ -16,7 +16,8 @@ static ConfigurationTypeDef tmc2300_config;
 
 // Static non-class-member debug variables
 // FIXME: Remove this, just for testing
-static bool s_plot_diagnostics = false;
+static bool s_plot_diagnostics = true;
+static uint16_t s_plot_diagnostics_counter = 0;
 
 // Static non-class-member callback variables
 static volatile bool s_is_tmc_comms_callback_complete = false;
@@ -116,6 +117,9 @@ bool TMCControl::init()
 
         setStandby(false);
         enableDriver(false);
+
+        // Reset open circuit detection algorithm values to default
+        resetOpenCircuitDetectionAlgorithm();
 
         m_tmc.control_state = ControllerState::STATE_BUSY;
 
@@ -497,6 +501,7 @@ struct TMCData TMCControl::getTMCData()
 void TMCControl::resetOpenCircuitDetectionAlgorithm()
 {
     m_open_circuit_algo_data.sg_val_match_count = 0;
+    m_open_circuit_algo_data.sg_val_previous = 0;
     m_open_circuit_detected = false;
 }
 
@@ -512,11 +517,18 @@ bool TMCControl::isOpenCircuitDetected()
     bool is_driver_enabled = isDriverEnabled();
     m_sgval.sr = tmc2300_readInt(&tmc2300, m_sgval.address);
     m_pwm_scale.sr = tmc2300_readInt(&tmc2300, m_pwm_scale.address);
+    printf(">sg_live: %d\n", m_sgval.sr);
+    printf(">sg_live_previous: %d\n", m_open_circuit_algo_data.sg_val_previous);
+    printf(">pwm_scale_sum: %d\n", (uint8_t)(m_pwm_scale.pwm_scale_sum));
+    printf(">sg_match: %d\n",
+           (uint8_t)((m_open_circuit_algo_data.sg_val_previous == m_sgval.sr) *
+                     UINT8_MAX));
     if (is_driver_enabled &&
-        m_open_circuit_algo_data.sg_val_previous == m_sgval.sr &&
-        m_pwm_scale.pwm_scale_sum == UINT8_MAX)
+        (m_open_circuit_algo_data.sg_val_previous == m_sgval.sr) &&
+        (m_pwm_scale.pwm_scale_sum == UINT8_MAX))
     {
         m_open_circuit_algo_data.sg_val_match_count++;
+        m_open_circuit_algo_data.sg_val_previous = m_sgval.sr;
         if (m_open_circuit_algo_data.sg_val_match_count ==
             m_open_circuit_algo_data.sg_val_match_count_threshold)
         {
@@ -554,7 +566,8 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
     // Stall detection, over temperature & short-circuit detection are all
     // mapped to the DIAG pin. However, open-circuit flags must be polled and
     // are not mapped to the DIAG pin flag.
-    if (s_diag_event || m_open_circuit_detected)
+    if (s_diag_event || m_open_circuit_detected ||
+        (s_plot_diagnostics && (s_plot_diagnostics_counter++ > 10)))
     {
         s_diag_event = false;
         m_tmc.control_state = ControllerState::STATE_NEW_DATA;
@@ -562,6 +575,7 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
         // TODO: Remove, just for diagnostics
         if (s_plot_diagnostics)
         {
+            s_plot_diagnostics_counter = 0;
             uint32_t sg_value = tmc2300_readInt(&tmc2300, m_sgval.address);
             IHOLD_IRUN_t irun_ihold;
             irun_ihold.sr = tmc2300_readInt(&tmc2300, TMC2300_IHOLD_IRUN);
@@ -587,8 +601,10 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
             // motor_effort_percent);
             // }
             // printf(">sg_live: %d\n", sg_value);
-            // printf(">vel:%d\n", m_vactual.sr);
-            printf(">diag: %d\n", diag);
+            printf(">vel:%d\n", m_vactual.sr);
+            // printf(">pwm_scale_sum: %d\n",
+            //        (uint8_t)(m_pwm_scale.pwm_scale_sum));
+            // printf(">diag: %d\n", diag);
             // printf(">diag_pin: %d\n", gpio_get(TMC_PIN_DIAG));
             // printf(">stall: %d\n", stall);
             // printf(">thresh: %d\n", m_sgthrs.sr);
@@ -603,18 +619,18 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
             //    (uint8_t)(m_drv_status.s2ga | m_drv_status.s2gb));
             // printf(">s2vsa_b: %d\n", m_drv_status.s2vsa |
             // m_drv_status.s2vsb);
-            printf(">s2ga: %d\n", (uint8_t)(m_drv_status.s2ga));
-            printf(">s2gb: %d\n", (uint8_t)(m_drv_status.s2gb));
-            printf(">s2vsa: %d\n", m_drv_status.s2vsa);
-            printf(">s2vsb: %d\n", m_drv_status.s2vsb);
-            printf(">ola: %d\n", (uint8_t)(m_drv_status.ola));
-            printf(">olb: %d\n", (uint8_t)(m_drv_status.olb));
-            printf(">ot_pw: %d\n", m_drv_status.ot | m_drv_status.otpw);
-            // printf(">pwm_scale_sum: %d\n",
-            // (uint8_t)(m_pwm_scale.pwm_scale_sum)); printf(">drv_status:
-            // %d\n", m_drv_status.sr); printf(">irun: %d\n",
-            // m_ihold_irun.irun); printf(">cs_actual: %d\n",
-            // m_drv_status.cs_actual); printf(">tstep: %lu\n", m_tstep.sr);
+            // printf(">s2ga: %d\n", (uint8_t)(m_drv_status.s2ga));
+            // printf(">s2gb: %d\n", (uint8_t)(m_drv_status.s2gb));
+            // printf(">s2vsa: %d\n", m_drv_status.s2vsa);
+            // printf(">s2vsb: %d\n", m_drv_status.s2vsb);
+            // printf(">ola: %d\n", (uint8_t)(m_drv_status.ola));
+            // printf(">olb: %d\n", (uint8_t)(m_drv_status.olb));
+            // printf(">ot_pw: %d\n", m_drv_status.ot | m_drv_status.otpw);
+            //    printf(">drv_status:
+            // %d\n", m_drv_status.sr);
+            // printf(">irun: %d\n", m_ihold_irun.irun);
+            // printf(">cs_actual: %d\n", m_drv_status.cs_actual);
+            // printf(">tstep: %lu\n", m_tstep.sr);
         }
         process_count = 0;
     }
