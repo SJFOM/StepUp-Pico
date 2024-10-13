@@ -53,6 +53,23 @@ LEDControl led_control;
  */
 void setup()
 {
+    // Enable USB detect pin
+    gpio_set_input_enabled(VUSB_MONITOR_PIN, true);
+
+    while (1)
+    {
+        if (gpio_get(VUSB_MONITOR_PIN))
+        {
+            printf("USB plugged in!!!\n");
+        }
+        else
+        {
+            printf("NO USB :(\n");
+        }
+
+        sleep_ms(1000);
+    }
+
     setup_adc();
     setup_led();
     setup_tmc2300();
