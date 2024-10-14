@@ -32,6 +32,8 @@
 #include <string>
 #include <vector>
 // Pico SDK
+#include <hardware/flash.h>
+#include <hardware/sync.h>
 #include "pico/binary_info.h"
 #include "pico/stdlib.h"  // Includes `hardware_gpio.h`
 // App

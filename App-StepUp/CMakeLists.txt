@@ -31,6 +31,8 @@ target_link_libraries(${APP_NAME} LINK_PUBLIC
     pico_stdlib
     hardware_adc
     hardware_pwm
+    hardware_flash
+    hardware_sync
     FreeRTOS)
 
 # Enable/disable STDIO via USB and UART
