@@ -197,7 +197,7 @@ void setup_joystick()
     {
         // This will be true if no joystick present OR the josytick is not
         // centered
-        Utils::log_error("Joystick setup... FAIL");
+        // Utils::log_error("Joystick setup... FAIL");
     }
     Utils::log_info("Joystick setup... OK");
 }
