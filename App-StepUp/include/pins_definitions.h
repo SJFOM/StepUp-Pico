@@ -1,18 +1,28 @@
 #ifndef PIN_DEFINITIONS_H_
 #define PIN_DEFINITIONS_H_
 
-/***************************/
+/******************************/
+/* Power control pins - START */
+/******************************/
+#define MCU_PWR_CTRL_PIN (7U)
+#define MCU_PWR_BTN_PIN  (8U)
+
+/****************************/
+/* Power control pins - END */
+/****************************/
+
+/***********************/
 /* Status pins - START */
-/***************************/
+/***********************/
 #define LED_PIN_RED   (2U)  // PWM1_A
 #define LED_PIN_GREEN (3U)  // PWM1_B
 #define LED_PIN_BLUE  (5U)  // PWM2_B
 
 #define BUZZER_PIN (16U)  // PWM0_A
 
-/*************************/
+/*********************/
 /* Status pins - END */
-/*************************/
+/*********************/
 
 /************************/
 /* TMC2300 pins - START */
@@ -79,6 +89,8 @@
 /**************************/
 /* Spare I/O pins - START */
 /**************************/
+// FIXME: Now we have 2 versions of the board which aren't 100% pin compatible -
+// consider ways of gating which pins are in access depending on version in use
 #define GPIO_PIN_8  (8U)
 #define GPIO_PIN_9  (9U)
 #define GPIO_PIN_10 (10U)
