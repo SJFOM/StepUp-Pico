@@ -11,6 +11,9 @@ set(BUILD_NUMBER "0")
 set(APP_NAME "StepUp")
 set(APP_VERSION_NUMBER "0.0.1")
 
+# Set board revision
+set(PCB_REVISION 2)
+
 # Specify the app(s) source code
 set(APP_SRC_DIRECTORY "${CMAKE_SOURCE_DIR}/App-StepUp")
 
