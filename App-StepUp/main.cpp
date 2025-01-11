@@ -53,7 +53,9 @@ LEDControl led_control;
  */
 void setup()
 {
-    setup_adc();
+    setup_power_control();
+    setup_vbat_monitoring();
+    setup_vusb_monitoring();
     setup_led();
     setup_tmc2300();
     setup_boost_converter();
@@ -61,9 +63,23 @@ void setup()
     setup_buzzer();
 }
 
-void setup_adc()
+void setup_power_control()
 {
-    Utils::log_info("ADC setup...");
+    // Enable power control control pins
+    gpio_init(MCU_PWR_CTRL_PIN);
+    gpio_set_dir(MCU_PWR_CTRL_PIN, GPIO_OUT);
+
+    gpio_init(MCU_PWR_BTN_PIN);
+    gpio_set_dir(MCU_PWR_BTN_PIN, GPIO_IN);
+    gpio_disable_pulls(MCU_PWR_BTN_PIN);
+
+    // Assert power control pin HIGH to keep circuit powered
+    gpio_put(MCU_PWR_CTRL_PIN, 1);
+}
+
+void setup_vbat_monitoring()
+{
+    Utils::log_info("VBat monitoring setup...");
     adc_init();
 
     adc_gpio_init(VBAT_MONITOR_ADC_PIN);
@@ -96,7 +112,24 @@ void setup_adc()
         Utils::log_error("Battery voltage out of range... FAIL");
     }
 
-    Utils::log_info("ADC setup... OK");
+    Utils::log_info("VBat monitoring... OK");
+}
+
+void setup_vusb_monitoring()
+{
+    Utils::log_info("VUSB monitoring...");
+
+    // Enable boost converter pin control
+    gpio_init(VUSB_MONITOR_PIN);
+    gpio_set_dir(VUSB_MONITOR_PIN, GPIO_IN);
+    gpio_disable_pulls(VUSB_MONITOR_PIN);
+
+    if (gpio_get(VUSB_MONITOR_PIN))
+    {
+        Utils::log_info("USB cable detected");
+    }
+
+    Utils::log_info("VUSB monitoring... OK");
 }
 
 /**
@@ -138,10 +171,6 @@ void setup_tmc2300()
 void setup_boost_converter()
 {
     Utils::log_info("Boost converter setup...");
-    // TODO:
-    // 1 - enable ADC and pins
-    // 2 - enable boost pin
-    // 3 - check boost voltage is within target range
 
     adc_gpio_init(VMOTOR_MONITOR_ADC_PIN);
 
