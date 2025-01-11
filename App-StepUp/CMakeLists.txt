@@ -12,6 +12,7 @@ endif()
 # Make project data accessible to compiler
 add_compile_definitions(APP_NAME="${APP_NAME}")
 add_compile_definitions(APP_VERSION="${APP_VERSION_NUMBER}")
+add_compile_definitions(PCB_REVISION=${PCB_REVISION})
 add_compile_definitions(BUILD_NUM=${BUILD_NUMBER})
 
 # Include app source code file(s)

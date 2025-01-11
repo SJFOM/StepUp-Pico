@@ -73,10 +73,19 @@
 /*************************/
 
 // Joystick ADC pins
-#define JOYSTICK_ADC_PIN_X            (29U)
-#define JOYSTICK_ADC_CHANNEL_X        (3U)
-#define JOYSTICK_ADC_PIN_Y            (28U)
-#define JOYSTICK_ADC_CHANNEL_Y        (2U)
+#if PCB_REVISION == 1U
+#    define JOYSTICK_ADC_PIN_X     (29U)
+#    define JOYSTICK_ADC_CHANNEL_X (3U)
+#    define JOYSTICK_ADC_PIN_Y     (28U)
+#    define JOYSTICK_ADC_CHANNEL_Y (2U)
+#elif PCB_REVISION == 2U
+#    define JOYSTICK_ADC_PIN_X     (28U)
+#    define JOYSTICK_ADC_CHANNEL_X (2U)
+#    define JOYSTICK_ADC_PIN_Y     (29U)
+#    define JOYSTICK_ADC_CHANNEL_Y (3U)
+#else
+#    error "No valid PCB version found!!"
+#endif
 #define JOYSTICK_ADC_ROUND_ROBIN_MASK (0x03)
 
 // Joystick Button pin
@@ -89,9 +98,14 @@
 /**************************/
 /* Spare I/O pins - START */
 /**************************/
-// FIXME: Now we have 2 versions of the board which aren't 100% pin compatible -
-// consider ways of gating which pins are in access depending on version in use
-#define GPIO_PIN_8  (8U)
+#if PCB_REVISION == 1U
+#    define GPIO_PIN_8 (8U)
+#elif PCB_REVISION == 2U
+#    define GPIO_PIN_2 (2U)
+#else
+#    error "No valid PCB version found!!"
+#endif
+
 #define GPIO_PIN_9  (9U)
 #define GPIO_PIN_10 (10U)
 #define GPIO_PIN_11 (11U)
