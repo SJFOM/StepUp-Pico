@@ -14,9 +14,18 @@
 /***********************/
 /* Status pins - START */
 /***********************/
-#define LED_PIN_RED   (2U)  // PWM1_A
-#define LED_PIN_GREEN (3U)  // PWM1_B
-#define LED_PIN_BLUE  (5U)  // PWM2_B
+
+#if PCB_REVISION == 1U
+#    define LED_PIN_RED   (2U)  // PWM1_A
+#    define LED_PIN_GREEN (3U)  // PWM1_B
+#    define LED_PIN_BLUE  (5U)  // PWM2_B
+#elif PCB_REVISION == 2U
+#    define LED_PIN_RED   (3U)  // PWM1_B
+#    define LED_PIN_GREEN (6U)  // Unsure if assigned to any PWM...
+#    define LED_PIN_BLUE  (5U)  // PWM2_B
+#else
+#    error "No valid PCB version found!!"
+#endif
 
 #define BUZZER_PIN (16U)  // PWM0_A
 

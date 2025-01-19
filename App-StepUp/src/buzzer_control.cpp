@@ -15,11 +15,14 @@
 static volatile uint8_t s_note_index_in_melody = 0;
 static struct Melody *s_active_melody = nullptr;
 
+static uint s_buzzer_pin;
+
 int64_t melodyTimerCallback(alarm_id_t id, void *user_data);
 void playNextNoteInMelody();
 
-BuzzerControl::BuzzerControl()
+BuzzerControl::BuzzerControl(uint buzzer_pin)
 {
+    s_buzzer_pin = buzzer_pin;
     m_control_state = ControllerState::STATE_IDLE;
     m_init_success = false;
 }
@@ -31,19 +34,8 @@ BuzzerControl::~BuzzerControl()
 
 bool BuzzerControl::init()
 {
-    // Configure the buzzer pin and direction
-    gpio_set_function(BUZZER_PIN, GPIO_FUNC_PWM);
-
-    // Find out which PWM slice is connected to BUZZER_PIN
-    m_pwm_slice_num = pwm_gpio_to_slice_num(BUZZER_PIN);
-
-    // Get some sensible defaults for the slice configuration. By default, the
-    // counter is allowed to wrap over its maximum range (0 to 2**16-1)
-    pwm_config config = pwm_get_default_config();
-
-    // Set divider, reduces counter clock to sysclock/this value (sysclock =
-    // 125MHz default), 125MHz / 15625 = 8kHz
-    pwm_config_set_clkdiv(&config, 15625.f);  // should give 8kHz div clk
+    m_pwm_slice_num =
+        Utils::configurePWMPin(s_buzzer_pin, BUZZER_BASE_PWM_FREQ_IN_HZ);
 
     // TODO: Ensure buzzer resets output DC signal to 0V once complete as a
     // permanent DC bias on the buzzer can damage the piezo hardware. If this
@@ -65,52 +57,50 @@ void BuzzerControl::deinit()
 void BuzzerControl::setBuzzerFunction(
     enum ControllerNotification controller_notification)
 {
-    // TODO: Potentially need to guard against setting a new buzzer melody here
-    // if one is already playing. Although, we should be able to guard against
-    // this with proper ControllerState management from within the main.cpp
-    // thread loop
-
-    m_control_state = ControllerState::STATE_BUSY;
-
-    switch (controller_notification)
+    if (m_control_state == ControllerState::STATE_READY)
     {
-        case ControllerNotification::NOTIFY_BOOT:
-        {
-            // FIXME: Undo
-            // s_active_melody = &melody_off;
-            s_active_melody = &melody_sweep_up;
-            break;
-        }
-        case ControllerNotification::NOTIFY_INFO:
-        {
-            s_active_melody = &melody_short_double_beep;
-            break;
-        }
-        case ControllerNotification::NOTIFY_WARN:
-        {
-            s_active_melody = &melody_short_quadruple_beep;
-            break;
-        }
-        case ControllerNotification::NOTIFY_ERROR:
-        {
-            s_active_melody = &melody_long_quadruple_beep;
-            break;
-        }
-        default:
-        {
-            s_active_melody = nullptr;
-            disableBuzzer();
-            m_control_state = ControllerState::STATE_READY;
-            break;
-        }
-    }
+        m_control_state = ControllerState::STATE_BUSY;
 
-    if (m_control_state == ControllerState::STATE_BUSY)
-    {
-        // Enable the buzzer
-        pwm_set_enabled(m_pwm_slice_num, true);
+        switch (controller_notification)
+        {
+            case ControllerNotification::NOTIFY_BOOT:
+            {
+                // FIXME: Undo
+                // s_active_melody = &melody_off;
+                s_active_melody = &melody_sweep_up;
+                break;
+            }
+            case ControllerNotification::NOTIFY_INFO:
+            {
+                s_active_melody = &melody_short_double_beep;
+                break;
+            }
+            case ControllerNotification::NOTIFY_WARN:
+            {
+                s_active_melody = &melody_short_quadruple_beep;
+                break;
+            }
+            case ControllerNotification::NOTIFY_ERROR:
+            {
+                s_active_melody = &melody_long_quadruple_beep;
+                break;
+            }
+            default:
+            {
+                s_active_melody = nullptr;
+                disableBuzzer();
+                m_control_state = ControllerState::STATE_READY;
+                break;
+            }
+        }
 
-        playNextNoteInMelody();
+        if (m_control_state == ControllerState::STATE_BUSY)
+        {
+            // Enable the buzzer
+            pwm_set_enabled(m_pwm_slice_num, true);
+
+            playNextNoteInMelody();
+        }
     }
 }
 
@@ -126,6 +116,7 @@ enum ControllerState BuzzerControl::processJob(uint32_t tick_count)
     {
         disableBuzzer();
         s_note_index_in_melody = 0;
+        s_active_melody = nullptr;
         // Melody was playing but has now completed, update state to represent
         // this
         m_control_state = ControllerState::STATE_READY;
@@ -139,7 +130,7 @@ void playNextNoteInMelody()
         s_active_melody != nullptr)
     {
         // Update with new tone
-        pwm_set_gpio_level(BUZZER_PIN,
+        pwm_set_gpio_level(s_buzzer_pin,
                            s_active_melody->note[s_note_index_in_melody]);
 
         // Schedule next timeout/note play duration

@@ -21,8 +21,9 @@
 #include <vector>
 // Pico SDK
 #include "hardware/adc.h"
+#include "hardware/pwm.h"
 #include "pico/binary_info.h"
-#include "pico/stdlib.h"
+#include "pico/stdlib.h"  // Includes `hardware_gpio.h`
 
 using std::string;
 using std::vector;
@@ -83,6 +84,15 @@ namespace Utils
     /*************************
      * NUMBER UTILS - FINISH *
      *************************/
+
+    /*********************
+     * PWM UTILS - BEGIN *
+     *********************/
+    uint16_t configurePWMPin(uint pwm_pin, uint16_t pwm_freq_in_hz);
+
+    /**********************
+     * PWM UTILS - FINISH *
+     **********************/
 
 }  // namespace Utils
 

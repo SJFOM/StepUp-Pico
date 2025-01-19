@@ -26,7 +26,8 @@
 // Control libraries
 #include "../../../Interfaces/ControlInterface.hpp"
 
-#define MELODY_MAX_NOTE_COUNT (10U)
+#define MELODY_MAX_NOTE_COUNT      (10U)
+#define BUZZER_BASE_PWM_FREQ_IN_HZ (8000U)
 
 enum NoteDuration
 {
@@ -140,7 +141,7 @@ static struct Melody melody_long_quadruple_beep = {
 class BuzzerControl : public ControlInterface
 {
 public:
-    BuzzerControl();
+    BuzzerControl(uint buzzer_pin);
     ~BuzzerControl();
     bool init();
     void deinit();
