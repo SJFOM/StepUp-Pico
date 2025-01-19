@@ -9,6 +9,8 @@ else()
     message(STATUS "App-side debugging disabled for ${APP_NAME}")
 endif()
 
+message(STATUS "Compiling for PCB Revision ${PCB_REVISION}")
+
 # Make project data accessible to compiler
 add_compile_definitions(APP_NAME="${APP_NAME}")
 add_compile_definitions(APP_VERSION="${APP_VERSION_NUMBER}")

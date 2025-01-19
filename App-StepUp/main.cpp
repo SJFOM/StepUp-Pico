@@ -18,7 +18,8 @@ using std::vector;
 // This is the inter-task queue
 volatile QueueHandle_t queue_led_task = NULL;
 volatile QueueHandle_t queue_motor_control_data = NULL;
-volatile QueueHandle_t queue_notification_task = NULL;
+volatile QueueHandle_t queue_led_notification_task = NULL;
+volatile QueueHandle_t queue_buzzer_notification_task = NULL;
 
 // Set loop delay times (in ms)
 const TickType_t joystick_job_delay_ms = 10 / portTICK_PERIOD_MS;
@@ -35,14 +36,14 @@ TaskHandle_t led_task_handle = NULL;
 // Task priorities (higher value = higher priority)
 UBaseType_t job_priority_joystick_control = 3U;
 UBaseType_t job_priority_tmc_control = 2U;
-UBaseType_t job_priority_buzzer_control = 2U;
+UBaseType_t job_priority_buzzer_control = 1U;
 UBaseType_t job_priority_led_control = 1U;
 
 // Create class instances of control interfaces
 TMCControl tmc_control;
 JoystickControl joystick_control;
-BuzzerControl buzzer_control;
-LEDControl led_control;
+BuzzerControl buzzer_control(BUZZER_PIN);
+LEDControl led_control(LED_PIN_RED, LED_PIN_GREEN, LED_PIN_BLUE);
 
 /*
  * SETUP FUNCTIONS
@@ -71,7 +72,7 @@ void setup_power_control()
 
     gpio_init(MCU_PWR_BTN_PIN);
     gpio_set_dir(MCU_PWR_BTN_PIN, GPIO_IN);
-    gpio_disable_pulls(MCU_PWR_BTN_PIN);
+    gpio_pull_up(MCU_PWR_BTN_PIN);
 
     // Assert power control pin HIGH to keep circuit powered
     gpio_put(MCU_PWR_CTRL_PIN, 1);
@@ -107,10 +108,10 @@ void setup_vbat_monitoring()
     // VBat voltage should be greater than 3.3V (ADC: 2048) and less than 4.3
     // volts (ADC: ~2793)
     // TODO: Encode these values in a header file for a VBAT monitoring task
-    if (!Utils::isValueWithinBounds(battery_voltage_raw, 2048, 2793))
-    {
-        Utils::log_error("Battery voltage out of range... FAIL");
-    }
+    // if (!Utils::isValueWithinBounds(battery_voltage_raw, 2048, 2793))
+    // {
+    //     Utils::log_error("Battery voltage out of range... FAIL");
+    // }
 
     Utils::log_info("VBat monitoring... OK");
 }
@@ -268,7 +269,7 @@ void setup_led()
  */
 
 /**
- * @brief Repeatedly flash the Pico's built-in LED.
+ * @brief Process tasks on the TMC2300 motor controller IC
  */
 [[noreturn]] void tmc_process_job(void *unused_arg)
 {
@@ -276,10 +277,6 @@ void setup_led()
         ControllerNotification::NOTIFY_BOOT;
     ControllerState tmc_state = ControllerState::STATE_IDLE;
     TMCData tmc_data = {};
-
-    // Configure the Pico's on-board LED
-    gpio_init(LED_PIN_RED);
-    gpio_set_dir(LED_PIN_RED, GPIO_OUT);
 
     unsigned long count = 0;
 
@@ -365,7 +362,12 @@ void setup_led()
                         Utils::log_debug("Short circuit detected!");
                     }
 
-                    xQueueSendToBack(queue_notification_task, &tmc_notify, 0);
+                    xQueueSendToBack(queue_led_notification_task,
+                                     &tmc_notify,
+                                     0);
+                    xQueueSendToBack(queue_buzzer_notification_task,
+                                     &tmc_notify,
+                                     0);
                 }
                 break;
             }
@@ -421,7 +423,11 @@ void setup_led()
                 {
                     joystick_notify = ControllerNotification::NOTIFY_INFO;
 
-                    xQueueSendToBack(queue_notification_task,
+                    xQueueSendToBack(queue_led_notification_task,
+                                     &joystick_notify,
+                                     0);
+
+                    xQueueSendToBack(queue_buzzer_notification_task,
                                      &joystick_notify,
                                      0);
                 }
@@ -465,7 +471,7 @@ void setup_led()
             }
             case ControllerState::STATE_READY:
             {
-                if (xQueueReceive(queue_notification_task,
+                if (xQueueReceive(queue_buzzer_notification_task,
                                   &buzzer_notify,
                                   portMAX_DELAY) == pdPASS)
                 {
@@ -493,9 +499,6 @@ void setup_led()
     {
         led_controller_state = led_control.processJob(xTaskGetTickCount());
 
-        // printf("LED queue read, state: %s\n",
-        //        ControllerStateString[led_controller_state]);
-
         switch (led_controller_state)
         {
             case ControllerState::STATE_IDLE:
@@ -504,7 +507,7 @@ void setup_led()
             }
             case ControllerState::STATE_READY:
             {
-                if (xQueueReceive(queue_notification_task,
+                if (xQueueReceive(queue_led_notification_task,
                                   &led_notify,
                                   portMAX_DELAY) == pdPASS)
                 {
@@ -541,7 +544,7 @@ int main()
     // NOTE Arg 3 is the stack depth -- in words, not bytes
     BaseType_t led_status = xTaskCreate(led_process_job,
                                         "GPIO_LED_TASK",
-                                        128,
+                                        512,
                                         NULL,
                                         job_priority_led_control,
                                         &led_task_handle);
@@ -560,7 +563,7 @@ int main()
 
     BaseType_t buzzer_status = xTaskCreate(buzzer_process_job,
                                            "BUZZER_JOB_TASK",
-                                           256,
+                                           512,
                                            NULL,
                                            job_priority_buzzer_control,
                                            &buzzer_task_handle);
@@ -568,7 +571,9 @@ int main()
     // Set up the event queue
     queue_led_task = xQueueCreate(1, sizeof(uint8_t));
     queue_motor_control_data = xQueueCreate(2, sizeof(struct MotorControlData));
-    queue_notification_task =
+    queue_led_notification_task =
+        xQueueCreate(1, sizeof(enum ControllerNotification));
+    queue_buzzer_notification_task =
         xQueueCreate(1, sizeof(enum ControllerNotification));
 
     // Start the FreeRTOS scheduler

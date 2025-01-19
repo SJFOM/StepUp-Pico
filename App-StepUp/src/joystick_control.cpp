@@ -252,6 +252,7 @@ int64_t debounce_timer_callback(alarm_id_t id, void *user_data)
     if (false == gpio_get(JOYSTICK_BUTTON_PIN))
     {
         s_button_press_event = true;
+        gpio_put(MCU_PWR_CTRL_PIN, 0);  // TODO: Remove, powers off circuit
     }
     enableJoystickButtonInterrupt(true);
     return 0;
