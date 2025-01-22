@@ -19,7 +19,7 @@
 #include "pico/stdlib.h"  // Includes `hardware_gpio.h`
 
 // pin includes
-#include "pins_definitions.h"
+#include "board_definitions.h"
 
 // Logging utilities
 #include "utils.h"

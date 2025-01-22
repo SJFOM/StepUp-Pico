@@ -1,5 +1,5 @@
-#ifndef PIN_DEFINITIONS_H_
-#define PIN_DEFINITIONS_H_
+#ifndef BOARD_DEFINITION_H_
+#define BOARD_DEFINITION_H_
 
 /******************************/
 /* Power control pins - START */
@@ -36,6 +36,7 @@
 /************************/
 /* TMC2300 pins - START */
 /************************/
+#define R_SENSE (0.15f)
 
 // We are using pins 0 and 1, but see the GPIO function select table in the
 // datasheet for information on which other pins can be used.
@@ -127,4 +128,4 @@
 /* Spare I/O pins - END */
 /************************/
 
-#endif  // PIN_DEFINITIONS_H_
+#endif  // BOARD_DEFINITION_H_
