@@ -55,7 +55,7 @@ void callback(TMC2300TypeDef *tmc2300, ConfigState cfg_state)
     }
 }
 
-TMCControl::TMCControl()
+TMCControl::TMCControl(float r_sense) : m_r_sense(r_sense)
 {
     m_motor_move_state = MotorMoveState::MOTOR_IDLE;
     m_init_success = false;
@@ -773,6 +773,21 @@ void TMCControl::enableDriver(bool enable_driver)
     //  std::to_string(_enable_driver));
     gpio_put(TMC_PIN_ENABLE, _enable_driver ? 1 : 0);
 }
+
+/***************************/
+/* Private methods - START */
+/***************************/
+uint16_t TMCControl::convertIrunIHoldToRMSCurrentInAmps(uint8_t i_run_hold,
+                                                        float r_sense)
+{
+    float v_srt = 0.35f;  // Full scale voltage as per datasheet
+    uint16_t i_rms =
+        (uint16_t)(((i_run_hold + 1) / 32) * v_srt * 0.707 / (r_sense + 0.03f));
+    return i_rms;
+}
+/*************************/
+/* Private methods - END */
+/*************************/
 
 /******************************/
 /* Interrupt routines - START */

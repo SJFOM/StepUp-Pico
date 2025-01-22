@@ -18,7 +18,7 @@
 #include "pico/stdlib.h"  // Includes `hardware_gpio.h`
 
 // pin includes
-#include "pins_definitions.h"
+#include "board_definitions.h"
 
 // Logging utilities
 #include "utils.h"
@@ -43,18 +43,43 @@ struct RGBPinHandlers
     uint16_t led_pwm_slice_in_use;
 };
 
-static struct LEDEffect effect_fade_to_on = {
-    .effect = {1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000},
-    .duration = {200, 200, 200, 200, 200, 200, 200, 200}};
+enum LEDDuration
+{
+    // These have all been prescribed as durations in milli-seconds
+    LED_SLOW = 1000U,
+    LED_MEDIUM = 500U,
+    LED_FAST = 150U,
+    LED_VERY_FAST = 80U
+};
 
-static struct LEDEffect effect_blink = {
-    .effect = {LED_BASE_PWM_FREQ_IN_HZ,
-               0,
-               LED_BASE_PWM_FREQ_IN_HZ,
-               0,
-               LED_BASE_PWM_FREQ_IN_HZ,
-               0},
-    .duration = {200, 200, 200, 200, 200, 200}};
+// FIXME: This will keep the LED ON only by virtue of the fact that the length
+// of the array is LED_MAX_TRANSITION_COUNT. Otherwise, the effect will be empty
+// (0) and turn the LED off
+static struct LEDEffect effect_fade_to_on = {
+    .effect = {0, 4000, 8000, 0, 4000, 8000, 0, 4000, 8000, 4000},
+    .duration = {LEDDuration::LED_FAST,
+                 LEDDuration::LED_FAST,
+                 LEDDuration::LED_FAST,
+                 LEDDuration::LED_FAST,
+                 LEDDuration::LED_FAST,
+                 LEDDuration::LED_FAST,
+                 LEDDuration::LED_FAST,
+                 LEDDuration::LED_FAST,
+                 LEDDuration::LED_FAST,
+                 LEDDuration::LED_FAST}};
+
+static struct LEDEffect effect_blink = {.effect = {LED_BASE_PWM_FREQ_IN_HZ,
+                                                   0,
+                                                   LED_BASE_PWM_FREQ_IN_HZ,
+                                                   0,
+                                                   LED_BASE_PWM_FREQ_IN_HZ,
+                                                   0},
+                                        .duration = {LEDDuration::LED_FAST,
+                                                     LEDDuration::LED_FAST,
+                                                     LEDDuration::LED_FAST,
+                                                     LEDDuration::LED_FAST,
+                                                     LEDDuration::LED_FAST,
+                                                     LEDDuration::LED_FAST}};
 
 static struct LEDEffect effect_rapid_blink = {
     .effect = {LED_BASE_PWM_FREQ_IN_HZ,
@@ -63,7 +88,12 @@ static struct LEDEffect effect_rapid_blink = {
                0,
                LED_BASE_PWM_FREQ_IN_HZ,
                0},
-    .duration = {100, 100, 100, 100, 100, 100}};
+    .duration = {LEDDuration::LED_VERY_FAST,
+                 LEDDuration::LED_VERY_FAST,
+                 LEDDuration::LED_VERY_FAST,
+                 LEDDuration::LED_VERY_FAST,
+                 LEDDuration::LED_VERY_FAST,
+                 LEDDuration::LED_VERY_FAST}};
 
 class LEDControl : public ControlInterface
 {
