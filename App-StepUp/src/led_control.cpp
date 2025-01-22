@@ -14,6 +14,7 @@
 
 static volatile uint8_t s_effect_index_in_transition = 0;
 static struct LEDEffect *s_active_effect = nullptr;
+static bool s_is_led_kept_on_after_effect_completes = true;
 
 static RGBPinHandlers s_rgb_led;
 
@@ -72,6 +73,7 @@ void LEDControl::setLEDFunction(
                 s_active_effect = &effect_fade_to_on;
                 s_rgb_led.led_pin_in_use = s_rgb_led.led_pin_green;
                 s_rgb_led.led_pwm_slice_in_use = s_rgb_led.led_green_pwm_slice;
+                s_is_led_kept_on_after_effect_completes = true;
                 break;
             }
             case ControllerNotification::NOTIFY_INFO:
@@ -79,6 +81,7 @@ void LEDControl::setLEDFunction(
                 s_active_effect = &effect_blink;
                 s_rgb_led.led_pin_in_use = s_rgb_led.led_pin_blue;
                 s_rgb_led.led_pwm_slice_in_use = s_rgb_led.led_blue_pwm_slice;
+                s_is_led_kept_on_after_effect_completes = false;
                 break;
             }
             case ControllerNotification::NOTIFY_WARN:
@@ -86,6 +89,7 @@ void LEDControl::setLEDFunction(
                 s_active_effect = &effect_blink;
                 s_rgb_led.led_pin_in_use = s_rgb_led.led_pin_red;
                 s_rgb_led.led_pwm_slice_in_use = s_rgb_led.led_red_pwm_slice;
+                s_is_led_kept_on_after_effect_completes = false;
                 break;
             }
             case ControllerNotification::NOTIFY_ERROR:
@@ -93,6 +97,7 @@ void LEDControl::setLEDFunction(
                 s_active_effect = &effect_rapid_blink;
                 s_rgb_led.led_pin_in_use = s_rgb_led.led_pin_red;
                 s_rgb_led.led_pwm_slice_in_use = s_rgb_led.led_red_pwm_slice;
+                s_is_led_kept_on_after_effect_completes = false;
                 break;
             }
             default:
@@ -126,7 +131,15 @@ enum ControllerState LEDControl::processJob(uint32_t tick_count)
     if (m_control_state == ControllerState::STATE_BUSY &&
         s_effect_index_in_transition == LED_MAX_TRANSITION_COUNT)
     {
-        disableLED();
+        if (!s_is_led_kept_on_after_effect_completes)
+        {
+            printf("LED OFF\n");
+            disableLED();
+        }
+        else
+        {
+            printf("KEEP LED ON\n");
+        }
         s_effect_index_in_transition = 0;
         s_active_effect = nullptr;
         // LED transition was ongoing but has now completed, update state to
@@ -141,7 +154,7 @@ void queueNextLEDEffect()
     if (s_effect_index_in_transition < LED_MAX_TRANSITION_COUNT &&
         s_active_effect != nullptr)
     {
-        // Update with new tone
+        // Update with new led effect
         pwm_set_gpio_level(
             s_rgb_led.led_pin_in_use,
             s_active_effect->effect[s_effect_index_in_transition]);

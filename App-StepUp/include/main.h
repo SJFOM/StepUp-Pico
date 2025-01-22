@@ -35,7 +35,7 @@
 #include "pico/binary_info.h"
 #include "pico/stdlib.h"  // Includes `hardware_gpio.h`
 // App
-#include "pins_definitions.h"
+#include "board_definitions.h"
 #include "utils.h"
 // Control includes
 #include "buzzer_control.hpp"

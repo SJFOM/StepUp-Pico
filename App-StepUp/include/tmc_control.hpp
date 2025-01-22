@@ -23,7 +23,7 @@
 #include "../../../Interfaces/ControlInterface.hpp"
 
 // pin includes
-#include "pins_definitions.h"
+#include "board_definitions.h"
 
 // Logging utilities
 #include "utils.h"
@@ -55,7 +55,7 @@ extern "C"
 #define VELOCITY_MAX_STEPS_PER_SECOND (100000U)
 
 // Run and hold current values (0..31U) scaled to 1.2A RMS
-#define DEFAULT_IRUN_VALUE  (15U)
+#define DEFAULT_IRUN_VALUE  (13U)
 #define DEFAULT_IHOLD_VALUE (0U)
 
 // If SG_VALUE falls below 2x SGTHRS_VALUE then a stall detection is triggered
@@ -454,7 +454,7 @@ enum MicrostepResolution
 class TMCControl : public ControlInterface
 {
 public:
-    TMCControl();
+    TMCControl(float r_sense);
     ~TMCControl();
     bool init(void);
     void deinit(void);
@@ -488,6 +488,10 @@ private:
     int32_t m_target_velocity;
     TMCOpenCircuitAlgoData m_open_circuit_algo_data;
     bool m_open_circuit_detected = false;
+    float m_r_sense;
+
+    static uint16_t convertIrunIHoldToRMSCurrentInAmps(uint8_t i_run_hold,
+                                                       float r_sense);
 
     void enableTMCDiagInterrupt(bool enable_interrupt);
     void enableUartPins(bool enable_pins);
