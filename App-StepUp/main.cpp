@@ -108,10 +108,10 @@ void setup_vbat_monitoring()
     // VBat voltage should be greater than 3.3V (ADC: 2048) and less than 4.3
     // volts (ADC: ~2793)
     // TODO: Encode these values in a header file for a VBAT monitoring task
-    // if (!Utils::isValueWithinBounds(battery_voltage_raw, 2048, 2793))
-    // {
-    //     Utils::log_error("Battery voltage out of range... FAIL");
-    // }
+    if (!Utils::isValueWithinBounds(battery_voltage_raw, 2048, 2793))
+    {
+        Utils::log_error("Battery voltage out of range... FAIL");
+    }
 
     Utils::log_info("VBat monitoring... OK");
 }
