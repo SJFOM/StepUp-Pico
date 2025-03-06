@@ -46,6 +46,9 @@
 // Global defines
 #define VELOCITY_DELTA_VALUE (500U)
 
+// Static variables
+static volatile bool s_usb_is_inserted = false;
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -78,6 +81,9 @@ extern "C"
     void led_task_gpio(void *unused_arg);
     void log_info(const char *msg);
     void log_device_info(void);
+
+    // USB plug in/out callback method
+    static void usb_detect_callback();
 
 #ifdef __cplusplus
 }  // extern "C"
