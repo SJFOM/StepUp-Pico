@@ -131,7 +131,10 @@ bool JoystickControl::init()
         enableJoystickButtonInterrupt(true);
         gpio_add_raw_irq_handler(JOYSTICK_BUTTON_PIN,
                                  &joystick_button_callback);
-        irq_set_enabled(IO_IRQ_BANK0, true);
+        if (!irq_is_enabled(IO_IRQ_BANK0))
+        {
+            irq_set_enabled(IO_IRQ_BANK0, true);
+        }
         // TODO: Have the ADC's constantly sample using DMA to fill a buffer
         // which we can read the averaged value from when the processJob comes
         // around to do its job
