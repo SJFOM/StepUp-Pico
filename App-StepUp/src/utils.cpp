@@ -234,4 +234,34 @@ namespace Utils
      * NUMBER UTILS - FINISH *
      *************************/
 
+    /*********************
+     * PWM UTILS - BEGIN *
+     *********************/
+    uint16_t configurePWMPin(uint pwm_pin, uint16_t pwm_freq_in_hz)
+    {
+        // Configure the led pins and direction
+        gpio_set_function(pwm_pin, GPIO_FUNC_PWM);
+
+        // Find out which PWM slice is connected to LED_PIN
+        uint16_t pwm_slice_num = pwm_gpio_to_slice_num(pwm_pin);
+
+        // Get some sensible defaults for the slice configuration. By
+        // default, the counter is allowed to wrap over its maximum range (0
+        // to 2**16-1)
+        pwm_config config = pwm_get_default_config();
+
+        // Set divider, reduces counter clock to sysclock/this value
+        // (sysclock = 125MHz default), 125MHz / pwm_freq_in_hz =
+        // pwm_clk_div (in Hz)
+        float pwm_clk_div = (float)(125000000.f / (float)pwm_freq_in_hz);
+        pwm_config_set_clkdiv(&config,
+                              pwm_clk_div);  // should give 8kHz div clk
+
+        return pwm_slice_num;
+    }
+
+    /**********************
+     * PWM UTILS - FINISH *
+     **********************/
+
 }  // namespace Utils
