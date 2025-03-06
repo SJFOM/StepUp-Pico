@@ -510,19 +510,6 @@ void setup_led()
     {
         led_controller_state = led_control.processJob(xTaskGetTickCount());
 
-        if (usb_state != s_usb_is_inserted)
-        {
-            usb_state = s_usb_is_inserted;
-            if (usb_state)
-            {
-                Utils::log_info("USB inserted! <-----");
-            }
-            else
-            {
-                Utils::log_info("USB removed! ---->");
-            }
-        }
-
         switch (led_controller_state)
         {
             case ControllerState::STATE_IDLE:
