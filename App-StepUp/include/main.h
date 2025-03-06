@@ -35,7 +35,7 @@
 #include "pico/binary_info.h"
 #include "pico/stdlib.h"  // Includes `hardware_gpio.h`
 // App
-#include "pins_definitions.h"
+#include "board_definitions.h"
 #include "utils.h"
 // Control includes
 #include "buzzer_control.hpp"
@@ -61,7 +61,9 @@ extern "C"
      * PROTOTYPES
      */
     void setup();
-    void setup_adc();
+    void setup_power_control();
+    void setup_vbat_monitoring();
+    void setup_vusb_monitoring();
     void setup_led();
     void setup_tmc2300();
     void setup_boost_converter();

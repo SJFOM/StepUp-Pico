@@ -1,22 +1,42 @@
-#ifndef PIN_DEFINITIONS_H_
-#define PIN_DEFINITIONS_H_
+#ifndef BOARD_DEFINITION_H_
+#define BOARD_DEFINITION_H_
 
-/***************************/
+/******************************/
+/* Power control pins - START */
+/******************************/
+#define MCU_PWR_CTRL_PIN (7U)
+#define MCU_PWR_BTN_PIN  (8U)
+
+/****************************/
+/* Power control pins - END */
+/****************************/
+
+/***********************/
 /* Status pins - START */
-/***************************/
-#define LED_PIN_RED   (2U)  // PWM1_A
-#define LED_PIN_GREEN (3U)  // PWM1_B
-#define LED_PIN_BLUE  (5U)  // PWM2_B
+/***********************/
+
+#if PCB_REVISION == 1U
+#    define LED_PIN_RED   (2U)  // PWM1_A
+#    define LED_PIN_GREEN (3U)  // PWM1_B
+#    define LED_PIN_BLUE  (5U)  // PWM2_B
+#elif PCB_REVISION == 2U
+#    define LED_PIN_RED   (3U)  // PWM1_B
+#    define LED_PIN_GREEN (6U)  // Unsure if assigned to any PWM...
+#    define LED_PIN_BLUE  (5U)  // PWM2_B
+#else
+#    error "No valid PCB version found!!"
+#endif
 
 #define BUZZER_PIN (16U)  // PWM0_A
 
-/*************************/
+/*********************/
 /* Status pins - END */
-/*************************/
+/*********************/
 
 /************************/
 /* TMC2300 pins - START */
 /************************/
+#define R_SENSE (0.15f)
 
 // We are using pins 0 and 1, but see the GPIO function select table in the
 // datasheet for information on which other pins can be used.
@@ -63,10 +83,19 @@
 /*************************/
 
 // Joystick ADC pins
-#define JOYSTICK_ADC_PIN_X            (29U)
-#define JOYSTICK_ADC_CHANNEL_X        (3U)
-#define JOYSTICK_ADC_PIN_Y            (28U)
-#define JOYSTICK_ADC_CHANNEL_Y        (2U)
+#if PCB_REVISION == 1U
+#    define JOYSTICK_ADC_PIN_X     (29U)
+#    define JOYSTICK_ADC_CHANNEL_X (3U)
+#    define JOYSTICK_ADC_PIN_Y     (28U)
+#    define JOYSTICK_ADC_CHANNEL_Y (2U)
+#elif PCB_REVISION == 2U
+#    define JOYSTICK_ADC_PIN_X     (28U)
+#    define JOYSTICK_ADC_CHANNEL_X (2U)
+#    define JOYSTICK_ADC_PIN_Y     (29U)
+#    define JOYSTICK_ADC_CHANNEL_Y (3U)
+#else
+#    error "No valid PCB version found!!"
+#endif
 #define JOYSTICK_ADC_ROUND_ROBIN_MASK (0x03)
 
 // Joystick Button pin
@@ -79,7 +108,14 @@
 /**************************/
 /* Spare I/O pins - START */
 /**************************/
-#define GPIO_PIN_8  (8U)
+#if PCB_REVISION == 1U
+#    define GPIO_PIN_8 (8U)
+#elif PCB_REVISION == 2U
+#    define GPIO_PIN_2 (2U)
+#else
+#    error "No valid PCB version found!!"
+#endif
+
 #define GPIO_PIN_9  (9U)
 #define GPIO_PIN_10 (10U)
 #define GPIO_PIN_11 (11U)
@@ -92,4 +128,4 @@
 /* Spare I/O pins - END */
 /************************/
 
-#endif  // PIN_DEFINITIONS_H_
+#endif  // BOARD_DEFINITION_H_
