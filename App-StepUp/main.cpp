@@ -1,8 +1,8 @@
 /**
- * RP2040 FreeRTOS Template
+ * StepUp! main file
  *
- * @copyright 2022, Tony Smith (@smittytone)
- * @version   1.4.1
+ * @copyright 2025, Sam O'Mahony (@SJFOM)
+ * @version   0.1
  * @licence   MIT
  *
  */
@@ -121,12 +121,21 @@ void setup_vusb_monitoring()
     Utils::log_info("VUSB monitoring...");
 
     // Enable boost converter pin control
-    gpio_init(VUSB_MONITOR_PIN);
-    gpio_set_dir(VUSB_MONITOR_PIN, GPIO_IN);
+    gpio_set_input_enabled(VUSB_MONITOR_PIN, true);
     gpio_disable_pulls(VUSB_MONITOR_PIN);
+
+    gpio_set_irq_enabled(VUSB_MONITOR_PIN,
+                         GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE,
+                         true);
+    gpio_add_raw_irq_handler(VUSB_MONITOR_PIN, &usb_detect_callback);
+    if (!irq_is_enabled(IO_IRQ_BANK0))
+    {
+        irq_set_enabled(IO_IRQ_BANK0, true);
+    }
 
     if (gpio_get(VUSB_MONITOR_PIN))
     {
+        s_usb_is_inserted = true;
         Utils::log_info("USB cable detected");
     }
 
@@ -495,9 +504,24 @@ void setup_led()
         ControllerNotification::NOTIFY_BOOT;
     ControllerState led_controller_state = ControllerState::STATE_IDLE;
 
+    static bool usb_state = s_usb_is_inserted;
+
     while (true)
     {
         led_controller_state = led_control.processJob(xTaskGetTickCount());
+
+        if (usb_state != s_usb_is_inserted)
+        {
+            usb_state = s_usb_is_inserted;
+            if (usb_state)
+            {
+                Utils::log_info("USB inserted! <-----");
+            }
+            else
+            {
+                Utils::log_info("USB removed! ---->");
+            }
+        }
 
         switch (led_controller_state)
         {
@@ -589,4 +613,25 @@ int main()
     {
         // NOP
     }
+}
+
+void usb_detect_callback()
+{
+    if (gpio_get_irq_event_mask(VUSB_MONITOR_PIN) & (GPIO_IRQ_EDGE_RISE))
+    {
+        gpio_acknowledge_irq(VUSB_MONITOR_PIN, (GPIO_IRQ_EDGE_RISE));
+        s_usb_is_inserted = true;
+    }
+    if (gpio_get_irq_event_mask(VUSB_MONITOR_PIN) & (GPIO_IRQ_EDGE_FALL))
+    {
+        gpio_acknowledge_irq(VUSB_MONITOR_PIN, (GPIO_IRQ_EDGE_FALL));
+        s_usb_is_inserted = false;
+    }
+    // Set INFO notification status
+    enum ControllerNotification usb_detect_notify =
+        ControllerNotification::NOTIFY_INFO;
+
+    xQueueSendToBack(queue_led_notification_task, &usb_detect_notify, 0);
+
+    xQueueSendToBack(queue_buzzer_notification_task, &usb_detect_notify, 0);
 }
