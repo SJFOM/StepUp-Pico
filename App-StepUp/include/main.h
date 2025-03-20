@@ -42,6 +42,7 @@
 #include "joystick_control.hpp"
 #include "led_control.hpp"
 #include "tmc_control.hpp"
+#include "voltage_monitoring.hpp"
 
 // Global defines
 #define VELOCITY_DELTA_VALUE (500U)
@@ -65,13 +66,13 @@ extern "C"
      */
     void setup();
     void setup_power_control();
-    void setup_vbat_monitoring();
     void setup_vusb_monitoring();
     void setup_led();
     void setup_tmc2300();
     void setup_boost_converter();
     void setup_joystick();
     void setup_buzzer();
+    void setup_voltage_monitoring();
 
     void led_on();
     void led_off();
