@@ -78,6 +78,21 @@
 /* Voltage monitor pins - END */
 /******************************/
 
+/*****************************************/
+/* Voltage threshold definitions - START */
+/*****************************************/
+
+constexpr static float cs_battery_voltage_threshold_low = 3.3f;
+constexpr static float cs_battery_voltage_threshold_high = 4.2f;
+
+// Motor voltage thresholds - within 1% of 10.2V
+constexpr static float cs_motor_voltage_threshold_low = 10.1f;
+constexpr static float cs_motor_voltage_threshold_high = 10.3f;
+
+/***************************************/
+/* Voltage threshold definitions - END */
+/***************************************/
+
 /*************************/
 /* Joystick pins - START */
 /*************************/

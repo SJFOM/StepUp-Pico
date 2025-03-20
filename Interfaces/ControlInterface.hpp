@@ -1,12 +1,16 @@
 /**
- * @file ControlInterface.h
+ * @file ControlInterface.hpp
  * @author Sam (@SJFOM)
- * @brief
+ * @brief Interface for controlling the state of a peripheral
+ * @details This interface exposes common ways to control functionalities of a
+ * peripheral. Through its use as a parent class, it enables consistent design
+ * of child peripherals which can be processed via a master control loop
+ * (usually in main.cpp).
  * @version 0.1
  * @date 2023-02-11
  *
  * @copyright Copyright (c) 2023
- *
+ * @license MIT
  */
 
 #ifndef CONTROL_INTERFACE_H_
