@@ -11,6 +11,7 @@
 #define UTILS_HEADER
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -18,6 +19,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <type_traits>
 #include <vector>
 // Pico SDK
 #include "hardware/adc.h"
@@ -37,6 +39,13 @@ using std::vector;
 
 // 12-bit conversion, assume max value == ADC_VREF == 3.3 V
 #define ADC_TO_VOLTAGE_CONVERSION_FACTOR (3.3f / (1 << 12))
+
+// Logging macros
+#define LOG_INFO(x)   Utils::log_info(x)
+#define LOG_DEBUG(x)  Utils::log_debug(x)
+#define LOG_WARN(x)   Utils::log_warn(x)
+#define LOG_ERROR(x)  Utils::log_error(x)
+#define LOG_DATA(...) Utils::log_data(__VA_ARGS__)
 
 /*
  * PROTOTYPES
@@ -58,9 +67,68 @@ namespace Utils
     void log_warn(const string msg);
     void log_error(const string msg);
 
+    /**
+     * @brief Generate and print a formatted log message with data for a single
+     * argument.
+     *
+     * @param format: The format string (e.g., "Voltage is low: %.2fV").
+     * @param args: The values to format and log.
+     */
+    template <typename Args>
+    void log_data(const char *format, Args args)
+    {
+        char formatted_message[128];
+        snprintf(formatted_message, sizeof(formatted_message), format, args);
+        printf("[DATA] %s\n", formatted_message);
+    }
+
+    // /**
+    //  * @brief Generate and print a formatted log message with data for more
+    //  than
+    //  * one argument.
+    //  *
+    //  * @param format: The format string (e.g., "Voltage is low: %.2fV").
+    //  * @param ...args: The values to format and log.
+    //  */
+    template <typename... Args>
+    void log_data(const char *format, Args... args)
+    {
+        char formatted_message[128];
+        snprintf(formatted_message, sizeof(formatted_message), format, args...);
+        printf("[DATA] %s\n", formatted_message);
+    }
+
     /**************************
      * LOGGING UTILS - FINISH *
      **************************/
+
+    /************************
+     * NUMBER UTILS - BEGIN *
+     ************************/
+
+    template <typename T>
+    bool isNumberWithinBounds(T value, T lower_bound, T upper_bound)
+    {
+        // Static assert will fail if T is not a numeric type. This is evaluated
+        // at compile time vs run-time.
+        static_assert(std::is_arithmetic<T>::value, "T must be a numeric type");
+
+        // Handle floating-point precision issues
+        if constexpr (std::is_floating_point<T>::value)
+        {
+            constexpr T epsilon =
+                static_cast<T>(1e-6);  // Adjust tolerance as needed
+            return (value <= upper_bound + epsilon) &&
+                   (value >= lower_bound - epsilon);
+        }
+
+        // For integral types, perform direct comparison
+        return (bool)(value <= upper_bound) && (value >= lower_bound);
+    }
+
+    /*************************
+     * NUMBER UTILS - FINISH *
+     *************************/
 
     /*********************
      * ADC UTILS - BEGIN *
@@ -73,17 +141,6 @@ namespace Utils
     /**********************
      * ADC UTILS - FINISH *
      **********************/
-
-    /************************
-     * NUMBER UTILS - BEGIN *
-     ************************/
-    bool isValueWithinBounds(unsigned value,
-                             unsigned lower_bound,
-                             unsigned upper_bound);
-
-    /*************************
-     * NUMBER UTILS - FINISH *
-     *************************/
 
     /*********************
      * PWM UTILS - BEGIN *

@@ -8,6 +8,9 @@
  *
  */
 #include "../include/utils.h"
+#include <cstdarg>  // For va_list, va_start, va_end
+#include <cstdio>
+#include <string>
 
 using std::string;
 using std::vector;
@@ -201,7 +204,7 @@ namespace Utils
     uint16_t getValidADCResultRaw(uint8_t adc_channel)
     {
         // Ensure valid ADC channels are being used (0 -> 3)
-        assert(isValueWithinBounds(adc_channel, 0, 3U));
+        assert(Utils::isNumberWithinBounds<uint8_t>(adc_channel, 0U, 3U));
 
         adc_select_input(adc_channel);
         return (uint16_t)(adc_read() & ADC_ENOB_MASK);
@@ -215,24 +218,6 @@ namespace Utils
     /**********************
      * ADC UTILS - FINISH *
      **********************/
-
-    /************************
-     * NUMBER UTILS - BEGIN *
-     ************************/
-    bool isValueWithinBounds(unsigned value,
-                             unsigned lower_bound,
-                             unsigned upper_bound)
-    {
-        if ((value <= upper_bound) && (value >= lower_bound))
-        {
-            return true;
-        }
-        return false;
-    }
-
-    /*************************
-     * NUMBER UTILS - FINISH *
-     *************************/
 
     /*********************
      * PWM UTILS - BEGIN *
