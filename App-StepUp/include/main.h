@@ -36,6 +36,7 @@
 #include "pico/stdlib.h"  // Includes `hardware_gpio.h`
 // App
 #include "board_definitions.h"
+#include "default_config_parameters.h"
 #include "utils.h"
 // Control includes
 #include "buzzer_control.hpp"
@@ -43,16 +44,11 @@
 #include "led_control.hpp"
 #include "tmc_control.hpp"
 
-// Global defines
-#define VELOCITY_DELTA_VALUE (500U)
-
-// Static variables
-static volatile bool s_usb_is_inserted = false;
-
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+    // TODO: Does it make best sense to have this struct here?
     struct MotorControlData
     {
         int32_t velocity_delta;
@@ -66,7 +62,6 @@ extern "C"
     void setup();
     void setup_power_control();
     void setup_vbat_monitoring();
-    void setup_vusb_monitoring();
     void setup_led();
     void setup_tmc2300();
     void setup_boost_converter();
@@ -81,9 +76,6 @@ extern "C"
     void led_task_gpio(void *unused_arg);
     void log_info(const char *msg);
     void log_device_info(void);
-
-    // USB plug in/out callback method
-    static void usb_detect_callback();
 
 #ifdef __cplusplus
 }  // extern "C"

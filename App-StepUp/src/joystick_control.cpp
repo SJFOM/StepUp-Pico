@@ -269,9 +269,9 @@ void joystick_button_callback()
         // Disable interrupt until debounce timer has elapsed
         enableJoystickButtonInterrupt(false);
 
-        // Call debounce_timer_callback in s_pin_debounce_delay_time_ms
+        // Call debounce_timer_callback in s_c_pin_debounce_default_time_in_ms
         // milli-seconds
-        add_alarm_in_ms(s_pin_debounce_delay_time_ms,
+        add_alarm_in_ms(s_c_pin_debounce_default_time_in_ms,
                         debounce_timer_callback,
                         NULL,
                         false);
