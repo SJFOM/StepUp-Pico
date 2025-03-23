@@ -56,7 +56,6 @@ void setup()
 {
     setup_power_control();
     setup_vbat_monitoring();
-    setup_vusb_monitoring();
     setup_led();
     setup_tmc2300();
     setup_boost_converter();
@@ -114,32 +113,6 @@ void setup_vbat_monitoring()
     }
 
     Utils::log_info("VBat monitoring... OK");
-}
-
-void setup_vusb_monitoring()
-{
-    Utils::log_info("VUSB monitoring...");
-
-    // Enable boost converter pin control
-    gpio_set_input_enabled(VUSB_MONITOR_PIN, true);
-    gpio_disable_pulls(VUSB_MONITOR_PIN);
-
-    gpio_set_irq_enabled(VUSB_MONITOR_PIN,
-                         GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE,
-                         true);
-    gpio_add_raw_irq_handler(VUSB_MONITOR_PIN, &usb_detect_callback);
-    if (!irq_is_enabled(IO_IRQ_BANK0))
-    {
-        irq_set_enabled(IO_IRQ_BANK0, true);
-    }
-
-    if (gpio_get(VUSB_MONITOR_PIN))
-    {
-        s_usb_is_inserted = true;
-        Utils::log_info("USB cable detected");
-    }
-
-    Utils::log_info("VUSB monitoring... OK");
 }
 
 /**
@@ -419,7 +392,8 @@ void setup_led()
                 // (either NEGATIVE:-1, IDLE:0, POSITIVE:+1) multiplied by
                 // the change in velocity we should incur.
                 motor_data.velocity_delta =
-                    joystick_data.state_y * VELOCITY_DELTA_VALUE;
+                    joystick_data.state_y *
+                    s_c_velocity_steps_per_second_delta_default_value;
 
                 // This ensures that, no matter which direction we face, the
                 // joystick will "speed up" or "slow down" consistent with
@@ -503,8 +477,6 @@ void setup_led()
     enum ControllerNotification led_notify =
         ControllerNotification::NOTIFY_BOOT;
     ControllerState led_controller_state = ControllerState::STATE_IDLE;
-
-    static bool usb_state = s_usb_is_inserted;
 
     while (true)
     {
@@ -600,25 +572,4 @@ int main()
     {
         // NOP
     }
-}
-
-void usb_detect_callback()
-{
-    if (gpio_get_irq_event_mask(VUSB_MONITOR_PIN) & (GPIO_IRQ_EDGE_RISE))
-    {
-        gpio_acknowledge_irq(VUSB_MONITOR_PIN, (GPIO_IRQ_EDGE_RISE));
-        s_usb_is_inserted = true;
-    }
-    if (gpio_get_irq_event_mask(VUSB_MONITOR_PIN) & (GPIO_IRQ_EDGE_FALL))
-    {
-        gpio_acknowledge_irq(VUSB_MONITOR_PIN, (GPIO_IRQ_EDGE_FALL));
-        s_usb_is_inserted = false;
-    }
-    // Set INFO notification status
-    enum ControllerNotification usb_detect_notify =
-        ControllerNotification::NOTIFY_INFO;
-
-    xQueueSendToBack(queue_led_notification_task, &usb_detect_notify, 0);
-
-    xQueueSendToBack(queue_buzzer_notification_task, &usb_detect_notify, 0);
 }

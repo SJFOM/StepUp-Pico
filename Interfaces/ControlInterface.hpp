@@ -34,6 +34,7 @@ enum ControllerNotification
     NOTIFY_INFO = 1U,
     NOTIFY_WARN = 2U,
     NOTIFY_ERROR = 3U,
+    NOTIFY_POWER_DOWN = 4U,
     NOTIFY_FUNC_MAX_COUNT
 };
 
@@ -41,7 +42,8 @@ static const char *ControllerNotificationString
     [ControllerNotification::NOTIFY_FUNC_MAX_COUNT] = {"NOTIFY_BOOT",
                                                        "NOTIFY_INFO",
                                                        "NOTIFY_WARN",
-                                                       "NOTIFY_ERROR"};
+                                                       "NOTIFY_ERROR",
+                                                       "NOTIFY_POWER_DOWN"};
 
 class ControlInterface
 {
