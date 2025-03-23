@@ -100,10 +100,11 @@ void setup_vusb_monitoring()
     gpio_set_input_enabled(VUSB_MONITOR_PIN, true);
     gpio_disable_pulls(VUSB_MONITOR_PIN);
 
+    // N.B: IRQ handler must be initialised before enabling IRQs
+    gpio_add_raw_irq_handler(VUSB_MONITOR_PIN, &usb_detect_callback);
     gpio_set_irq_enabled(VUSB_MONITOR_PIN,
                          GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE,
                          true);
-    gpio_add_raw_irq_handler(VUSB_MONITOR_PIN, &usb_detect_callback);
     if (!irq_is_enabled(IO_IRQ_BANK0))
     {
         irq_set_enabled(IO_IRQ_BANK0, true);
@@ -517,15 +518,17 @@ void setup_voltage_monitoring()
 
 [[noreturn]] void voltage_monitoring_process_job(void *unused_arg)
 {
-    ControllerState voltage_monitoring_state = ControllerState::STATE_IDLE;
+    ControllerState battery_voltage_monitoring_state =
+        ControllerState::STATE_IDLE;
+    ControllerState motor_voltage_monitoring_state =
+        ControllerState::STATE_IDLE;
 
-    // FIXME: Needs monitoring for both battery and motor voltages
     while (true)
     {
-        voltage_monitoring_state =
+        battery_voltage_monitoring_state =
             battery_voltage_monitoring.processJob(xTaskGetTickCount());
 
-        switch (voltage_monitoring_state)
+        switch (battery_voltage_monitoring_state)
         {
             case ControllerState::STATE_IDLE:
             {
@@ -536,8 +539,35 @@ void setup_voltage_monitoring()
             {
                 // Log the current voltage when new data is available
                 float current_voltage = battery_voltage_monitoring.getVoltage();
-                LOG_DATA("Voltage monitoring - Current voltage: %.2fV",
+                LOG_DATA("Battery voltage out of bounds: %.2fV",
                          current_voltage);
+                break;
+            }
+            case ControllerState::STATE_BUSY:
+            {
+                // Voltage monitoring is busy, handle accordingly
+                LOG_INFO("Voltage monitoring is busy...");
+                break;
+            }
+            default:
+                break;
+        }
+
+        motor_voltage_monitoring_state =
+            battery_voltage_monitoring.processJob(xTaskGetTickCount());
+
+        switch (motor_voltage_monitoring_state)
+        {
+            case ControllerState::STATE_IDLE:
+            {
+                // Voltage monitoring is idle, no action required
+                break;
+            }
+            case ControllerState::STATE_NEW_DATA:
+            {
+                // Log the current voltage when new data is available
+                float current_voltage = battery_voltage_monitoring.getVoltage();
+                LOG_DATA("Motor voltage out of bounds: %.2fV", current_voltage);
                 break;
             }
             case ControllerState::STATE_BUSY:
@@ -632,21 +662,35 @@ int main()
 
 void usb_detect_callback()
 {
+    bool irq_is_valid = true;
     if (gpio_get_irq_event_mask(VUSB_MONITOR_PIN) & (GPIO_IRQ_EDGE_RISE))
     {
         gpio_acknowledge_irq(VUSB_MONITOR_PIN, (GPIO_IRQ_EDGE_RISE));
         s_usb_is_inserted = true;
     }
-    if (gpio_get_irq_event_mask(VUSB_MONITOR_PIN) & (GPIO_IRQ_EDGE_FALL))
+    else if (gpio_get_irq_event_mask(VUSB_MONITOR_PIN) & (GPIO_IRQ_EDGE_FALL))
     {
         gpio_acknowledge_irq(VUSB_MONITOR_PIN, (GPIO_IRQ_EDGE_FALL));
         s_usb_is_inserted = false;
     }
-    // Set INFO notification status
-    enum ControllerNotification usb_detect_notify =
-        ControllerNotification::NOTIFY_INFO;
+    else
+    {
+        irq_is_valid = false;
+    }
 
-    xQueueSendToBack(queue_led_notification_task, &usb_detect_notify, 0);
+    // Remember that this IRQ will fire if a shared IRQ bank is used
+    if (irq_is_valid)
+    {
+        // Set INFO notification status
+        enum ControllerNotification usb_detect_notify =
+            ControllerNotification::NOTIFY_INFO;
 
-    xQueueSendToBack(queue_buzzer_notification_task, &usb_detect_notify, 0);
+        xQueueSendToBackFromISR(queue_led_notification_task,
+                                &usb_detect_notify,
+                                0);
+
+        xQueueSendToBackFromISR(queue_buzzer_notification_task,
+                                &usb_detect_notify,
+                                0);
+    }
 }

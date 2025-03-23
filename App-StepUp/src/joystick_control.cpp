@@ -122,9 +122,9 @@ bool JoystickControl::init()
     if (m_init_success)
     {
         m_joystick.control_state = ControllerState::STATE_READY;
-        enableJoystickButtonInterrupt(true);
         gpio_add_raw_irq_handler(JOYSTICK_BUTTON_PIN,
                                  &joystick_button_callback);
+        enableJoystickButtonInterrupt(true);
         if (!irq_is_enabled(IO_IRQ_BANK0))
         {
             irq_set_enabled(IO_IRQ_BANK0, true);
