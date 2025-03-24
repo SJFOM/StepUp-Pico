@@ -16,16 +16,17 @@ using std::vector;
  * GLOBALS
  */
 // This is the inter-task queue
-volatile QueueHandle_t queue_led_task = NULL;
 volatile QueueHandle_t queue_motor_control_data = NULL;
 volatile QueueHandle_t queue_led_notification_task = NULL;
 volatile QueueHandle_t queue_buzzer_notification_task = NULL;
+volatile QueueHandle_t queue_led_colour_data = NULL;
 
 // Set loop delay times (in ms)
 const TickType_t joystick_job_delay_ms = 10 / portTICK_PERIOD_MS;
 const TickType_t tmc_job_delay_ms = 20 / portTICK_PERIOD_MS;
 const TickType_t buzzer_job_delay_ms = 100 / portTICK_PERIOD_MS;
 const TickType_t led_job_delay_ms = 100 / portTICK_PERIOD_MS;
+const TickType_t voltage_monitoring_job_delay = 10000 / portTICK_PERIOD_MS;
 
 // FROM 1.0.1 Record references to the tasks
 TaskHandle_t joystick_task_handle = NULL;
@@ -480,12 +481,11 @@ void setup_voltage_monitoring()
 
 [[noreturn]] void led_process_job(void *unused_arg)
 {
-    unsigned long count = 0;
     enum ControllerNotification led_notify =
         ControllerNotification::NOTIFY_BOOT;
     ControllerState led_controller_state = ControllerState::STATE_IDLE;
 
-    static bool usb_state = s_usb_is_inserted;
+    enum LEDColourNames led_colour = LEDColourNames::LED_COLOUR_OFF;
 
     while (true)
     {
@@ -503,7 +503,19 @@ void setup_voltage_monitoring()
                                   &led_notify,
                                   portMAX_DELAY) == pdPASS)
                 {
-                    led_control.setLEDFunction(led_notify);
+                    if (led_notify == ControllerNotification::NOTIFY_DATA)
+                    {
+                        if (xQueueReceive(queue_led_colour_data,
+                                          &led_colour,
+                                          portMAX_DELAY) == pdPASS)
+                        {
+                            led_control.setLEDColour(led_colour);
+                        }
+                    }
+                    else
+                    {
+                        led_control.setLEDFunction(led_notify);
+                    }
                 }
                 break;
             }
@@ -523,6 +535,10 @@ void setup_voltage_monitoring()
     ControllerState motor_voltage_monitoring_state =
         ControllerState::STATE_IDLE;
 
+    enum ControllerNotification voltage_monitoring_notify =
+        ControllerNotification::NOTIFY_BOOT;
+
+    // FIXME: Lots of duplication here, can we refactor this?
     while (true)
     {
         battery_voltage_monitoring_state =
@@ -538,15 +554,58 @@ void setup_voltage_monitoring()
             case ControllerState::STATE_NEW_DATA:
             {
                 // Log the current voltage when new data is available
-                float current_voltage = battery_voltage_monitoring.getVoltage();
-                LOG_DATA("Battery voltage out of bounds: %.2fV",
-                         current_voltage);
+                struct VoltageMonitorData voltage_monitor_data =
+                    battery_voltage_monitoring.getVoltageData();
+                if (voltage_monitor_data.state ==
+                    VoltageBoundsCheckState::VOLTAGE_STATE_OUTSIDE_BOUNDS)
+                {
+                    LOG_DATA("Battery voltage out of bounds: %.2fV",
+                             voltage_monitor_data.voltage);
+                    voltage_monitoring_notify =
+                        ControllerNotification::NOTIFY_ERROR;
+                    xQueueSendToBack(queue_buzzer_notification_task,
+                                     &voltage_monitoring_notify,
+                                     0);
+                }
+                else
+                {
+                    voltage_monitoring_notify =
+                        ControllerNotification::NOTIFY_DATA;
+                    enum LEDColourNames led_colour =
+                        LEDColourNames::LED_COLOUR_WHITE;
+
+                    if (Utils::isNumberWithinBounds<float>(
+                            voltage_monitor_data.voltage,
+                            cs_battery_voltage_threshold_low,
+                            cs_battery_voltage_threshold_mid_low))
+                    {
+                        led_colour = LEDColourNames::LED_COLOUR_RED;
+                    }
+                    else if (Utils::isNumberWithinBounds<float>(
+                                 voltage_monitor_data.voltage,
+                                 cs_battery_voltage_threshold_mid_low,
+                                 cs_battery_voltage_threshold_mid_high))
+                    {
+                        led_colour = LEDColourNames::LED_COLOUR_ORANGE;
+                    }
+                    else if (Utils::isNumberWithinBounds<float>(
+                                 voltage_monitor_data.voltage,
+                                 cs_battery_voltage_threshold_mid_high,
+                                 cs_battery_voltage_threshold_high))
+                    {
+                        led_colour = LEDColourNames::LED_COLOUR_GREEN;
+                    }
+
+                    xQueueSendToBack(queue_led_colour_data, &led_colour, 0);
+                }
+
+                xQueueSendToBack(queue_led_notification_task,
+                                 &voltage_monitoring_notify,
+                                 0);
                 break;
             }
             case ControllerState::STATE_BUSY:
             {
-                // Voltage monitoring is busy, handle accordingly
-                LOG_INFO("Voltage monitoring is busy...");
                 break;
             }
             default:
@@ -554,7 +613,7 @@ void setup_voltage_monitoring()
         }
 
         motor_voltage_monitoring_state =
-            battery_voltage_monitoring.processJob(xTaskGetTickCount());
+            motor_voltage_monitoring.processJob(xTaskGetTickCount());
 
         switch (motor_voltage_monitoring_state)
         {
@@ -566,14 +625,32 @@ void setup_voltage_monitoring()
             case ControllerState::STATE_NEW_DATA:
             {
                 // Log the current voltage when new data is available
-                float current_voltage = battery_voltage_monitoring.getVoltage();
-                LOG_DATA("Motor voltage out of bounds: %.2fV", current_voltage);
+                struct VoltageMonitorData voltage_monitor_data =
+                    motor_voltage_monitoring.getVoltageData();
+                if (voltage_monitor_data.state ==
+                    VoltageBoundsCheckState::VOLTAGE_STATE_OUTSIDE_BOUNDS)
+                {
+                    LOG_DATA("Motor voltage out of bounds: %.2fV",
+                             voltage_monitor_data.voltage);
+                    voltage_monitoring_notify =
+                        ControllerNotification::NOTIFY_ERROR;
+                    xQueueSendToBack(queue_buzzer_notification_task,
+                                     &voltage_monitoring_notify,
+                                     0);
+                }
+                else
+                {
+                    voltage_monitoring_notify =
+                        ControllerNotification::NOTIFY_DATA;
+                }
+
+                xQueueSendToBack(queue_led_notification_task,
+                                 &voltage_monitoring_notify,
+                                 0);
                 break;
             }
             case ControllerState::STATE_BUSY:
             {
-                // Voltage monitoring is busy, handle accordingly
-                LOG_INFO("Voltage monitoring is busy...");
                 break;
             }
             default:
@@ -581,7 +658,7 @@ void setup_voltage_monitoring()
         }
 
         // Delay to allow other tasks to execute
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        vTaskDelay(voltage_monitoring_job_delay);
     }
 }
 
@@ -638,12 +715,12 @@ int main()
                     &buzzer_task_handle);
 
     // Set up the event queue
-    queue_led_task = xQueueCreate(1, sizeof(uint8_t));
     queue_motor_control_data = xQueueCreate(2, sizeof(struct MotorControlData));
     queue_led_notification_task =
         xQueueCreate(1, sizeof(enum ControllerNotification));
     queue_buzzer_notification_task =
         xQueueCreate(1, sizeof(enum ControllerNotification));
+    queue_led_colour_data = xQueueCreate(1, sizeof(LEDColourNames));
 
     // Start the FreeRTOS scheduler if all tasks are created successfully
     if (led_status == pdPASS && tmc_status == pdPASS &&

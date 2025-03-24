@@ -18,16 +18,19 @@ VoltageMonitoring::VoltageMonitoring(const std::string &voltage_rail_name,
                                      uint8_t voltage_adc_channel,
                                      float voltage_scaling_factor,
                                      float voltage_threshold_low,
-                                     float voltage_threshold_high)
+                                     float voltage_threshold_high,
+                                     float voltage_delta_threshold)
     : m_voltage_rail_name(voltage_rail_name),
       m_voltage_pin(voltage_pin),
       m_voltage_adc_channel(voltage_adc_channel),
       m_voltage_scaling_factor(voltage_scaling_factor),
       m_voltage_threshold_low(voltage_threshold_low),
       m_voltage_threshold_high(voltage_threshold_high),
-      m_init_success(false),
-      m_current_voltage(0.0f)
+      m_voltage_delta_threshold(voltage_delta_threshold),
+      m_init_success(false)
 {
+    m_voltage_data.voltage = 0.0f;
+    m_voltage_data.state = VoltageBoundsCheckState::VOLTAGE_STATE_WITHIN_BOUNDS;
 }
 
 VoltageMonitoring::~VoltageMonitoring()
@@ -50,9 +53,9 @@ bool VoltageMonitoring::init()
 
     LOG_DATA("%s voltage: %.2fV",
              m_voltage_rail_name.c_str(),
-             m_current_voltage);
+             m_voltage_data.voltage);
 
-    if (false == Utils::isNumberWithinBounds<float>(m_current_voltage,
+    if (false == Utils::isNumberWithinBounds<float>(m_voltage_data.voltage,
                                                     m_voltage_threshold_low,
                                                     m_voltage_threshold_high))
     {
@@ -72,34 +75,50 @@ void VoltageMonitoring::deinit()
 
 enum ControllerState VoltageMonitoring::processJob(uint32_t tick_count)
 {
+    float s_last_voltage = m_voltage_data.voltage;
+    enum ControllerState monitor_state = ControllerState::STATE_IDLE;
+
     if (!m_init_success)
     {
-        LOG_WARN("VoltageMonitoring not initialized.");
+        LOG_ERROR("VoltageMonitoring not initialized.");
         return STATE_IDLE;
     }
 
-    // Read the current voltage
+    // Read the current voltage - updates m_voltage_data.voltage
     updateVoltageRead();
 
     // Determine the state based on voltage thresholds
-    if (false == Utils::isNumberWithinBounds<float>(m_current_voltage,
+    if (false == Utils::isNumberWithinBounds<float>(m_voltage_data.voltage,
                                                     m_voltage_threshold_low,
                                                     m_voltage_threshold_high))
     {
-        return ControllerState::STATE_NEW_DATA;
+        m_voltage_data.state =
+            VoltageBoundsCheckState::VOLTAGE_STATE_OUTSIDE_BOUNDS;
+        monitor_state = ControllerState::STATE_NEW_DATA;
     }
 
-    return STATE_READY;
+    // New state info if the voltage has changed by more than
+    // m_voltage_delta_threshold
+    if (Utils::isNumberWithinBounds<float>(
+            m_voltage_data.voltage,
+            s_last_voltage - m_voltage_delta_threshold,
+            s_last_voltage + m_voltage_delta_threshold))
+    {
+        monitor_state = ControllerState::STATE_NEW_DATA;
+    }
+
+    return monitor_state;
 }
 
-float VoltageMonitoring::getVoltage() const
+struct VoltageMonitorData VoltageMonitoring::getVoltageData() const
 {
-    return m_current_voltage;
+    return m_voltage_data;
 }
 
 void VoltageMonitoring::updateVoltageRead()
 {
     // TODO: Consider using a moving average to smooth the voltage reading
-    m_current_voltage = Utils::getValidADCResultVolts(m_voltage_adc_channel);
-    m_current_voltage *= m_voltage_scaling_factor;
+    m_voltage_data.voltage =
+        Utils::getValidADCResultVolts(m_voltage_adc_channel) *
+        m_voltage_scaling_factor;
 }
