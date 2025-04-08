@@ -95,6 +95,38 @@ static struct LEDEffect effect_rapid_blink = {
                  LEDDuration::LED_VERY_FAST,
                  LEDDuration::LED_VERY_FAST}};
 
+enum class LEDColourNames
+{
+    LED_COLOUR_RED = 0U,
+    LED_COLOUR_GREEN = 1U,
+    LED_COLOUR_BLUE = 2U,
+    LED_COLOUR_YELLOW = 3U,
+    LED_COLOUR_ORANGE = 4U,
+    LED_COLOUR_CYAN = 5U,
+    LED_COLOUR_MAGENTA = 6U,
+    LED_COLOUR_WHITE = 7U,
+    LED_COLOUR_OFF = 8U,
+    LED_COLOUR_MAX_COUNT
+};
+struct LEDColourData
+{
+    enum LEDColourNames led_colour_name;  // enum containing supported colours
+    uint16_t red, green, blue;            // Colour intensities (0-65535)
+};
+
+// Predefined LED colors
+static const LEDColourData LEDColours[] = {
+    {LEDColourNames::LED_COLOUR_RED, 65535, 0, 0},
+    {LEDColourNames::LED_COLOUR_GREEN, 0, 65535, 0},
+    {LEDColourNames::LED_COLOUR_BLUE, 0, 0, 65535},
+    {LEDColourNames::LED_COLOUR_YELLOW, 65535, 65535, 0},
+    {LEDColourNames::LED_COLOUR_ORANGE, 65535, 20000, 0},
+    {LEDColourNames::LED_COLOUR_CYAN, 0, 65535, 65535},
+    {LEDColourNames::LED_COLOUR_MAGENTA, 65535, 0, 65535},
+    {LEDColourNames::LED_COLOUR_WHITE, 65535, 65535, 65535},
+    {LEDColourNames::LED_COLOUR_OFF, 0, 0, 0}  // Turn off the LED
+};
+
 class LEDControl : public ControlInterface
 {
 public:
@@ -104,13 +136,14 @@ public:
     void deinit();
     enum ControllerState processJob(uint32_t tick_count);
     void setLEDFunction(enum ControllerNotification controller_notification);
+    void setLEDColour(enum LEDColourNames led_colour);
 
 protected:
 private:
     bool m_init_success;
     uint16_t m_pwm_slice_num;
     enum ControllerState m_control_state;
-    void disableLED();
+    void enableLED(bool enable);
 };
 
 #endif  // LED_CONTROL_H_

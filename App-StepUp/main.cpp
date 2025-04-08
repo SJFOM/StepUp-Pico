@@ -16,34 +16,49 @@ using std::vector;
  * GLOBALS
  */
 // This is the inter-task queue
-volatile QueueHandle_t queue_led_task = NULL;
 volatile QueueHandle_t queue_motor_control_data = NULL;
 volatile QueueHandle_t queue_led_notification_task = NULL;
 volatile QueueHandle_t queue_buzzer_notification_task = NULL;
+volatile QueueHandle_t queue_led_colour_data = NULL;
 
 // Set loop delay times (in ms)
 const TickType_t joystick_job_delay_ms = 10 / portTICK_PERIOD_MS;
 const TickType_t tmc_job_delay_ms = 20 / portTICK_PERIOD_MS;
 const TickType_t buzzer_job_delay_ms = 100 / portTICK_PERIOD_MS;
 const TickType_t led_job_delay_ms = 100 / portTICK_PERIOD_MS;
+const TickType_t voltage_monitoring_job_delay = 10000 / portTICK_PERIOD_MS;
 
 // FROM 1.0.1 Record references to the tasks
 TaskHandle_t joystick_task_handle = NULL;
 TaskHandle_t tmc_task_handle = NULL;
 TaskHandle_t buzzer_task_handle = NULL;
 TaskHandle_t led_task_handle = NULL;
+TaskHandle_t voltage_monitoring_task_handle = NULL;
 
 // Task priorities (higher value = higher priority)
 UBaseType_t job_priority_joystick_control = 3U;
 UBaseType_t job_priority_tmc_control = 2U;
 UBaseType_t job_priority_buzzer_control = 1U;
 UBaseType_t job_priority_led_control = 1U;
+UBaseType_t job_priority_voltage_monitoring = 1U;
 
 // Create class instances of control interfaces
 TMCControl tmc_control(R_SENSE);
 JoystickControl joystick_control;
 BuzzerControl buzzer_control(BUZZER_PIN);
 LEDControl led_control(LED_PIN_RED, LED_PIN_GREEN, LED_PIN_BLUE);
+VoltageMonitoring battery_voltage_monitoring("battery",
+                                             VBAT_MONITOR_ADC_PIN,
+                                             VBAT_MONITOR_ADC_CHANNEL,
+                                             VBAT_ADC_SCALING_FACTOR,
+                                             cs_battery_voltage_threshold_low,
+                                             cs_battery_voltage_threshold_high);
+VoltageMonitoring motor_voltage_monitoring("motor",
+                                           VMOTOR_MONITOR_ADC_PIN,
+                                           VMOTOR_MONITOR_ADC_CHANNEL,
+                                           VMOTOR_ADC_SCALING_FACTOR,
+                                           cs_motor_voltage_threshold_low,
+                                           cs_motor_voltage_threshold_high);
 
 /*
  * SETUP FUNCTIONS
@@ -55,10 +70,11 @@ LEDControl led_control(LED_PIN_RED, LED_PIN_GREEN, LED_PIN_BLUE);
 void setup()
 {
     setup_power_control();
-    setup_vbat_monitoring();
+    setup_vusb_monitoring();
     setup_led();
     setup_tmc2300();
     setup_boost_converter();
+    setup_voltage_monitoring();
     setup_joystick();
     setup_buzzer();
 }
@@ -77,42 +93,31 @@ void setup_power_control()
     gpio_put(MCU_PWR_CTRL_PIN, 1);
 }
 
-void setup_vbat_monitoring()
+void setup_vusb_monitoring()
 {
-    Utils::log_info("VBat monitoring setup...");
-    adc_init();
+    LOG_INFO("VUSB monitoring...");
 
-    adc_gpio_init(VBAT_MONITOR_ADC_PIN);
+    // Enable boost converter pin control
+    gpio_set_input_enabled(VUSB_MONITOR_PIN, true);
+    gpio_disable_pulls(VUSB_MONITOR_PIN);
 
-    // Give time for the voltage on the boost converter ADC pin to settle
-    sleep_ms(100);
-
-    uint16_t battery_voltage_raw =
-        Utils::getValidADCResultRaw(VBAT_MONITOR_ADC_CHANNEL);
-
-    float battery_voltage_volts =
-        Utils::getValidADCResultVolts(VBAT_MONITOR_ADC_CHANNEL);
-
-    Utils::log_info((string) "Battery voltage - raw value: " +
-                    std::to_string(battery_voltage_raw) + " - voltage: " +
-                    std::to_string(battery_voltage_volts) + " V");
-
-    float battery_voltage_scaled =
-        battery_voltage_volts * VBAT_ADC_SCALING_FACTOR;
-
-    Utils::log_info(
-        (string) "Battery voltage - scaled: " +
-        std::to_string(battery_voltage_volts * VBAT_ADC_SCALING_FACTOR) + " V");
-
-    // VBat voltage should be greater than 3.3V (ADC: 2048) and less than 4.3
-    // volts (ADC: ~2793)
-    // TODO: Encode these values in a header file for a VBAT monitoring task
-    if (!Utils::isValueWithinBounds(battery_voltage_raw, 2048, 2793))
+    // N.B: IRQ handler must be initialised before enabling IRQs
+    gpio_add_raw_irq_handler(VUSB_MONITOR_PIN, &usb_detect_callback);
+    gpio_set_irq_enabled(VUSB_MONITOR_PIN,
+                         GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE,
+                         true);
+    if (!irq_is_enabled(IO_IRQ_BANK0))
     {
-        Utils::log_error("Battery voltage out of range... FAIL");
+        irq_set_enabled(IO_IRQ_BANK0, true);
     }
 
-    Utils::log_info("VBat monitoring... OK");
+    if (gpio_get(VUSB_MONITOR_PIN))
+    {
+        s_usb_is_inserted = true;
+        LOG_INFO("USB cable detected");
+    }
+
+    LOG_INFO("VUSB monitoring... OK");
 }
 
 /**
@@ -124,7 +129,7 @@ void setup_vbat_monitoring()
  */
 void setup_tmc2300()
 {
-    Utils::log_info("TMC2300 setup...");
+    LOG_INFO("TMC2300 setup...");
 
     bool tmc_setup_success = true;
     // If this fails on a call to writing to TMC then it will be blocking!
@@ -132,28 +137,28 @@ void setup_tmc2300()
 
     if (tmc_control.getChipID() == TMC2300_VERSION_COMPATIBLE)
     {
-        Utils::log_info("TMC2300 silicon version: 0x40");
+        LOG_INFO("TMC2300 silicon version: 0x40");
     }
     else
     {
-        Utils::log_warn("TMC version: UNSUPPORTED!");
+        LOG_WARN("TMC version: UNSUPPORTED!");
         tmc_setup_success = false;
     }
 
     if (tmc_setup_success)
     {
         tmc_control.enableFunctionality(true);
-        Utils::log_info("TMC2300 setup... OK");
+        LOG_INFO("TMC2300 setup... OK");
     }
     else
     {
-        Utils::log_error("TMC2300 setup... FAIL");
+        LOG_ERROR("TMC2300 setup... FAIL");
     }
 }
 
 void setup_boost_converter()
 {
-    Utils::log_info("Boost converter setup...");
+    LOG_INFO("Boost converter setup...");
 
     adc_gpio_init(VMOTOR_MONITOR_ADC_PIN);
 
@@ -164,33 +169,7 @@ void setup_boost_converter()
     // Enable boost converter
     gpio_put(TMC_PIN_BOOST_EN, 1);
 
-    // Give time for the voltage on the boost converter ADC pin to settle
-    sleep_ms(100);
-
-    uint16_t boost_converter_voltage_raw =
-        Utils::getValidADCResultRaw(VMOTOR_MONITOR_ADC_CHANNEL);
-
-    float boost_converter_voltage_volts =
-        Utils::getValidADCResultVolts(VMOTOR_MONITOR_ADC_CHANNEL);
-
-    Utils::log_info(
-        (string) "Boost converter - raw value: " +
-        std::to_string(boost_converter_voltage_raw) +
-        " - voltage: " + std::to_string(boost_converter_voltage_volts) + " V");
-
-    Utils::log_info((string) "Boost converter - output voltage: " +
-                    std::to_string(boost_converter_voltage_volts *
-                                   VMOTOR_ADC_SCALING_FACTOR) +
-                    " V");
-
-    // VMotor voltage should sit around 1.65V if Vmotor = 10.6V
-    if (!Utils::isValueWithinBounds(boost_converter_voltage_raw,
-                                    ADC_MIDWAY_VALUE_RAW - 200,
-                                    ADC_MIDWAY_VALUE_RAW + 200))
-    {
-        Utils::log_error("Boost converter setup... FAIL");
-    }
-    Utils::log_info("Boost converter setup... OK");
+    LOG_INFO("Boost converter setup... OK");
 }
 
 /**
@@ -199,7 +178,7 @@ void setup_boost_converter()
  */
 void setup_joystick()
 {
-    Utils::log_info("Joystick setup...");
+    LOG_INFO("Joystick setup...");
 
     if (joystick_control.init())
     {
@@ -209,14 +188,14 @@ void setup_joystick()
     {
         // This will be true if no joystick present OR the josytick is not
         // centered
-        // Utils::log_error("Joystick setup... FAIL");
+        // LOG_ERROR("Joystick setup... FAIL");
     }
-    Utils::log_info("Joystick setup... OK");
+    LOG_INFO("Joystick setup... OK");
 }
 
 void setup_buzzer()
 {
-    Utils::log_info("Buzzer setup...");
+    LOG_INFO("Buzzer setup...");
     if (buzzer_control.init())
     {
         buzzer_control.enableFunctionality(true);
@@ -225,14 +204,14 @@ void setup_buzzer()
     else
     {
         // FIXME: When will this ever be true?
-        Utils::log_error("Buzzer setup... FAIL");
+        LOG_ERROR("Buzzer setup... FAIL");
     }
-    Utils::log_info("Buzzer setup... OK");
+    LOG_INFO("Buzzer setup... OK");
 }
 
 void setup_led()
 {
-    Utils::log_info("LED setup...");
+    LOG_INFO("LED setup...");
     if (led_control.init())
     {
         led_control.enableFunctionality(true);
@@ -241,9 +220,39 @@ void setup_led()
     else
     {
         // FIXME: When will this ever be true?
-        Utils::log_error("LED setup... FAIL");
+        LOG_ERROR("LED setup... FAIL");
     }
-    Utils::log_info("LED setup... OK");
+    LOG_INFO("LED setup... OK");
+}
+
+// FIXME: This method may need a re-think, how do we handle the case where the
+// voltage is out of bounds at this early stage?
+void setup_voltage_monitoring()
+{
+    LOG_INFO("Voltage monitoring setup...");
+    if (battery_voltage_monitoring.init())
+    {
+        battery_voltage_monitoring.enableFunctionality(true);
+        LOG_INFO("Battery voltage monitoring setup... OK");
+    }
+    else
+    {
+        LOG_ERROR("Battery voltage monitoring setup... FAIL");
+    }
+
+    // NOTE: This may fail if we do not initialise the boost converter before
+    // now
+    if (motor_voltage_monitoring.init())
+    {
+        motor_voltage_monitoring.enableFunctionality(true);
+        LOG_INFO("Boost/Motor voltage monitoring setup... OK");
+    }
+    else
+    {
+        LOG_ERROR("Boost/Motor voltage monitoring setup... FAIL");
+    }
+
+    LOG_INFO("Voltage monitoring setup...OK");
 }
 
 /*
@@ -270,7 +279,7 @@ void setup_led()
 
         tmc_state = tmc_control.processJob(xTaskGetTickCount());
 
-        // Utils::log_debug("TMC state: " +
+        // LOG_DEBUG("TMC state: " +
         //                  (string)ControllerStateString[tmc_state]);
 
         switch (tmc_state)
@@ -285,10 +294,10 @@ void setup_led()
                 static MotorControlData motor_data = {};
                 if (!default_config_sent)
                 {
-                    Utils::log_info("Configure TMC2300 default values...");
+                    LOG_INFO("Configure TMC2300 default values...");
                     tmc_control.defaultConfiguration();
                     default_config_sent = true;
-                    Utils::log_info("Configure TMC2300 default values - OK!");
+                    LOG_INFO("Configure TMC2300 default values - OK!");
                 }
                 // Check for an item in the FreeRTOS xQueue
                 if (xQueueReceive(queue_motor_control_data, &motor_data, 0) ==
@@ -299,7 +308,7 @@ void setup_led()
                     // motor_data.direction);
                     if (motor_data.button_press)
                     {
-                        Utils::log_info("Button press - stopping motor!");
+                        LOG_INFO("Button press - stopping motor!");
                         // A button press event should instantly stop the
                         // motor
                         tmc_control.resetMovementDynamics();
@@ -329,19 +338,19 @@ void setup_led()
 
                     if (tmc_data.diag.open_circuit)
                     {
-                        Utils::log_debug("Open circuit detected!");
+                        LOG_DEBUG("Open circuit detected!");
                     }
                     if (tmc_data.diag.overheating)
                     {
                         // Overheat event warrants a more assertive notification
                         // to the user
                         tmc_notify = ControllerNotification::NOTIFY_ERROR;
-                        Utils::log_debug("Overheating!");
+                        LOG_DEBUG("Overheating!");
                         tmc_control.enableFunctionality(false);
                     }
                     if (tmc_data.diag.short_circuit)
                     {
-                        Utils::log_debug("Short circuit detected!");
+                        LOG_DEBUG("Short circuit detected!");
                     }
 
                     xQueueSendToBack(queue_led_notification_task,
@@ -473,10 +482,11 @@ void setup_led()
 
 [[noreturn]] void led_process_job(void *unused_arg)
 {
-    unsigned long count = 0;
     enum ControllerNotification led_notify =
         ControllerNotification::NOTIFY_BOOT;
     ControllerState led_controller_state = ControllerState::STATE_IDLE;
+
+    enum LEDColourNames led_colour = LEDColourNames::LED_COLOUR_OFF;
 
     while (true)
     {
@@ -494,7 +504,19 @@ void setup_led()
                                   &led_notify,
                                   portMAX_DELAY) == pdPASS)
                 {
-                    led_control.setLEDFunction(led_notify);
+                    if (led_notify == ControllerNotification::NOTIFY_DATA)
+                    {
+                        if (xQueueReceive(queue_led_colour_data,
+                                          &led_colour,
+                                          portMAX_DELAY) == pdPASS)
+                        {
+                            led_control.setLEDColour(led_colour);
+                        }
+                    }
+                    else
+                    {
+                        led_control.setLEDFunction(led_notify);
+                    }
                 }
                 break;
             }
@@ -504,6 +526,140 @@ void setup_led()
                 break;
         }
         vTaskDelay(led_job_delay_ms);
+    }
+}
+
+[[noreturn]] void voltage_monitoring_process_job(void *unused_arg)
+{
+    ControllerState battery_voltage_monitoring_state =
+        ControllerState::STATE_IDLE;
+    ControllerState motor_voltage_monitoring_state =
+        ControllerState::STATE_IDLE;
+
+    enum ControllerNotification voltage_monitoring_notify =
+        ControllerNotification::NOTIFY_BOOT;
+
+    // FIXME: Lots of duplication here, can we refactor this?
+    while (true)
+    {
+        battery_voltage_monitoring_state =
+            battery_voltage_monitoring.processJob(xTaskGetTickCount());
+
+        switch (battery_voltage_monitoring_state)
+        {
+            case ControllerState::STATE_IDLE:
+            {
+                // Voltage monitoring is idle, no action required
+                break;
+            }
+            case ControllerState::STATE_NEW_DATA:
+            {
+                // Log the current voltage when new data is available
+                struct VoltageMonitorData voltage_monitor_data =
+                    battery_voltage_monitoring.getVoltageData();
+                if (voltage_monitor_data.state ==
+                    VoltageBoundsCheckState::VOLTAGE_STATE_OUTSIDE_BOUNDS)
+                {
+                    LOG_DATA("Battery voltage out of bounds: %.2fV",
+                             voltage_monitor_data.voltage);
+                    voltage_monitoring_notify =
+                        ControllerNotification::NOTIFY_ERROR;
+                    xQueueSendToBack(queue_buzzer_notification_task,
+                                     &voltage_monitoring_notify,
+                                     0);
+                }
+                else
+                {
+                    voltage_monitoring_notify =
+                        ControllerNotification::NOTIFY_DATA;
+                    enum LEDColourNames led_colour =
+                        LEDColourNames::LED_COLOUR_WHITE;
+
+                    if (Utils::isNumberWithinBounds<float>(
+                            voltage_monitor_data.voltage,
+                            cs_battery_voltage_threshold_low,
+                            cs_battery_voltage_threshold_mid_low))
+                    {
+                        led_colour = LEDColourNames::LED_COLOUR_RED;
+                    }
+                    else if (Utils::isNumberWithinBounds<float>(
+                                 voltage_monitor_data.voltage,
+                                 cs_battery_voltage_threshold_mid_low,
+                                 cs_battery_voltage_threshold_mid_high))
+                    {
+                        led_colour = LEDColourNames::LED_COLOUR_ORANGE;
+                    }
+                    else if (Utils::isNumberWithinBounds<float>(
+                                 voltage_monitor_data.voltage,
+                                 cs_battery_voltage_threshold_mid_high,
+                                 cs_battery_voltage_threshold_high))
+                    {
+                        led_colour = LEDColourNames::LED_COLOUR_GREEN;
+                    }
+
+                    xQueueSendToBack(queue_led_colour_data, &led_colour, 0);
+                }
+
+                xQueueSendToBack(queue_led_notification_task,
+                                 &voltage_monitoring_notify,
+                                 0);
+                break;
+            }
+            case ControllerState::STATE_BUSY:
+            {
+                break;
+            }
+            default:
+                break;
+        }
+
+        motor_voltage_monitoring_state =
+            motor_voltage_monitoring.processJob(xTaskGetTickCount());
+
+        switch (motor_voltage_monitoring_state)
+        {
+            case ControllerState::STATE_IDLE:
+            {
+                // Voltage monitoring is idle, no action required
+                break;
+            }
+            case ControllerState::STATE_NEW_DATA:
+            {
+                // Log the current voltage when new data is available
+                struct VoltageMonitorData voltage_monitor_data =
+                    motor_voltage_monitoring.getVoltageData();
+                if (voltage_monitor_data.state ==
+                    VoltageBoundsCheckState::VOLTAGE_STATE_OUTSIDE_BOUNDS)
+                {
+                    LOG_DATA("Motor voltage out of bounds: %.2fV",
+                             voltage_monitor_data.voltage);
+                    voltage_monitoring_notify =
+                        ControllerNotification::NOTIFY_ERROR;
+                    xQueueSendToBack(queue_buzzer_notification_task,
+                                     &voltage_monitoring_notify,
+                                     0);
+                }
+                else
+                {
+                    voltage_monitoring_notify =
+                        ControllerNotification::NOTIFY_DATA;
+                }
+
+                xQueueSendToBack(queue_led_notification_task,
+                                 &voltage_monitoring_notify,
+                                 0);
+                break;
+            }
+            case ControllerState::STATE_BUSY:
+            {
+                break;
+            }
+            default:
+                break;
+        }
+
+        // Delay to allow other tasks to execute
+        vTaskDelay(voltage_monitoring_job_delay);
     }
 }
 
@@ -519,9 +675,9 @@ int main()
     // Log app info
     Utils::log_device_info();
 
-    Utils::log_info("Setting up peripherals...");
+    LOG_INFO("Setting up peripherals...");
     setup();
-    Utils::log_info("Setting up peripherals... OK!");
+    LOG_INFO("Setting up peripherals... OK!");
 
     // FROM 1.0.1 Store handles referencing the tasks; get return values
     // NOTE Arg 3 is the stack depth -- in words, not bytes
@@ -551,18 +707,26 @@ int main()
                                            job_priority_buzzer_control,
                                            &buzzer_task_handle);
 
+    BaseType_t voltage_monitoring_status =
+        xTaskCreate(voltage_monitoring_process_job,
+                    "VOLTAGE_MONITORING_JOB_TASK",
+                    512,
+                    NULL,
+                    job_priority_voltage_monitoring,
+                    &buzzer_task_handle);
+
     // Set up the event queue
-    queue_led_task = xQueueCreate(1, sizeof(uint8_t));
     queue_motor_control_data = xQueueCreate(2, sizeof(struct MotorControlData));
     queue_led_notification_task =
         xQueueCreate(1, sizeof(enum ControllerNotification));
     queue_buzzer_notification_task =
         xQueueCreate(1, sizeof(enum ControllerNotification));
+    queue_led_colour_data = xQueueCreate(1, sizeof(LEDColourNames));
 
-    // Start the FreeRTOS scheduler
-    // FROM 1.0.1: Only proceed with valid tasks
+    // Start the FreeRTOS scheduler if all tasks are created successfully
     if (led_status == pdPASS && tmc_status == pdPASS &&
-        joystick_status == pdPASS && buzzer_status == pdPASS)
+        joystick_status == pdPASS && buzzer_status == pdPASS &&
+        voltage_monitoring_status == pdPASS)  // Add this condition
     {
         vTaskStartScheduler();
     }
@@ -571,5 +735,40 @@ int main()
     while (true)
     {
         // NOP
+    }
+}
+
+void usb_detect_callback()
+{
+    bool irq_is_valid = true;
+    if (gpio_get_irq_event_mask(VUSB_MONITOR_PIN) & (GPIO_IRQ_EDGE_RISE))
+    {
+        gpio_acknowledge_irq(VUSB_MONITOR_PIN, (GPIO_IRQ_EDGE_RISE));
+        s_usb_is_inserted = true;
+    }
+    else if (gpio_get_irq_event_mask(VUSB_MONITOR_PIN) & (GPIO_IRQ_EDGE_FALL))
+    {
+        gpio_acknowledge_irq(VUSB_MONITOR_PIN, (GPIO_IRQ_EDGE_FALL));
+        s_usb_is_inserted = false;
+    }
+    else
+    {
+        irq_is_valid = false;
+    }
+
+    // Remember that this IRQ will fire if a shared IRQ bank is used
+    if (irq_is_valid)
+    {
+        // Set INFO notification status
+        enum ControllerNotification usb_detect_notify =
+            ControllerNotification::NOTIFY_INFO;
+
+        xQueueSendToBackFromISR(queue_led_notification_task,
+                                &usb_detect_notify,
+                                0);
+
+        xQueueSendToBackFromISR(queue_buzzer_notification_task,
+                                &usb_detect_notify,
+                                0);
     }
 }

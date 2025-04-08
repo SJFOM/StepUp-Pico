@@ -47,7 +47,7 @@ void callback(TMC2300TypeDef *tmc2300, ConfigState cfg_state)
     }
     else
     {
-        Utils::log_info("TMC is ready for use");
+        LOG_INFO("TMC is ready for use");
         // Configuration restore complete
         s_is_tmc_comms_callback_complete = true;
         // The driver may only be enabled once the configuration is done
@@ -91,7 +91,7 @@ bool TMCControl::init()
         // Initialize CRC calculation for TMC2300 UART datagrams
         if (!(tmc_fillCRC8Table(0x07, true, 0) == 1))
         {
-            Utils::log_info("Error: Fill CRC");
+            LOG_INFO("Error: Fill CRC");
             _init_routine_success &= false;
         }
 
@@ -110,8 +110,8 @@ bool TMCControl::init()
         uint _baud = uart_init(TMC_UART_ID, TMC_BAUD_RATE);
         if (!(_baud >= TMC_BAUD_RATE))
         {
-            Utils::log_warn("UART init");
-            Utils::log_warn((string) "Actual BAUD: " + std::to_string(_baud));
+            LOG_WARN("UART init");
+            LOG_WARN((string) "Actual BAUD: " + std::to_string(_baud));
             _init_routine_success &= false;
         }
 
@@ -175,13 +175,12 @@ void TMCControl::defaultConfiguration()
     m_gstat.sr = tmc2300_readInt(&tmc2300, m_gstat.address);
     if (m_gstat.sr)
     {
-        Utils::log_info("TMC2300 GSTAT register diagnostics:");
-        Utils::log_info((string) "\t- Reset?: " +
-                        std::to_string(m_gstat.reset));
-        Utils::log_info((string) "\t- Driver shutdown due to error?: " +
-                        std::to_string(m_gstat.drv_err));
-        Utils::log_info((string) "\t- Low supply voltage?: " +
-                        std::to_string(m_gstat.u3v5));
+        LOG_INFO("TMC2300 GSTAT register diagnostics:");
+        LOG_INFO((string) "\t- Reset?: " + std::to_string(m_gstat.reset));
+        LOG_INFO((string) "\t- Driver shutdown due to error?: " +
+                 std::to_string(m_gstat.drv_err));
+        LOG_INFO((string) "\t- Low supply voltage?: " +
+                 std::to_string(m_gstat.u3v5));
     }
 
     /* Register: IOIN_t
@@ -384,10 +383,10 @@ void TMCControl::move(int32_t velocity)
         return;
     }
 
-    // Utils::log_debug((string) "velocity: " + std::to_string(velocity));
+    // LOG_DEBUG((string) "velocity: " + std::to_string(velocity));
     if (abs(velocity) > VELOCITY_MAX_STEPS_PER_SECOND)
     {
-        Utils::log_warn("Max motor velocity reached!");
+        LOG_WARN("Max motor velocity reached!");
 
         velocity = VELOCITY_MAX_STEPS_PER_SECOND;
     }
@@ -411,7 +410,7 @@ void TMCControl::enableUartPins(bool enable_pins)
 {
     if (enable_pins && !m_uart_pins_enabled)
     {
-        Utils::log_info("TMC - UART pins enable");
+        LOG_INFO("TMC - UART pins enable");
         // Set the TX and RX pins by using the function select on the GPIO
         // Set datasheet for more information on function select
         gpio_init(TMC_PIN_UART_TX);
@@ -425,7 +424,7 @@ void TMCControl::enableUartPins(bool enable_pins)
     }
     else if (!enable_pins)
     {
-        Utils::log_info("TMC - UART pins disable");
+        LOG_INFO("TMC - UART pins disable");
         // Set the UART pins as standard IO's
         gpio_set_function(TMC_PIN_UART_TX, GPIO_FUNC_SIO);
         gpio_set_function(TMC_PIN_UART_RX, GPIO_FUNC_SIO);
@@ -769,7 +768,7 @@ void TMCControl::enableDriver(bool enable_driver)
         m_motor_move_state = MotorMoveState::MOTOR_IDLE_TO_MOVING;
     }
 
-    // Utils::log_debug((string) "Driver enabled: " +
+    // LOG_DEBUG((string) "Driver enabled: " +
     //  std::to_string(_enable_driver));
     gpio_put(TMC_PIN_ENABLE, _enable_driver ? 1 : 0);
 }
