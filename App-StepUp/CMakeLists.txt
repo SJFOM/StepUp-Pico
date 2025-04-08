@@ -18,15 +18,15 @@ add_compile_definitions(PCB_REVISION=${PCB_REVISION})
 add_compile_definitions(BUILD_NUM=${BUILD_NUMBER})
 
 # Include app source code file(s)
+file(GLOB APP_SOURCES
+    "${APP_SRC_DIRECTORY}/*.c*"
+    "${APP_SRC_DIRECTORY}/src/*.c*"
+    "${TMC_API_CODE_DIRECTORY}/ic/*.c*"
+    "${TMC_API_CODE_DIRECTORY}/helpers/*.c*"
+)
+
 add_executable(${APP_NAME}
-    ${APP_SRC_DIRECTORY}/main.cpp
-    ${APP_SRC_DIRECTORY}/src/tmc_control.cpp
-    ${APP_SRC_DIRECTORY}/src/joystick_control.cpp
-    ${APP_SRC_DIRECTORY}/src/buzzer_control.cpp
-    ${APP_SRC_DIRECTORY}/src/led_control.cpp
-    ${APP_SRC_DIRECTORY}/src//utils.cpp
-    ${TMC_API_CODE_DIRECTORY}/ic/TMC2300.c
-    ${TMC_API_CODE_DIRECTORY}/helpers/CRC.c
+    ${APP_SOURCES}
 )
 
 # Link to built libraries

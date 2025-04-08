@@ -79,18 +79,14 @@ bool JoystickControl::init()
         m_joystick.position.y_offset =
             Utils::getValidADCResultRaw(JOYSTICK_ADC_CHANNEL_Y);
 
-        Utils::log_info((string) "X - Raw value: " +
-                        std::to_string(m_joystick.position.x_offset) +
-                        " - voltage: " +
-                        std::to_string(m_joystick.position.x_offset *
-                                       ADC_TO_VOLTAGE_CONVERSION_FACTOR) +
-                        " V");
-        Utils::log_info((string) "Y - Raw value: " +
-                        std::to_string(m_joystick.position.y_offset) +
-                        " - voltage: " +
-                        std::to_string(m_joystick.position.y_offset *
-                                       ADC_TO_VOLTAGE_CONVERSION_FACTOR) +
-                        " V");
+        LOG_DATA("X - Raw value: %d - voltage: %.2fV",
+                 m_joystick.position.x_offset,
+                 (float)m_joystick.position.x_offset *
+                     ADC_TO_VOLTAGE_CONVERSION_FACTOR);
+        LOG_DATA("Y - Raw value: %d - voltage: %.2fV",
+                 m_joystick.position.y_offset,
+                 (float)m_joystick.position.y_offset *
+                     ADC_TO_VOLTAGE_CONVERSION_FACTOR);
 
         if ((m_joystick.position.x_offset >
                  JOYSTICK_ADC_LOWER_HOME_THRESHOLD_RAW &&
@@ -109,16 +105,14 @@ bool JoystickControl::init()
         }
         else
         {
-            Utils::log_warn(
-                (string) "ADC lower bound:" +
-                std::to_string(JOYSTICK_ADC_LOWER_HOME_THRESHOLD_RAW));
-            Utils::log_warn(
-                (string) "ADC upper bound:" +
-                std::to_string(JOYSTICK_ADC_UPPER_HOME_THRESHOLD_RAW));
-            Utils::log_warn((string) "x stage offset: " +
-                            std::to_string(m_joystick.position.x_offset));
-            Utils::log_warn((string) "y stage offset: " +
-                            std::to_string(m_joystick.position.y_offset));
+            LOG_WARN((string) "ADC lower bound:" +
+                     std::to_string(JOYSTICK_ADC_LOWER_HOME_THRESHOLD_RAW));
+            LOG_WARN((string) "ADC upper bound:" +
+                     std::to_string(JOYSTICK_ADC_UPPER_HOME_THRESHOLD_RAW));
+            LOG_WARN((string) "x stage offset: " +
+                     std::to_string(m_joystick.position.x_offset));
+            LOG_WARN((string) "y stage offset: " +
+                     std::to_string(m_joystick.position.y_offset));
         }
 
         // Mimick first button press event against which to compare later events
@@ -128,9 +122,9 @@ bool JoystickControl::init()
     if (m_init_success)
     {
         m_joystick.control_state = ControllerState::STATE_READY;
-        enableJoystickButtonInterrupt(true);
         gpio_add_raw_irq_handler(JOYSTICK_BUTTON_PIN,
                                  &joystick_button_callback);
+        enableJoystickButtonInterrupt(true);
         if (!irq_is_enabled(IO_IRQ_BANK0))
         {
             irq_set_enabled(IO_IRQ_BANK0, true);

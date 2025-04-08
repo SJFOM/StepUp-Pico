@@ -44,7 +44,7 @@ bool LEDControl::init()
     s_rgb_led.led_blue_pwm_slice =
         Utils::configurePWMPin(s_rgb_led.led_pin_blue, LED_BASE_PWM_FREQ_IN_HZ);
 
-    disableLED();
+    enableLED(false);
 
     m_control_state = ControllerState::STATE_READY;
 
@@ -98,7 +98,7 @@ void LEDControl::setLEDFunction(
             default:
             {
                 s_active_effect = nullptr;
-                disableLED();
+                enableLED(false);
                 m_control_state = ControllerState::STATE_READY;
                 break;
             }
@@ -114,11 +114,27 @@ void LEDControl::setLEDFunction(
     }
 }
 
-void LEDControl::disableLED()
+void LEDControl::setLEDColour(enum LEDColourNames led_colour)
 {
-    pwm_set_enabled(s_rgb_led.led_red_pwm_slice, false);
-    pwm_set_enabled(s_rgb_led.led_green_pwm_slice, false);
-    pwm_set_enabled(s_rgb_led.led_blue_pwm_slice, false);
+    for (const auto &colour : LEDColours)
+    {
+        if (colour.led_colour_name == led_colour)
+        {
+            pwm_set_gpio_level(s_rgb_led.led_pin_red, colour.red);
+            pwm_set_gpio_level(s_rgb_led.led_pin_green, colour.green);
+            pwm_set_gpio_level(s_rgb_led.led_pin_blue, colour.blue);
+
+            enableLED(true);
+            break;
+        }
+    }
+}
+
+void LEDControl::enableLED(bool enable)
+{
+    pwm_set_enabled(s_rgb_led.led_red_pwm_slice, enable);
+    pwm_set_enabled(s_rgb_led.led_green_pwm_slice, enable);
+    pwm_set_enabled(s_rgb_led.led_blue_pwm_slice, enable);
 }
 
 enum ControllerState LEDControl::processJob(uint32_t tick_count)
