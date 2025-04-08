@@ -36,7 +36,6 @@
 #include "pico/stdlib.h"  // Includes `hardware_gpio.h`
 // App
 #include "board_definitions.h"
-#include "default_config_parameters.h"
 #include "utils.h"
 // Control includes
 #include "buzzer_control.hpp"
@@ -44,7 +43,11 @@
 #include "led_control.hpp"
 #include "tmc_control.hpp"
 #include "voltage_monitoring.hpp"
+// Global defines
+#define VELOCITY_DELTA_VALUE (500U)
 
+// Static variables
+static volatile bool s_usb_is_inserted = false;
 #ifdef __cplusplus
 extern "C"
 {

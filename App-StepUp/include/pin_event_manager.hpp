@@ -19,9 +19,6 @@
 // pin includes
 #include "board_definitions.h"
 
-// common default values
-#include "default_config_parameters.h"
-
 // Logging utilities
 #include "utils.h"
 
@@ -42,8 +39,6 @@ private:
     bool m_init_success;
     uint8_t m_pin;
     uint32_t m_event_type, m_long_press_duration_in_ms;
-
-    int64_t
 };
 
 #endif  // BUTTON_MANAGER_H_
