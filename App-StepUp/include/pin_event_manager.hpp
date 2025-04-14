@@ -66,7 +66,7 @@ public:
 
     uint8_t m_pin;
 
-    uint32_t m_event_type, m_pin_event_timeout_ms;
+    uint32_t m_pin_event_type, m_pin_event_timeout_ms;
 
     alarm_id_t m_debounce_timer_id = 0;
 

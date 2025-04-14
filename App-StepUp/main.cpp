@@ -26,7 +26,7 @@ const TickType_t joystick_job_delay_ms = 10 / portTICK_PERIOD_MS;
 const TickType_t tmc_job_delay_ms = 20 / portTICK_PERIOD_MS;
 const TickType_t buzzer_job_delay_ms = 100 / portTICK_PERIOD_MS;
 const TickType_t led_job_delay_ms = 100 / portTICK_PERIOD_MS;
-const TickType_t voltage_monitoring_job_delay = 10000 / portTICK_PERIOD_MS;
+const TickType_t voltage_monitoring_job_delay = 1000 / portTICK_PERIOD_MS;
 
 // FROM 1.0.1 Record references to the tasks
 TaskHandle_t joystick_task_handle = NULL;
@@ -100,16 +100,6 @@ void setup_vusb_monitoring()
     // Enable boost converter pin control
     gpio_set_input_enabled(VUSB_MONITOR_PIN, true);
     gpio_disable_pulls(VUSB_MONITOR_PIN);
-
-    // N.B: IRQ handler must be initialised before enabling IRQs
-    // gpio_add_raw_irq_handler(VUSB_MONITOR_PIN, &usb_detect_callback);
-    // gpio_set_irq_enabled(VUSB_MONITOR_PIN,
-    //                      GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE,
-    //                      true);
-    // if (!irq_is_enabled(IO_IRQ_BANK0))
-    // {
-    //     irq_set_enabled(IO_IRQ_BANK0, true);
-    // }
 
     if (gpio_get(VUSB_MONITOR_PIN))
     {
@@ -539,17 +529,13 @@ void setup_voltage_monitoring()
     enum ControllerNotification voltage_monitoring_notify =
         ControllerNotification::NOTIFY_BOOT;
 
-    // gpio_add_raw_irq_handler(VUSB_MONITOR_PIN, &usb_detect_callback);
-    // gpio_set_irq_enabled(VUSB_MONITOR_PIN,
-    //                      GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE,
-    //                      true);
-    // if (!irq_is_enabled(IO_IRQ_BANK0))
-    // {
-    //     irq_set_enabled(IO_IRQ_BANK0, true);
-    // }
-
     PinEventManager usb_pin_event_manager(VUSB_MONITOR_PIN, GPIO_IRQ_EDGE_FALL);
     usb_pin_event_manager.init();
+
+    PinEventManager power_pin_event_manager(MCU_PWR_BTN_PIN,
+                                            GPIO_IRQ_EDGE_FALL,
+                                            5000U);
+    power_pin_event_manager.init();
 
     // FIXME: Lots of duplication here, can we refactor this?
     while (true)
@@ -562,6 +548,38 @@ void setup_voltage_monitoring()
             s_usb_is_inserted = true;
             LOG_INFO("USB cable detected");
             usb_pin_event_manager.clearPinEventCount();
+
+            // Set INFO notification status
+            enum ControllerNotification usb_detect_notify =
+                ControllerNotification::NOTIFY_INFO;
+
+            xQueueSendToBack(queue_led_notification_task,
+                             &usb_detect_notify,
+                             0);
+
+            xQueueSendToBack(queue_buzzer_notification_task,
+                             &usb_detect_notify,
+                             0);
+        }
+
+        if (power_pin_event_manager.getPinEventCount() > 0)
+        {
+            LOG_INFO("Power button pressed");
+            power_pin_event_manager.clearPinEventCount();
+
+            // Set INFO notification status
+            enum ControllerNotification usb_detect_notify =
+                ControllerNotification::NOTIFY_POWER_DOWN;
+
+            xQueueSendToBack(queue_led_notification_task,
+                             &usb_detect_notify,
+                             0);
+
+            xQueueSendToBack(queue_buzzer_notification_task,
+                             &usb_detect_notify,
+                             0);
+
+            gpio_put(MCU_PWR_CTRL_PIN, 0);
         }
 
         switch (battery_voltage_monitoring_state)
@@ -732,7 +750,7 @@ int main()
                     512,
                     NULL,
                     job_priority_voltage_monitoring,
-                    &buzzer_task_handle);
+                    &voltage_monitoring_task_handle);
 
     // Set up the event queue
     queue_motor_control_data = xQueueCreate(2, sizeof(struct MotorControlData));
@@ -754,40 +772,5 @@ int main()
     while (true)
     {
         // NOP
-    }
-}
-
-void usb_detect_callback()
-{
-    bool irq_is_valid = true;
-    if (gpio_get_irq_event_mask(VUSB_MONITOR_PIN) & (GPIO_IRQ_EDGE_RISE))
-    {
-        gpio_acknowledge_irq(VUSB_MONITOR_PIN, (GPIO_IRQ_EDGE_RISE));
-        s_usb_is_inserted = true;
-    }
-    else if (gpio_get_irq_event_mask(VUSB_MONITOR_PIN) & (GPIO_IRQ_EDGE_FALL))
-    {
-        gpio_acknowledge_irq(VUSB_MONITOR_PIN, (GPIO_IRQ_EDGE_FALL));
-        s_usb_is_inserted = false;
-    }
-    else
-    {
-        irq_is_valid = false;
-    }
-
-    // Remember that this IRQ will fire if a shared IRQ bank is used
-    if (irq_is_valid)
-    {
-        // Set INFO notification status
-        enum ControllerNotification usb_detect_notify =
-            ControllerNotification::NOTIFY_INFO;
-
-        xQueueSendToBackFromISR(queue_led_notification_task,
-                                &usb_detect_notify,
-                                0);
-
-        xQueueSendToBackFromISR(queue_buzzer_notification_task,
-                                &usb_detect_notify,
-                                0);
     }
 }

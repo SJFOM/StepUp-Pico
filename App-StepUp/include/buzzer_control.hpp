@@ -83,7 +83,13 @@ static struct Melody melody_off = {.note = {NotePitch::NOTE_OFF},
                                    .duration = {NoteDuration::NOTE_EIGHT}};
 
 static struct Melody melody_sweep_up = {
-    .note = {NotePitch::NOTE_E7, NotePitch::NOTE_B7, NotePitch::NOTE_F8},
+    .note = {NotePitch::NOTE_C7, NotePitch::NOTE_D7, NotePitch::NOTE_E7},
+    .duration = {NoteDuration::NOTE_EIGHT,
+                 NoteDuration::NOTE_EIGHT,
+                 NoteDuration::NOTE_EIGHT}};
+
+static struct Melody melody_sweep_down = {
+    .note = {NotePitch::NOTE_F8, NotePitch::NOTE_B7, NotePitch::NOTE_E7},
     .duration = {NoteDuration::NOTE_EIGHT,
                  NoteDuration::NOTE_EIGHT,
                  NoteDuration::NOTE_EIGHT}};

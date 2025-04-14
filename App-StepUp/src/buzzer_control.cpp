@@ -65,8 +65,7 @@ void BuzzerControl::setBuzzerFunction(
         {
             case ControllerNotification::NOTIFY_BOOT:
             {
-                s_active_melody = &melody_off;
-                // s_active_melody = &melody_sweep_up;
+                s_active_melody = &melody_sweep_up;
                 break;
             }
             case ControllerNotification::NOTIFY_INFO:
@@ -82,6 +81,11 @@ void BuzzerControl::setBuzzerFunction(
             case ControllerNotification::NOTIFY_ERROR:
             {
                 s_active_melody = &melody_long_quadruple_beep;
+                break;
+            }
+            case ControllerNotification::NOTIFY_POWER_DOWN:
+            {
+                s_active_melody = &melody_sweep_down;
                 break;
             }
             default:
