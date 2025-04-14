@@ -27,6 +27,9 @@
 // Control libraries
 #include "../../../Interfaces/ControlInterface.hpp"
 
+// PinManager
+#include "pin_event_manager.hpp"
+
 #define JOYSTICK_ADC_HOME_THRESHOLD_RAW (200U)
 #define JOYSTICK_ADC_LOWER_HOME_THRESHOLD_RAW \
     (ADC_MIDWAY_VALUE_RAW - JOYSTICK_ADC_HOME_THRESHOLD_RAW)
@@ -72,6 +75,8 @@ private:
     bool m_init_success;
     struct JoystickData m_joystick;
     uint32_t m_next_joystick_read_deadline_in_ms;
+
+    PinEventManager *m_pin_event_manager = nullptr;
 
     void getLatestJoystickPosition();
 };

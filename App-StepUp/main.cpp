@@ -102,14 +102,14 @@ void setup_vusb_monitoring()
     gpio_disable_pulls(VUSB_MONITOR_PIN);
 
     // N.B: IRQ handler must be initialised before enabling IRQs
-    gpio_add_raw_irq_handler(VUSB_MONITOR_PIN, &usb_detect_callback);
-    gpio_set_irq_enabled(VUSB_MONITOR_PIN,
-                         GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE,
-                         true);
-    if (!irq_is_enabled(IO_IRQ_BANK0))
-    {
-        irq_set_enabled(IO_IRQ_BANK0, true);
-    }
+    // gpio_add_raw_irq_handler(VUSB_MONITOR_PIN, &usb_detect_callback);
+    // gpio_set_irq_enabled(VUSB_MONITOR_PIN,
+    //                      GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE,
+    //                      true);
+    // if (!irq_is_enabled(IO_IRQ_BANK0))
+    // {
+    //     irq_set_enabled(IO_IRQ_BANK0, true);
+    // }
 
     if (gpio_get(VUSB_MONITOR_PIN))
     {
@@ -539,11 +539,30 @@ void setup_voltage_monitoring()
     enum ControllerNotification voltage_monitoring_notify =
         ControllerNotification::NOTIFY_BOOT;
 
+    // gpio_add_raw_irq_handler(VUSB_MONITOR_PIN, &usb_detect_callback);
+    // gpio_set_irq_enabled(VUSB_MONITOR_PIN,
+    //                      GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE,
+    //                      true);
+    // if (!irq_is_enabled(IO_IRQ_BANK0))
+    // {
+    //     irq_set_enabled(IO_IRQ_BANK0, true);
+    // }
+
+    PinEventManager usb_pin_event_manager(VUSB_MONITOR_PIN, GPIO_IRQ_EDGE_FALL);
+    usb_pin_event_manager.init();
+
     // FIXME: Lots of duplication here, can we refactor this?
     while (true)
     {
         battery_voltage_monitoring_state =
             battery_voltage_monitoring.processJob(xTaskGetTickCount());
+
+        if (usb_pin_event_manager.getPinEventCount() > 0)
+        {
+            s_usb_is_inserted = true;
+            LOG_INFO("USB cable detected");
+            usb_pin_event_manager.clearPinEventCount();
+        }
 
         switch (battery_voltage_monitoring_state)
         {
