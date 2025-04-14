@@ -28,6 +28,8 @@
 
 #define MELODY_MAX_NOTE_COUNT      (10U)
 #define BUZZER_BASE_PWM_FREQ_IN_HZ (8000U)
+#define BUZZER_PWM_WRAP_VALUE      (65535U)                      // 2^16 - 1
+#define BUZZER_PWM_DUTY_CYCLE      (BUZZER_PWM_WRAP_VALUE / 2U)  // 50% duty cycle
 
 enum NoteDuration
 {
@@ -42,35 +44,36 @@ enum NoteDuration
 
 enum NotePitch
 {
-    // These have all been prescribed assuming 8Khz = 65535. The range of notes
-    // are focused around a centre frequency of 4kHz given the buzzer used on
-    // the StepUp hardware resonates best at this frequency.
-    NOTE_OFF = 0,      // OHz = OFF
-    NOTE_B6 = 16183,   // 1976 Hz
-    NOTE_C7 = 17146,   // 2093 Hz
-    NOTE_Cs7 = 18165,  // 2217 Hz
-    NOTE_D7 = 19245,   // 2349 Hz
-    NOTE_Ds7 = 20390,  // 2489 Hz
-    NOTE_E7 = 21602,   // 2637 Hz
-    NOTE_F7 = 22887,   // 2794 Hz
-    NOTE_Fs7 = 24248,  // 2960 Hz
-    NOTE_G7 = 25689,   // 3136 Hz
-    NOTE_Gs7 = 27217,  // 3322 Hz
-    NOTE_A7 = 28835,   // 3520 Hz
-    NOTE_As7 = 30550,  // 3729 Hz
-    NOTE_B7 = 32367,   // 3951 Hz
-    NOTE_C8 = 34291,   // 4186 Hz
-    NOTE_Cs8 = 36330,  // 4435 Hz
-    NOTE_D8 = 38491,   // 4699 Hz
-    NOTE_Ds8 = 40779,  // 4978 Hz
-    NOTE_E8 = 43204,   // 5274 Hz
-    NOTE_F8 = 45773,   // 5588 Hz
-    NOTE_Fs8 = 48495,  // 5920 Hz
-    NOTE_G8 = 51379,   // 6272 Hz
-    NOTE_Gs8 = 54434,  // 6645 Hz
-    NOTE_A8 = 57671,   // 7040 Hz
-    NOTE_As8 = 61100,  // 7459 Hz
-    NOTE_B8 = 64733,   // 7902 Hz
+    // The StepUp buzzer is a piezo speaker with a center frequency of 4kHz, so
+    // the frequency of the note is important. The following values represent
+    // the frequencies of each note in Hz.
+
+    NOTE_OFF = 0,     // 0 Hz = OFF
+    NOTE_B6 = 1976,   // 1976 Hz
+    NOTE_C7 = 2093,   // 2093 Hz
+    NOTE_Cs7 = 2217,  // 2217 Hz
+    NOTE_D7 = 2349,   // 2349 Hz
+    NOTE_Ds7 = 2489,  // 2489 Hz
+    NOTE_E7 = 2637,   // 2637 Hz
+    NOTE_F7 = 2794,   // 2794 Hz
+    NOTE_Fs7 = 2960,  // 2960 Hz
+    NOTE_G7 = 3136,   // 3136 Hz
+    NOTE_Gs7 = 3322,  // 3322 Hz
+    NOTE_A7 = 3520,   // 3520 Hz
+    NOTE_As7 = 3729,  // 3729 Hz
+    NOTE_B7 = 3951,   // 3951 Hz
+    NOTE_C8 = 4186,   // 4186 Hz
+    NOTE_Cs8 = 4435,  // 4435 Hz
+    NOTE_D8 = 4699,   // 4699 Hz
+    NOTE_Ds8 = 4978,  // 4978 Hz
+    NOTE_E8 = 5274,   // 5274 Hz
+    NOTE_F8 = 5588,   // 5588 Hz
+    NOTE_Fs8 = 5920,  // 5920 Hz
+    NOTE_G8 = 6272,   // 6272 Hz
+    NOTE_Gs8 = 6645,  // 6645 Hz
+    NOTE_A8 = 7040,   // 7040 Hz
+    NOTE_As8 = 7459,  // 7459 Hz
+    NOTE_B8 = 7902,   // 7902 Hz
 };
 
 struct Melody
@@ -83,21 +86,21 @@ static struct Melody melody_off = {.note = {NotePitch::NOTE_OFF},
                                    .duration = {NoteDuration::NOTE_EIGHT}};
 
 static struct Melody melody_sweep_up = {
-    .note = {NotePitch::NOTE_C7, NotePitch::NOTE_D7, NotePitch::NOTE_E7},
+    .note = {NotePitch::NOTE_B6, NotePitch::NOTE_D7, NotePitch::NOTE_E7},
     .duration = {NoteDuration::NOTE_EIGHT,
                  NoteDuration::NOTE_EIGHT,
                  NoteDuration::NOTE_EIGHT}};
 
 static struct Melody melody_sweep_down = {
-    .note = {NotePitch::NOTE_F8, NotePitch::NOTE_B7, NotePitch::NOTE_E7},
+    .note = {NotePitch::NOTE_E7, NotePitch::NOTE_D7, NotePitch::NOTE_B6},
     .duration = {NoteDuration::NOTE_EIGHT,
                  NoteDuration::NOTE_EIGHT,
                  NoteDuration::NOTE_EIGHT}};
 
 static struct Melody melody_short_double_beep = {
-    .note = {NotePitch::NOTE_C8,
+    .note = {NotePitch::NOTE_C7,
              NotePitch::NOTE_OFF,
-             NotePitch::NOTE_C8,
+             NotePitch::NOTE_C7,
              NotePitch::NOTE_OFF},
     .duration = {NoteDuration::NOTE_SIXTEENTH,
                  NoteDuration::NOTE_SIXTEENTH,
@@ -105,13 +108,13 @@ static struct Melody melody_short_double_beep = {
                  NoteDuration::NOTE_SIXTEENTH}};
 
 static struct Melody melody_short_quadruple_beep = {
-    .note = {NotePitch::NOTE_C8,
+    .note = {NotePitch::NOTE_C7,
              NotePitch::NOTE_OFF,
-             NotePitch::NOTE_C8,
+             NotePitch::NOTE_C7,
              NotePitch::NOTE_OFF,
-             NotePitch::NOTE_C8,
+             NotePitch::NOTE_C7,
              NotePitch::NOTE_OFF,
-             NotePitch::NOTE_C8,
+             NotePitch::NOTE_C7,
              NotePitch::NOTE_OFF},
     .duration = {
         NoteDuration::NOTE_SIXTEENTH,
@@ -125,13 +128,13 @@ static struct Melody melody_short_quadruple_beep = {
     }};
 
 static struct Melody melody_long_quadruple_beep = {
-    .note = {NotePitch::NOTE_C8,
+    .note = {NotePitch::NOTE_C7,
              NotePitch::NOTE_OFF,
-             NotePitch::NOTE_C8,
+             NotePitch::NOTE_C7,
              NotePitch::NOTE_OFF,
-             NotePitch::NOTE_C8,
+             NotePitch::NOTE_C7,
              NotePitch::NOTE_OFF,
-             NotePitch::NOTE_C8,
+             NotePitch::NOTE_C7,
              NotePitch::NOTE_OFF},
     .duration = {
         NoteDuration::NOTE_HALF,
@@ -159,7 +162,7 @@ private:
     bool m_init_success;
     uint16_t m_pwm_slice_num;
     enum ControllerState m_control_state;
-    void disableBuzzer();
+    void enableBuzzer(bool enable);
 };
 
 #endif  // BUZZER_CONTROL_H_

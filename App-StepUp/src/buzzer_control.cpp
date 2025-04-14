@@ -34,14 +34,17 @@ BuzzerControl::~BuzzerControl()
 
 bool BuzzerControl::init()
 {
-    m_pwm_slice_num =
-        Utils::configurePWMPin(s_buzzer_pin, BUZZER_BASE_PWM_FREQ_IN_HZ);
+    // m_pwm_slice_num = Utils::configurePWMPin(s_buzzer_pin,
+    //                                          BUZZER_BASE_PWM_FREQ_IN_HZ,
+    //                                          BUZZER_PWM_WRAP_VALUE);
+
+    m_pwm_slice_num = Utils::configurePWMPin(s_buzzer_pin);
 
     // TODO: Ensure buzzer resets output DC signal to 0V once complete as a
     // permanent DC bias on the buzzer can damage the piezo hardware. If this
     // needs more than just setting pwm_set_enabled() to false then we should
     // consider a separate method to handle this.
-    disableBuzzer();
+    enableBuzzer(false);
 
     m_control_state = ControllerState::STATE_READY;
 
@@ -91,7 +94,7 @@ void BuzzerControl::setBuzzerFunction(
             default:
             {
                 s_active_melody = nullptr;
-                disableBuzzer();
+                enableBuzzer(false);
                 m_control_state = ControllerState::STATE_READY;
                 break;
             }
@@ -100,16 +103,16 @@ void BuzzerControl::setBuzzerFunction(
         if (m_control_state == ControllerState::STATE_BUSY)
         {
             // Enable the buzzer
-            pwm_set_enabled(m_pwm_slice_num, true);
+            enableBuzzer(true);
 
             playNextNoteInMelody();
         }
     }
 }
 
-void BuzzerControl::disableBuzzer()
+void BuzzerControl::enableBuzzer(bool enable)
 {
-    pwm_set_enabled(m_pwm_slice_num, false);
+    pwm_set_enabled(m_pwm_slice_num, enable);
 }
 
 enum ControllerState BuzzerControl::processJob(uint32_t tick_count)
@@ -117,7 +120,7 @@ enum ControllerState BuzzerControl::processJob(uint32_t tick_count)
     if (m_control_state == ControllerState::STATE_BUSY &&
         s_note_index_in_melody == MELODY_MAX_NOTE_COUNT)
     {
-        disableBuzzer();
+        enableBuzzer(false);
         s_note_index_in_melody = 0;
         s_active_melody = nullptr;
         // Melody was playing but has now completed, update state to represent
@@ -132,13 +135,13 @@ void playNextNoteInMelody()
     if (s_note_index_in_melody < MELODY_MAX_NOTE_COUNT &&
         s_active_melody != nullptr)
     {
-        // Update with new tone
-        pwm_set_gpio_level(s_buzzer_pin,
-                           s_active_melody->note[s_note_index_in_melody]);
+        Utils::setPWMFrequency(s_buzzer_pin,
+                               s_active_melody->note[s_note_index_in_melody]);
 
         // Schedule next timeout/note play duration
-        // TODO: Experiment with the fire_if_past flag if experiencing issues...
-        // May need to add some error handling here if timer cannot be created
+        // TODO: Experiment with the fire_if_past flag if experiencing
+        // issues... May need to add some error handling here if timer
+        // cannot be created
         alarm_id_t alarm_id =
             add_alarm_in_ms(s_active_melody->duration[s_note_index_in_melody],
                             melodyTimerCallback,
@@ -146,9 +149,9 @@ void playNextNoteInMelody()
                             false);  // fire_if_past
 
         // Only play the next note if we have valid alarm id's to use.
-        // The alarm ID will be invalid (i.e. <= 0) if the timer duration is too
-        // short (e.g. 0ms), as is the case when a note duration of 0ms is
-        // detected.
+        // The alarm ID will be invalid (i.e. <= 0) if the timer duration is
+        // too short (e.g. 0ms), as is the case when a note duration of 0ms
+        // is detected.
         if (alarm_id > 0)
         {
             s_note_index_in_melody++;
@@ -160,7 +163,6 @@ void playNextNoteInMelody()
         }
     }
 }
-
 int64_t melodyTimerCallback(alarm_id_t id, void *user_data)
 {
     // TODO: Handle the alarm_id_t & user_data params

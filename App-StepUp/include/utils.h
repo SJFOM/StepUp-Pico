@@ -145,7 +145,10 @@ namespace Utils
     /*********************
      * PWM UTILS - BEGIN *
      *********************/
-    uint16_t configurePWMPin(uint pwm_pin, uint16_t pwm_freq_in_hz);
+    uint16_t configurePWMPin(uint pwm_pin);
+    void setPWMFrequency(uint pwm_pin,
+                         uint16_t pwm_freq_in_hz,
+                         uint8_t duty_cycle_percentage = 50U);
 
     /**********************
      * PWM UTILS - FINISH *

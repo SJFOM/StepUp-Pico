@@ -222,12 +222,16 @@ namespace Utils
     /*********************
      * PWM UTILS - BEGIN *
      *********************/
-    uint16_t configurePWMPin(uint pwm_pin, uint16_t pwm_freq_in_hz)
+
+    uint16_t configurePWMPin(uint pwm_pin)
     {
+        // Ensure valid PWM pins are being used (0 -> 29)
+        assert(pwm_pin < NUM_BANK0_GPIOS);
+
         // Configure the led pins and direction
         gpio_set_function(pwm_pin, GPIO_FUNC_PWM);
 
-        // Find out which PWM slice is connected to LED_PIN
+        // Find out which PWM slice is connected to pwm_pin
         uint16_t pwm_slice_num = pwm_gpio_to_slice_num(pwm_pin);
 
         // Get some sensible defaults for the slice configuration. By
@@ -235,14 +239,51 @@ namespace Utils
         // to 2**16-1)
         pwm_config config = pwm_get_default_config();
 
-        // Set divider, reduces counter clock to sysclock/this value
-        // (sysclock = 125MHz default), 125MHz / pwm_freq_in_hz =
-        // pwm_clk_div (in Hz)
-        float pwm_clk_div = (float)(125000000.f / (float)pwm_freq_in_hz);
-        pwm_config_set_clkdiv(&config,
-                              pwm_clk_div);  // should give 8kHz div clk
+        // Apply the configuration to the PWM slice
+        pwm_init(pwm_slice_num, &config, true);
 
         return pwm_slice_num;
+    }
+
+    void setPWMFrequency(uint pwm_pin,
+                         uint16_t pwm_freq_in_hz,
+                         uint8_t duty_cycle_percentage)
+    {
+        uint pwm_slice_num = pwm_gpio_to_slice_num(pwm_pin);
+
+        if (pwm_freq_in_hz > 0)
+        {
+            check_slice_num_param(
+                pwm_slice_num);  // Check slice number is valid
+
+            uint32_t system_clock = SYS_CLK_HZ;
+            uint32_t divider_16 = system_clock / pwm_freq_in_hz / 4096 +
+                                  (system_clock % (pwm_freq_in_hz * 4096) != 0);
+
+            if (divider_16 / 16 == 0)
+            {
+                divider_16 = 16;
+            }
+
+            // Calculate the pwm wrap value, which is the maximum value of the
+            // counter. The counter will count from 0 to wrap, and then
+            // wrap around to 0 again.
+            uint32_t wrap = system_clock * 16 / divider_16 / pwm_freq_in_hz - 1;
+
+            pwm_set_clkdiv_int_frac(pwm_slice_num,
+                                    divider_16 / 16,
+                                    divider_16 & 0xF);
+            pwm_set_wrap(pwm_slice_num, wrap);
+            pwm_set_gpio_level(pwm_pin, wrap * duty_cycle_percentage / 100);
+
+            // Enable the PWM output
+            pwm_set_enabled(pwm_slice_num, true);
+        }
+        else
+        {
+            // Disable the PWM output
+            pwm_set_enabled(pwm_slice_num, false);
+        }
     }
 
     /**********************
