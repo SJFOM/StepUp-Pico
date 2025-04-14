@@ -12,7 +12,9 @@
 
 #include "../include/pin_event_manager.hpp"
 
-PinEventManager::PinEventManager() {}
+PinEventManager::PinEventManager(uint8_t pin,
+                                 uint32_t event_type,
+                                 uint32_t long_press_duration_in_ms) {};
 
 PinEventManager::~PinEventManager()
 {
@@ -21,41 +23,43 @@ PinEventManager::~PinEventManager()
 
 bool PinEventManager::init()
 {
-    return m_init_success;
+    return true;
+    // return m_init_success;
 }
 
 void PinEventManager::deinit()
 {
-    m_init_success = false;
+    // m_init_success = false;
 }
 
-int64_t debounce_timer_callback(alarm_id_t id, void *user_data)
-{
-    if (false == gpio_get(m_pin))
-    {
-        s_button_press_event = true;
-    }
-    enableJoystickButtonInterrupt(true);
-    return 0;
-}
+// int64_t debounce_timer_callback(alarm_id_t id, void *user_data)
+// {
+// if (false == gpio_get(m_pin))
+// {
+//     s_button_press_event = true;
+// }
+// enableJoystickButtonInterrupt(true);
+// return 0;
+// }
 
-void joystick_button_callback()
-{
-    if (gpio_get_irq_event_mask(m_pin) & GPIO_IRQ_EDGE_FALL)
-    {
-        gpio_acknowledge_irq(m_pin, GPIO_IRQ_EDGE_FALL);
+// void joystick_button_callback()
+// {
+// if (gpio_get_irq_event_mask(m_pin) & GPIO_IRQ_EDGE_FALL)
+// {
+//     gpio_acknowledge_irq(m_pin, GPIO_IRQ_EDGE_FALL);
 
-        // Disable interrupt until debounce timer has elapsed
-        enableJoystickButtonInterrupt(false);
+//     // Disable interrupt until debounce timer has elapsed
+//     enableJoystickButtonInterrupt(false);
 
-        // Call debounce_timer_callback in s_pin_debounce_delay_time_ms
-        // milli-seconds
-        add_alarm_in_ms(s_pin_debounce_delay_time_ms,
-                        debounce_timer_callback,
-                        NULL,
-                        false);
-    }
-}
+//     // Call debounce_timer_callback in
+//     s_pin_debounce_default_delay_time_ms
+//     // milli-seconds
+//     add_alarm_in_ms(s_pin_debounce_default_delay_time_ms,
+//                     debounce_timer_callback,
+//                     NULL,
+//                     false);
+// }
+// }
 
 // void usb_detect_callback()
 // {

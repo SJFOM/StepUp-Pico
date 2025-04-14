@@ -29,14 +29,14 @@
 
 constexpr static uint32_t c_s_power_button_off_hold_time_ms = (3000U);
 
-enum class PowerState
+enum PowerState
 {
     POWER_STATE_IDLE = 0,
     POWER_STATE_USB_INSERTED = 1U,
     POWER_STATE_BUTTON_INTERACTION = 2U,
     POWER_STATE_BUTTON_POWER_OFF = 3U,
     POWER_STATE_MAX_COUNT,
-}
+};
 
 class PowerControl : public ControlInterface
 {
@@ -48,10 +48,6 @@ public:
     enum ControllerState processJob(uint32_t tick_count);
 
     void powerOff();
-
-bool
-
-    protected : private : bool m_init_success;
 };
 
 #endif  // POWER_CONTROL_H_

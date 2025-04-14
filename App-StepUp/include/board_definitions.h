@@ -95,6 +95,21 @@ constexpr static float cs_motor_voltage_threshold_high = 10.3f;
 /* Voltage threshold definitions - END */
 /***************************************/
 
+/**************************************/
+/* Application default values - START */
+/**************************************/
+// TODO: Can this be done in PinManager with set defaults?
+constexpr static uint32_t s_pin_debounce_default_delay_time_ms = 50U;
+constexpr static uint32_t s_adc_settling_default_time_between_reads_in_ms = 50U;
+
+// TODO: Should this be set in the TMC class instead?
+constexpr static uint32_t s_velocity_steps_per_second_delta_default_value =
+    500U;
+
+/************************************/
+/* Application default values - END */
+/************************************/
+
 /*************************/
 /* Joystick pins - START */
 /*************************/

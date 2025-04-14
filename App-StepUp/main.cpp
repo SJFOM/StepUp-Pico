@@ -402,7 +402,7 @@ void setup_voltage_monitoring()
                 // the change in velocity we should incur.
                 motor_data.velocity_delta =
                     joystick_data.state_y *
-                    s_c_velocity_steps_per_second_delta_default_value;
+                    s_velocity_steps_per_second_delta_default_value;
 
                 // This ensures that, no matter which direction we face, the
                 // joystick will "speed up" or "slow down" consistent with

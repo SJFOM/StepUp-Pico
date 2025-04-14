@@ -19,8 +19,6 @@ static volatile bool s_button_press_event = false;
 
 // Button debounce control
 static volatile uint32_t s_time_of_last_button_press;
-// Millisecond delay between valid button press events
-static const uint32_t s_pin_debounce_delay_time_ms = 50U;
 
 static void joystick_button_callback();
 
@@ -34,16 +32,6 @@ static void enableJoystickButtonInterrupt(bool enable_interrupt)
 /*********************************/
 /* Joystick button control - END */
 /*********************************/
-
-/*************************************/
-/* Joystick ADC read control - START */
-/*************************************/
-// Millisecond delay between valid joystick ADC read events
-static const uint32_t s_adc_settling_time_between_reads_in_ms = 50U;
-
-/***********************************/
-/* Joystick ADC read control - END */
-/***********************************/
 
 JoystickControl::JoystickControl()
 {
@@ -231,8 +219,9 @@ void JoystickControl::getLatestJoystickPosition()
         m_next_joystick_read_deadline_in_ms)
     {
         // Reset flag
-        m_next_joystick_read_deadline_in_ms = to_ms_since_boot(
-            make_timeout_time_ms(s_adc_settling_time_between_reads_in_ms));
+        m_next_joystick_read_deadline_in_ms =
+            to_ms_since_boot(make_timeout_time_ms(
+                s_adc_settling_default_time_between_reads_in_ms));
 
         m_joystick.position.x =
             Utils::getValidADCResultRaw(JOYSTICK_ADC_CHANNEL_X) -
@@ -263,9 +252,9 @@ void joystick_button_callback()
         // Disable interrupt until debounce timer has elapsed
         enableJoystickButtonInterrupt(false);
 
-        // Call debounce_timer_callback in s_c_pin_debounce_default_time_in_ms
+        // Call debounce_timer_callback in s_pin_debounce_default_delay_time_ms
         // milli-seconds
-        add_alarm_in_ms(s_c_pin_debounce_default_time_in_ms,
+        add_alarm_in_ms(s_pin_debounce_default_delay_time_ms,
                         debounce_timer_callback,
                         NULL,
                         false);

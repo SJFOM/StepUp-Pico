@@ -22,6 +22,11 @@
 // Logging utilities
 #include "utils.h"
 
+// const "C"
+// {
+//     irq
+// }
+
 class PinEventManager
 {
 public:
