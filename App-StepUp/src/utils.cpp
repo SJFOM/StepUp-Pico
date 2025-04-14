@@ -139,7 +139,7 @@ namespace Utils
      */
     void log_device_info(void)
     {
-        printf("[INFO] App: %s %s (%i)\n", APP_NAME, APP_VERSION, BUILD_NUM);
+        printf("[INFO] App: %s %s (%s)\n", APP_NAME, APP_VERSION, BUILD_NUM);
     }
 
     /**

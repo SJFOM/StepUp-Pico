@@ -21,14 +21,13 @@ include(pico_sdk_import.cmake)
 
 # Set project data
 set(PROJECT_NAME "STEPUP_PICO")
-set(BUILD_NUMBER "0")
 
 # Set app name(s) and version(s)
 set(APP_NAME "StepUp")
-set(APP_VERSION_NUMBER "0.0.1")
+set(APP_VERSION_NUMBER "1.0.0")
 
 # Set board revision
-set(PCB_REVISION 2)
+set(PCB_REVISION 3)
 
 # Specify the app(s) source code
 set(APP_SRC_DIRECTORY "${CMAKE_SOURCE_DIR}/App-StepUp")

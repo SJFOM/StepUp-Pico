@@ -19,7 +19,7 @@
 #    define LED_PIN_RED   (2U)  // PWM1_A
 #    define LED_PIN_GREEN (3U)  // PWM1_B
 #    define LED_PIN_BLUE  (5U)  // PWM2_B
-#elif PCB_REVISION == 2U
+#elif PCB_REVISION >= 2U
 #    define LED_PIN_RED   (3U)  // PWM1_B
 #    define LED_PIN_GREEN (6U)  // Unsure if assigned to any PWM...
 #    define LED_PIN_BLUE  (5U)  // PWM2_B
@@ -120,7 +120,7 @@ constexpr static uint32_t s_velocity_steps_per_second_delta_default_value =
 #    define JOYSTICK_ADC_CHANNEL_X (3U)
 #    define JOYSTICK_ADC_PIN_Y     (28U)
 #    define JOYSTICK_ADC_CHANNEL_Y (2U)
-#elif PCB_REVISION == 2U
+#elif PCB_REVISION >= 2U
 #    define JOYSTICK_ADC_PIN_X     (28U)
 #    define JOYSTICK_ADC_CHANNEL_X (2U)
 #    define JOYSTICK_ADC_PIN_Y     (29U)
@@ -142,7 +142,7 @@ constexpr static uint32_t s_velocity_steps_per_second_delta_default_value =
 /**************************/
 #if PCB_REVISION == 1U
 #    define GPIO_PIN_8 (8U)
-#elif PCB_REVISION == 2U
+#elif PCB_REVISION >= 2U
 #    define GPIO_PIN_2 (2U)
 #else
 #    error "No valid PCB version found!!"
