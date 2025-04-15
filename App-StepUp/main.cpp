@@ -70,13 +70,13 @@ VoltageMonitoring motor_voltage_monitoring("motor",
 void setup()
 {
     setup_power_control();
-    setup_vusb_monitoring();
+    setup_buzzer();
     setup_led();
+    setup_vusb_monitoring();
     setup_tmc2300();
     setup_boost_converter();
     setup_voltage_monitoring();
     setup_joystick();
-    setup_buzzer();
 }
 
 void setup_power_control()
