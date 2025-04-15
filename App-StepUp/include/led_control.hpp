@@ -95,7 +95,7 @@ static struct LEDEffect effect_rapid_blink = {
                  LEDDuration::LED_VERY_FAST,
                  LEDDuration::LED_VERY_FAST}};
 
-enum class LEDColourNames
+enum LEDColourNames
 {
     LED_COLOUR_RED = 0U,
     LED_COLOUR_GREEN = 1U,
@@ -143,6 +143,7 @@ private:
     bool m_init_success;
     uint16_t m_pwm_slice_num;
     enum ControllerState m_control_state;
+    enum LEDColourNames m_active_colour_name;
     void enableLED(bool enable);
 };
 
