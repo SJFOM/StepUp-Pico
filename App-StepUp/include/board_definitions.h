@@ -87,9 +87,14 @@ constexpr static float cs_battery_voltage_threshold_mid_low = 3.6f;
 constexpr static float cs_battery_voltage_threshold_mid_high = 3.8f;
 constexpr static float cs_battery_voltage_threshold_high = 4.3f;
 
-// Motor voltage thresholds - within 1% of 10.2V
-constexpr static float cs_motor_voltage_threshold_low = 10.1f;
-constexpr static float cs_motor_voltage_threshold_high = 10.3f;
+// Motor voltage thresholds
+// Within 1% of 10.2V when IDLE
+constexpr static float cs_motor_idle_voltage_threshold_low = 10.1f;
+constexpr static float cs_motor_idle_voltage_threshold_high = 10.3f;
+
+// Within 10% of 10.2V when ACTIVE
+constexpr static float cs_motor_active_voltage_threshold_low = 9.2f;
+constexpr static float cs_motor_active_voltage_threshold_high = 11.2f;
 
 /***************************************/
 /* Voltage threshold definitions - END */
@@ -98,9 +103,6 @@ constexpr static float cs_motor_voltage_threshold_high = 10.3f;
 /**************************************/
 /* Application default values - START */
 /**************************************/
-// TODO: Can this be done in PinManager with set defaults?
-constexpr static uint32_t s_pin_debounce_default_delay_time_ms = 50U;
-constexpr static uint32_t s_adc_settling_default_time_between_reads_in_ms = 50U;
 
 // TODO: Should this be set in the TMC class instead?
 constexpr static uint32_t s_velocity_steps_per_second_delta_default_value =

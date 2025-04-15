@@ -96,6 +96,12 @@ enum ControllerState VoltageMonitoring::processJob(uint32_t tick_count)
             VoltageBoundsCheckState::VOLTAGE_STATE_OUTSIDE_BOUNDS;
         monitor_state = ControllerState::STATE_NEW_DATA;
     }
+    else
+    {
+        // Important to set/reset this value if it was previously out of bounds
+        m_voltage_data.state =
+            VoltageBoundsCheckState::VOLTAGE_STATE_WITHIN_BOUNDS;
+    }
 
     // New state info if the voltage has changed by more than
     // m_voltage_delta_threshold
@@ -108,6 +114,15 @@ enum ControllerState VoltageMonitoring::processJob(uint32_t tick_count)
     }
 
     return monitor_state;
+}
+
+void VoltageMonitoring::setVoltageThresholds(float voltage_threshold_low,
+                                             float voltage_threshold_high)
+{
+    assert(voltage_threshold_low >= 0 &&
+           voltage_threshold_high > voltage_threshold_low);
+    m_voltage_threshold_low = voltage_threshold_low;
+    m_voltage_threshold_high = voltage_threshold_high;
 }
 
 struct VoltageMonitorData VoltageMonitoring::getVoltageData() const

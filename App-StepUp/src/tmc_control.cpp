@@ -349,21 +349,27 @@ void TMCControl::updateMovementDynamics(int32_t velocity_delta,
     if (direction == 0)
     {
         enableDriver(false);
+        LOG_INFO("TMC - Motor stopped");
+        // m_vactual.sr = VELOCITY_STARTING_STEPS_PER_SECOND;
+        m_ramp_velocity = ((m_target_velocity > 0) ? 1 : -1) *
+                          VELOCITY_STARTING_STEPS_PER_SECOND;
+        printf("RAMP VELOCITY: %d\n", m_ramp_velocity);
     }
     else
     {
-        int32_t ramp_velocity = abs(m_vactual.sr);
-        ramp_velocity *= direction;
+        LOG_INFO("TMC - Motor GOIN!");
+        int32_t cached_velocity = abs(m_vactual.sr);
+        cached_velocity *= direction;
 
         // We do not wish to allow a velocity update to make the motor stop, the
         // direction flag should control this. Instead, we want to enforce a
         // call to resetMotorDynamics or move(0) to have this effect.
-        if ((ramp_velocity + velocity_delta) != 0)
+        if ((cached_velocity + velocity_delta) != 0)
         {
-            ramp_velocity += velocity_delta;
+            cached_velocity += velocity_delta;
         }
 
-        m_target_velocity = ramp_velocity;
+        m_target_velocity = cached_velocity;
 
         enableDriver(true);
     }
@@ -383,14 +389,12 @@ void TMCControl::move(int32_t velocity)
         return;
     }
 
-    // LOG_DEBUG((string) "velocity: " + std::to_string(velocity));
     if (abs(velocity) > VELOCITY_MAX_STEPS_PER_SECOND)
     {
         LOG_WARN("Max motor velocity reached!");
 
         velocity = VELOCITY_MAX_STEPS_PER_SECOND;
     }
-    // printf("New velocity: %d\n", velocity);
     m_vactual.sr = velocity;
     enableDriver(velocity == 0 ? false : true);
     tmc2300_writeInt(&tmc2300, m_vactual.address, m_vactual.sr);
@@ -635,25 +639,32 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
     // Ramp profile using internal TMC step generator
     switch (m_motor_move_state)
     {
-        static int32_t ramp_velocity = 0;
         case (MOTOR_IDLE):
             break;
         case (MOTOR_IDLE_TO_MOVING):
         {
-            m_vactual.sr = VELOCITY_MAX_STEPS_PER_SECOND;
+            m_vactual.sr = ((m_target_velocity > 0) ? 1 : -1) *
+                           VELOCITY_STARTING_STEPS_PER_SECOND;
+
             m_motor_move_state = MotorMoveState::MOTOR_MOVING;
         }
         case (MOTOR_MOVING):
         {
-            if (m_vactual.sr != m_target_velocity)
+            if (m_vactual.sr != m_target_velocity &&
+                abs(m_target_velocity) <= VELOCITY_MAX_STEPS_PER_SECOND)
             {
+                printf("B4-> A-R-T: %d -> %d -> %d\n",
+                       m_vactual.sr,
+                       m_ramp_velocity,
+                       m_target_velocity);
                 if (abs(m_vactual.sr) > abs(m_target_velocity))
                 {
                     // If we are moving faster than the target velocity then we
                     // can safely jump to using the target velocity. Use of the
-                    // ramp profile makes sense when we are trying to increase
-                    // our velocity to a VMAX vs the other way around.
-                    ramp_velocity = m_target_velocity;
+                    // ramp profile really only makes sense when we are trying
+                    // to increase our velocity to a VMAX vs the other way
+                    // around.
+                    m_ramp_velocity = m_target_velocity;
                 }
                 else
                 {
@@ -662,20 +673,20 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
                     // direction of motor rotation.
                     if (m_target_velocity < 0)
                     {
-                        ramp_velocity -=
+                        m_ramp_velocity -=
                             VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
                     }
                     else
                     {
-                        ramp_velocity +=
+                        m_ramp_velocity +=
                             VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
                     }
                 }
-                // printf("%d -> %d -> %d\n",
-                //        m_vactual.sr,
-                //        ramp_velocity,
-                //        m_target_velocity);
-                move(ramp_velocity);
+                printf("AFTER-> A-R-T: %d -> %d -> %d\n",
+                       m_vactual.sr,
+                       m_ramp_velocity,
+                       m_target_velocity);
+                move(m_ramp_velocity);
             }
             break;
         }

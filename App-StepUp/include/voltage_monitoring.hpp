@@ -54,6 +54,9 @@ public:
 
     struct VoltageMonitorData getVoltageData() const;
 
+    void setVoltageThresholds(float voltage_threshold_low,
+                              float voltage_threshold_high);
+
 protected:
 private:
     const std::string m_voltage_rail_name;

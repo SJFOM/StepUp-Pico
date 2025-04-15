@@ -22,6 +22,9 @@
 // Logging utilities
 #include "utils.h"
 
+constexpr static uint32_t s_pin_debounce_default_delay_time_ms = 50U;
+constexpr static uint32_t s_adc_settling_default_time_between_reads_in_ms = 50U;
+
 class PinEventManager
 {
 public:

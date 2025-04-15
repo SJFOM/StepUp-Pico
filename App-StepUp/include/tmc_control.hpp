@@ -55,7 +55,7 @@ extern "C"
 #define VELOCITY_MAX_STEPS_PER_SECOND (100000U)
 
 // Run and hold current values (0..31U) scaled to 1.2A RMS
-#define DEFAULT_IRUN_VALUE  (13U)
+#define DEFAULT_IRUN_VALUE  (20U)
 #define DEFAULT_IHOLD_VALUE (0U)
 
 // If SG_VALUE falls below 2x SGTHRS_VALUE then a stall detection is triggered
@@ -485,7 +485,7 @@ private:
     MotorMoveState m_motor_move_state;
     bool m_init_success, m_uart_pins_enabled;
     struct TMCData m_tmc;
-    int32_t m_target_velocity;
+    int32_t m_target_velocity, m_ramp_velocity;
     TMCOpenCircuitAlgoData m_open_circuit_algo_data;
     bool m_open_circuit_detected = false;
     float m_r_sense;
