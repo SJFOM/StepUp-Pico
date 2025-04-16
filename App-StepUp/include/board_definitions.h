@@ -82,35 +82,23 @@
 /* Voltage threshold definitions - START */
 /*****************************************/
 
-constexpr static float cs_battery_voltage_threshold_low = 3.2f;
-constexpr static float cs_battery_voltage_threshold_mid_low = 3.6f;
-constexpr static float cs_battery_voltage_threshold_mid_high = 3.8f;
-constexpr static float cs_battery_voltage_threshold_high = 4.3f;
+constexpr float CX_BATTERY_VOLTAGE_THRESHOLD_LOW = 3.2f;
+constexpr float CX_BATTERY_VOLTAGE_THRESHOLD_MID_LOW = 3.6f;
+constexpr float CX_BATTERY_VOLTAGE_THRESHOLD_MID_HIGH = 3.8f;
+constexpr float CX_BATTERY_VOLTAGE_THRESHOLD_HIGH = 4.3f;
 
 // Motor voltage thresholds
 // Within 1% of 10.2V when IDLE
-constexpr static float cs_motor_idle_voltage_threshold_low = 10.1f;
-constexpr static float cs_motor_idle_voltage_threshold_high = 10.3f;
+constexpr float CX_MOTOR_IDLE_VOLTAGE_THRESHOLD_LOW = 10.1f;
+constexpr float CX_MOTOR_IDLE_VOLTAGE_THRESHOLD_HIGH = 10.3f;
 
 // Within 10% of 10.2V when ACTIVE
-constexpr static float cs_motor_active_voltage_threshold_low = 9.2f;
-constexpr static float cs_motor_active_voltage_threshold_high = 11.2f;
+constexpr float CX_MOTOR_ACTIVE_VOLTAGE_THRESHOLD_LOW = 9.2f;
+constexpr float CX_MOTOR_ACTIVE_VOLTAGE_THRESHOLD_HIGH = 11.2f;
 
 /***************************************/
 /* Voltage threshold definitions - END */
 /***************************************/
-
-/**************************************/
-/* Application default values - START */
-/**************************************/
-
-// TODO: Should this be set in the TMC class instead?
-constexpr static uint32_t s_velocity_steps_per_second_delta_default_value =
-    500U;
-
-/************************************/
-/* Application default values - END */
-/************************************/
 
 /*************************/
 /* Joystick pins - START */

@@ -643,20 +643,14 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
             break;
         case (MOTOR_IDLE_TO_MOVING):
         {
-            m_vactual.sr = ((m_target_velocity > 0) ? 1 : -1) *
-                           VELOCITY_STARTING_STEPS_PER_SECOND;
+            m_vactual.sr = VELOCITY_MAX_STEPS_PER_SECOND;
 
             m_motor_move_state = MotorMoveState::MOTOR_MOVING;
         }
         case (MOTOR_MOVING):
         {
-            if (m_vactual.sr != m_target_velocity &&
-                abs(m_target_velocity) <= VELOCITY_MAX_STEPS_PER_SECOND)
+            if (m_vactual.sr != m_target_velocity)
             {
-                printf("B4-> A-R-T: %d -> %d -> %d\n",
-                       m_vactual.sr,
-                       m_ramp_velocity,
-                       m_target_velocity);
                 if (abs(m_vactual.sr) > abs(m_target_velocity))
                 {
                     // If we are moving faster than the target velocity then we
@@ -682,10 +676,10 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
                             VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
                     }
                 }
-                printf("AFTER-> A-R-T: %d -> %d -> %d\n",
-                       m_vactual.sr,
-                       m_ramp_velocity,
-                       m_target_velocity);
+                // printf("AFTER-> A-R-T: %d -> %d -> %d\n",
+                //        m_vactual.sr,
+                //        m_ramp_velocity,
+                //        m_target_velocity);
                 move(m_ramp_velocity);
             }
             break;
