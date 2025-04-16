@@ -349,15 +349,9 @@ void TMCControl::updateMovementDynamics(int32_t velocity_delta,
     if (direction == 0)
     {
         enableDriver(false);
-        LOG_INFO("TMC - Motor stopped");
-        // m_vactual.sr = VELOCITY_STARTING_STEPS_PER_SECOND;
-        m_ramp_velocity = ((m_target_velocity > 0) ? 1 : -1) *
-                          VELOCITY_STARTING_STEPS_PER_SECOND;
-        printf("RAMP VELOCITY: %d\n", m_ramp_velocity);
     }
     else
     {
-        LOG_INFO("TMC - Motor GOIN!");
         int32_t cached_velocity = abs(m_vactual.sr);
         cached_velocity *= direction;
 
@@ -643,13 +637,19 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
             break;
         case (MOTOR_IDLE_TO_MOVING):
         {
-            m_vactual.sr = VELOCITY_MAX_STEPS_PER_SECOND;
+            m_ramp_velocity = VELOCITY_STARTING_STEPS_PER_SECOND;
+            if (m_target_velocity < 0)
+            {
+                m_ramp_velocity *= -1;
+            }
+            move(m_ramp_velocity);
 
             m_motor_move_state = MotorMoveState::MOTOR_MOVING;
         }
         case (MOTOR_MOVING):
         {
-            if (m_vactual.sr != m_target_velocity)
+            if (m_vactual.sr != m_target_velocity &&
+                abs(m_target_velocity) <= VELOCITY_MAX_STEPS_PER_SECOND)
             {
                 if (abs(m_vactual.sr) > abs(m_target_velocity))
                 {
@@ -676,17 +676,12 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
                             VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
                     }
                 }
-                // printf("AFTER-> A-R-T: %d -> %d -> %d\n",
-                //        m_vactual.sr,
-                //        m_ramp_velocity,
-                //        m_target_velocity);
                 move(m_ramp_velocity);
             }
             break;
         }
         case (MOTOR_MOVING_TO_IDLE):
         {
-            // printf("Moving -> Idle\n");
             m_motor_move_state = MotorMoveState::MOTOR_IDLE;
             break;
         }

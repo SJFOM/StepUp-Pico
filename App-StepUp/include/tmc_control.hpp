@@ -44,7 +44,7 @@ extern "C"
 
 #define TMC_UART_CHANNEL (0)  // Not as relevant for single IC use case
 
-#define VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND (500U)
+#define VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND (1000U)
 #define VELOCITY_STARTING_STEPS_PER_SECOND       (10000U)
 
 // Used for threshold where open-circuit flags are valid - datasheet says they
