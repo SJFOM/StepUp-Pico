@@ -65,7 +65,6 @@ void LEDControl::setLEDFunction(
     if (m_control_state == ControllerState::STATE_READY)
     {
         m_control_state = ControllerState::STATE_BUSY;
-        time_us_64_t current_time = time_us_64();
 
         switch (controller_notification)
         {
