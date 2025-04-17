@@ -63,6 +63,12 @@ VoltageMonitoring motor_voltage_monitoring(
     CX_MOTOR_IDLE_VOLTAGE_THRESHOLD_LOW,
     CX_MOTOR_IDLE_VOLTAGE_THRESHOLD_HIGH);
 
+// Static variables
+// TODO: Implement these as facets of the ControlInterface class
+static uint32_t s_tmc_last_active_timestamp_ms = 0U;
+static uint32_t s_joystick_last_active_timestamp_ms = 0U;
+static uint32_t s_usb_last_active_timestamp_ms = 0U;
+
 /*
  * SETUP FUNCTIONS
  */
@@ -336,6 +342,12 @@ void setup_voltage_monitoring()
             {
                 // tmc_control get State
                 tmc_data = tmc_control.getTMCData();
+
+                // Get timestamp of last motor activity as a proxy for when the
+                // device was last interacted with
+                s_tmc_last_active_timestamp_ms =
+                    tmc_control.getLastActiveTimestampMs();
+
                 if (tmc_data.diag.normal_operation)
                 {
                     tmc_control.enableFunctionality(true);
@@ -549,6 +561,7 @@ void setup_voltage_monitoring()
     enum ControllerNotification voltage_monitoring_notify =
         ControllerNotification::NOTIFY_BOOT;
 
+    // TODO: Implement detection of both falling and rising edges
     PinEventManager usb_pin_event_manager(VUSB_MONITOR_PIN, GPIO_IRQ_EDGE_FALL);
     usb_pin_event_manager.init();
 
@@ -563,7 +576,8 @@ void setup_voltage_monitoring()
         battery_voltage_monitoring_state =
             battery_voltage_monitoring.processJob(xTaskGetTickCount());
 
-        if (usb_pin_event_manager.getPinEventCount() > 0)
+        // TODO: Consider moving these pin event checks to a separate task
+        if (usb_pin_event_manager.hasEventOccurred())
         {
             s_usb_is_inserted = true;
             LOG_INFO("USB cable detected");
@@ -582,7 +596,7 @@ void setup_voltage_monitoring()
                              0);
         }
 
-        if (power_pin_event_manager.getPinEventCount() > 0)
+        if (power_pin_event_manager.hasEventOccurred())
         {
             LOG_INFO("Power button pressed");
             power_pin_event_manager.clearPinEventCount();
@@ -606,6 +620,10 @@ void setup_voltage_monitoring()
             // TODO: Change the LED pattern to indicate power down
             // Power down the circuit
             gpio_put(MCU_PWR_CTRL_PIN, 0);
+
+            // FIXME: This is a blocking call to wait for the power down to
+            // complete
+            while (1);
         }
 
         switch (battery_voltage_monitoring_state)
@@ -659,6 +677,9 @@ void setup_voltage_monitoring()
                     {
                         led_colour = LEDColourNames::LED_COLOUR_GREEN;
                     }
+
+                    LOG_DATA("Battery voltage: %.2fV",
+                             voltage_monitor_data.voltage);
 
                     xQueueSendToBack(queue_led_colour_data, &led_colour, 0);
                 }

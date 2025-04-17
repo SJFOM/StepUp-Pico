@@ -46,10 +46,10 @@ struct RGBPinHandlers
 enum LEDDuration
 {
     // These have all been prescribed as durations in milli-seconds
-    LED_SLOW = 1000U,
-    LED_MEDIUM = 500U,
-    LED_FAST = 150U,
-    LED_VERY_FAST = 80U
+    LED_SLOW = 500U,
+    LED_MEDIUM = 300U,
+    LED_FAST = 100U,
+    LED_VERY_FAST = 50U
 };
 
 // FIXME: This will keep the LED ON only by virtue of the fact that the length

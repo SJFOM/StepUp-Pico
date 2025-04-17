@@ -22,8 +22,9 @@
 // Logging utilities
 #include "utils.h"
 
-constexpr static uint32_t s_pin_debounce_default_delay_time_ms = 50U;
-constexpr static uint32_t s_adc_settling_default_time_between_reads_in_ms = 50U;
+constexpr static uint32_t cxs_pin_debounce_default_delay_time_ms = 50U;
+constexpr static uint32_t cxs_adc_settling_default_time_between_reads_in_ms =
+    50U;
 
 class PinEventManager
 {
@@ -35,43 +36,31 @@ public:
     bool init();
     void deinit();
 
-    void enableInterrupt(bool enable);
+    void setDebounceTimerActive(bool active);
+    bool isDebounceTimerActive() const;
 
-    void setDebounceTimerActive(bool active)
-    {
-        m_debounce_timer_active = active;
-    }
-    bool isDebounceTimerActive()
-    {
-        return m_debounce_timer_active;
-    }
+    void incrementPinEventOccured();
+    void clearPinEventCount();
+    uint32_t getPinEventCount() const;
 
-    void incrementPinEventOccured()
-    {
-        m_pin_event_occurred_count++;
-    }
-    void clearPinEventCount()
-    {
-        m_pin_event_occurred_count = 0;
-    }
-    uint32_t getPinEventCount()
-    {
-        return m_pin_event_occurred_count;
-    }
+    bool hasEventOccurred() const;
+
+    inline void setDebounceTimerId(alarm_id_t id);
+    inline alarm_id_t getDebounceTimerId() const;
 
     static int64_t pin_event_debounce_timer_callback(alarm_id_t id,
                                                      void *user_data);
 
-    static const uint8_t s_max_pin_interrupt_count =
-        31U;  // As per RP2040 datasheet, 31 pins with interrupt capability
+    // As per RP2040 datasheet, 31 pins with interrupt capability. Failing
+    // strong requirements, this library offers up to two PinEventManager
+    // instances for the same pin: 2 button press durations for different kinds
+    // of application functionality
+    static const uint8_t s_max_pin_interrupt_count = 62U;
     static PinEventManager *s_p_pin_event_manager[s_max_pin_interrupt_count];
-    static uint8_t s_pin_interrupt_count;
+    static uint8_t s_pin_event_manager_instance_count;
 
     uint8_t m_pin;
-
     uint32_t m_pin_event_type, m_pin_event_timeout_ms;
-
-    alarm_id_t m_debounce_timer_id = 0;
 
     bool m_active_state_is_when_pin_is_high;  // True if the pin is active high,
     // false if low
@@ -83,6 +72,7 @@ private:
     bool m_debounce_timer_active = false;
 
     uint32_t m_pin_event_occurred_count = 0;
+    alarm_id_t m_debounce_timer_id = 0;
 };
 
 #endif  // BUTTON_MANAGER_H_

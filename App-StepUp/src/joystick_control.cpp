@@ -165,7 +165,7 @@ enum ControllerState JoystickControl::processJob(uint32_t tick_count)
         return ControllerState::STATE_IDLE;
     }
 
-    if (m_pin_event_manager->getPinEventCount() > 0)
+    if (m_pin_event_manager->hasEventOccurred())
     {
         s_button_press_event = true;
         m_pin_event_manager->clearPinEventCount();
@@ -226,7 +226,7 @@ void JoystickControl::getLatestJoystickPosition()
         // Reset flag
         m_next_joystick_read_deadline_in_ms =
             to_ms_since_boot(make_timeout_time_ms(
-                s_adc_settling_default_time_between_reads_in_ms));
+                cxs_adc_settling_default_time_between_reads_in_ms));
 
         m_joystick.position.x =
             Utils::getValidADCResultRaw(JOYSTICK_ADC_CHANNEL_X) -

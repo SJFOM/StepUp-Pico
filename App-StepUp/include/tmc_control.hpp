@@ -464,6 +464,7 @@ public:
     void updateMovementDynamics(int32_t velocity_delta, int8_t direction);
     uint8_t getChipID(void);
     struct TMCData getTMCData();
+    uint32_t getLastActiveTimestampMs(void);
 
 protected:
     GCONF_t m_gconf;
@@ -489,6 +490,8 @@ private:
     TMCOpenCircuitAlgoData m_open_circuit_algo_data;
     bool m_open_circuit_detected = false;
     float m_r_sense;
+
+    uint32_t m_last_active_timestamp_ms;
 
     static uint16_t convertIrunIHoldToRMSCurrentInAmps(uint8_t i_run_hold,
                                                        float r_sense);

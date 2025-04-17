@@ -65,6 +65,7 @@ void LEDControl::setLEDFunction(
     if (m_control_state == ControllerState::STATE_READY)
     {
         m_control_state = ControllerState::STATE_BUSY;
+        time_us_64_t current_time = time_us_64();
 
         switch (controller_notification)
         {
@@ -90,6 +91,13 @@ void LEDControl::setLEDFunction(
                 break;
             }
             case ControllerNotification::NOTIFY_ERROR:
+            {
+                s_active_effect = &effect_rapid_blink;
+                s_rgb_led.led_pin_in_use = s_rgb_led.led_pin_red;
+                s_rgb_led.led_pwm_slice_in_use = s_rgb_led.led_red_pwm_slice;
+                break;
+            }
+            case ControllerNotification::NOTIFY_POWER_DOWN:
             {
                 s_active_effect = &effect_rapid_blink;
                 s_rgb_led.led_pin_in_use = s_rgb_led.led_pin_red;
