@@ -24,7 +24,7 @@
 #include "PicoUtils.h"
 
 // Control libraries
-#include "../../../Interfaces/ControlInterface.hpp"
+#include "ControlInterface.hpp"
 
 #define LED_MAX_TRANSITION_COUNT (10U)
 #define LED_BASE_PWM_FREQ_IN_HZ  (8000U)

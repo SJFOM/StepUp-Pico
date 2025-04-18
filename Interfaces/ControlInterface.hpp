@@ -58,6 +58,9 @@ static const char *ControllerNotificationString
 class ControlInterface
 {
 public:
+    ControlInterface();
+    virtual ~ControlInterface();
+
     virtual bool init() = 0;
     virtual void deinit() = 0;
 
@@ -68,21 +71,21 @@ public:
      */
     virtual void enableFunctionality(bool enable_disable)
     {
-        if (enable_disable)
+        if (!enable_disable)
         {
-            m_last_active_timestamp_ms = Utils::getCurrentTimestampMs();
+            m_last_deactivate_timestamp_ms = Utils::getCurrentTimestampMs();
         }
         m_is_enabled = enable_disable;
     }
 
     /**
-     * @brief Get the last active timestamp in milliseconds
+     * @brief Get the Last Deactivate Timestamp ms object
      *
      * @return uint32_t
      */
-    virtual uint32_t getLastActiveTimestampMs()
+    virtual uint32_t getLastDeactivateTimestampMs()
     {
-        return m_last_active_timestamp_ms;
+        return m_last_deactivate_timestamp_ms;
     }
 
     /**
@@ -97,7 +100,15 @@ public:
     }
     virtual enum ControllerState processJob(uint32_t tick_count) = 0;
 
-    static uint32_t getMostRecentActiveTimestamp();
+    /**
+     * @brief ...
+     *
+     * @details Static access function to poll all control interfaces for the
+     * latest active timestamp information
+     *
+     * @return uint32_t
+     */
+    static uint32_t getLastTimeControlPeripheralWasUsedMs();
 
     static ControlInterface
         *sp_control_interfaces[CX_CONTROL_INTERFACE_MAX_COUNT];
@@ -109,7 +120,7 @@ private:
     bool m_is_enabled;
 
     uint8_t m_control_interface_index;
-    uint32_t m_last_active_timestamp_ms;
+    uint32_t m_last_deactivate_timestamp_ms;
 };
 
 #endif  // CONTROL_INTERFACE_H_

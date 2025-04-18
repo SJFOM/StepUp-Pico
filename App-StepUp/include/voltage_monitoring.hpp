@@ -21,7 +21,7 @@
 #include "pico/stdlib.h"
 
 // Control libraries
-#include "../../../Interfaces/ControlInterface.hpp"
+#include "ControlInterface.hpp"
 
 enum class VoltageBoundsCheckState
 {

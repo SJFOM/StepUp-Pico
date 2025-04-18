@@ -38,7 +38,7 @@ ControlInterface::~ControlInterface()
     s_control_interfaces_count--;
 }
 
-uint32_t ControlInterface::getMostRecentActiveTimestamp()
+uint32_t ControlInterface::getLastTimeControlPeripheralWasUsedMs()
 {
     uint32_t most_recent_timestamp = 0;
     for (uint8_t index = 0; index < s_control_interfaces_count; index++)
@@ -46,8 +46,9 @@ uint32_t ControlInterface::getMostRecentActiveTimestamp()
         if (sp_control_interfaces[index] != nullptr)
         {
             uint32_t timestamp =
-                sp_control_interfaces[index]->getLastActiveTimestampMs();
-            if (timestamp > most_recent_timestamp)
+                sp_control_interfaces[index]->getLastDeactivateTimestampMs();
+            if (timestamp > most_recent_timestamp &&
+                !sp_control_interfaces[index]->isFunctionalityEnabled())
             {
                 most_recent_timestamp = timestamp;
             }

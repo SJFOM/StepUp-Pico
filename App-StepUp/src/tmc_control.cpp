@@ -495,11 +495,6 @@ struct TMCData TMCControl::getTMCData()
     return m_tmc;
 }
 
-uint32_t TMCControl::getLastActiveTimestampMs()
-{
-    return m_last_active_timestamp_ms;
-}
-
 void TMCControl::resetOpenCircuitDetectionAlgorithm()
 {
     m_open_circuit_algo_data.sg_val_match_count = 0;
@@ -737,11 +732,6 @@ void TMCControl::setStandby(bool enable_standby)
     {
         // Just entered standby -> disable the driver
         enableDriver(false);
-    }
-    else
-    {
-        // We are leaving standby -> record the timestamp
-        m_last_active_timestamp_ms = to_ms_since_boot(get_absolute_time());
     }
 
     // Set the Standby pin state - after enable so we retain control over driver

@@ -25,7 +25,7 @@
 #include "PicoUtils.h"
 
 // Control libraries
-#include "../../../Interfaces/ControlInterface.hpp"
+#include "ControlInterface.hpp"
 
 // PinManager
 #include "pin_event_manager.hpp"

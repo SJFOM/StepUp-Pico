@@ -343,11 +343,6 @@ void setup_voltage_monitoring()
                 // tmc_control get State
                 tmc_data = tmc_control.getTMCData();
 
-                // Get timestamp of last motor activity as a proxy for when the
-                // device was last interacted with
-                s_tmc_last_active_timestamp_ms =
-                    tmc_control.getLastActiveTimestampMs();
-
                 if (tmc_data.diag.normal_operation)
                 {
                     tmc_control.enableFunctionality(true);
@@ -573,6 +568,11 @@ void setup_voltage_monitoring()
     // TODO: Lots of duplication here, can we refactor this?
     while (true)
     {
+        uint32_t last_deactive_timestamp =
+            ControlInterface::getLastTimeControlPeripheralWasUsedMs();
+
+        LOG_DATA("Last deactived timestamp: %lu", last_deactive_timestamp);
+
         battery_voltage_monitoring_state =
             battery_voltage_monitoring.processJob(xTaskGetTickCount());
 

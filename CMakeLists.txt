@@ -34,7 +34,7 @@ set(APP_SRC_DIRECTORY "${CMAKE_SOURCE_DIR}/App-StepUp")
 
 # Create references to additional folders
 set(TMC_API_CODE_DIRECTORY "${CMAKE_SOURCE_DIR}/Libraries/TMC_API")
-set(INTERFACE_CODE_DIRECTORY "${CMAKE_SOURCE_DIR}/Interface")
+set(INTERFACE_CODE_DIRECTORY "${CMAKE_SOURCE_DIR}/Interfaces")
 set(LIBRARIES_CODE_DIRECTORY "${CMAKE_SOURCE_DIR}/Libraries")
 
 # This section of code creates a build version of the format "GIT_COMMIT_HASH:BUILD_NUMBER"
@@ -137,3 +137,4 @@ target_include_directories(FreeRTOS PUBLIC
 # Include the apps' source code
 add_subdirectory(${APP_SRC_DIRECTORY}) # App-StepUp
 add_subdirectory(${LIBRARIES_CODE_DIRECTORY}) # Libraries
+add_subdirectory(${INTERFACE_CODE_DIRECTORY}) # Interfaces

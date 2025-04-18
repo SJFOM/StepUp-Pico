@@ -24,7 +24,7 @@
 #include "PicoUtils.h"
 
 // Control libraries
-#include "../../../Interfaces/ControlInterface.hpp"
+#include "ControlInterface.hpp"
 
 #define MELODY_MAX_NOTE_COUNT      (10U)
 #define BUZZER_BASE_PWM_FREQ_IN_HZ (8000U)
