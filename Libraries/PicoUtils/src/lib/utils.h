@@ -1,5 +1,13 @@
 /**
- * General utility functions
+ * @file utils.h
+ * @author Sam (@SJFOM)
+ * @brief Util methods for the Pico SDK
+ * @version 0.1
+ * @date 2025-04-18
+ *
+ * @copyright Copyright (c) 2024
+ * @license   MIT
+ *
  *
  * Adapted from:
  * @copyright 2022, Tony Smith (@smittytone)
@@ -7,8 +15,9 @@
  * @licence   MIT
  *
  */
-#ifndef UTILS_HEADER
-#define UTILS_HEADER
+
+#ifndef UTILS_HEADER_H_
+#define UTILS_HEADER_H_
 
 #include <algorithm>
 #include <cmath>
@@ -102,6 +111,17 @@ namespace Utils
      * LOGGING UTILS - FINISH *
      **************************/
 
+    /***************************
+     * TIMESTAMP UTILS - START *
+     ***************************/
+    uint32_t getCurrentTimestampMs();
+
+    uint32_t getElapsedTimeMs(uint32_t start_time_ms);
+
+    /****************************
+     * TIMESTAMP UTILS - FINISH *
+     ****************************/
+
     /************************
      * NUMBER UTILS - BEGIN *
      ************************/
@@ -145,7 +165,10 @@ namespace Utils
     /*********************
      * PWM UTILS - BEGIN *
      *********************/
-    uint16_t configurePWMPin(uint pwm_pin, uint16_t pwm_freq_in_hz);
+    uint16_t configurePWMPin(uint pwm_pin);
+    void setPWMFrequency(uint pwm_pin,
+                         uint16_t pwm_freq_in_hz,
+                         uint8_t duty_cycle_percentage = 50U);
 
     /**********************
      * PWM UTILS - FINISH *
@@ -153,4 +176,4 @@ namespace Utils
 
 }  // namespace Utils
 
-#endif  // UTILS_HEADER
+#endif  // UTILS_HEADER_H_

@@ -24,19 +24,21 @@ volatile QueueHandle_t queue_led_colour_data = NULL;
 // Set loop delay times (in ms)
 const TickType_t joystick_job_delay_ms = 10 / portTICK_PERIOD_MS;
 const TickType_t tmc_job_delay_ms = 20 / portTICK_PERIOD_MS;
+const TickType_t led_job_delay_ms = 80 / portTICK_PERIOD_MS;
 const TickType_t buzzer_job_delay_ms = 100 / portTICK_PERIOD_MS;
-const TickType_t led_job_delay_ms = 100 / portTICK_PERIOD_MS;
-const TickType_t voltage_monitoring_job_delay = 10000 / portTICK_PERIOD_MS;
+const TickType_t voltage_monitoring_job_delay = 1000 / portTICK_PERIOD_MS;
+const TickType_t watchdog_job_delay_ms =
+    CX_WATCHDOG_CALLBACK_MS / portTICK_PERIOD_MS;
 
 // FROM 1.0.1 Record references to the tasks
 TaskHandle_t joystick_task_handle = NULL;
 TaskHandle_t tmc_task_handle = NULL;
-TaskHandle_t buzzer_task_handle = NULL;
 TaskHandle_t led_task_handle = NULL;
+TaskHandle_t buzzer_task_handle = NULL;
 TaskHandle_t voltage_monitoring_task_handle = NULL;
 
 // Task priorities (higher value = higher priority)
-UBaseType_t job_priority_joystick_control = 3U;
+UBaseType_t job_priority_joystick_control = 2U;
 UBaseType_t job_priority_tmc_control = 2U;
 UBaseType_t job_priority_buzzer_control = 1U;
 UBaseType_t job_priority_led_control = 1U;
@@ -51,14 +53,21 @@ VoltageMonitoring battery_voltage_monitoring("battery",
                                              VBAT_MONITOR_ADC_PIN,
                                              VBAT_MONITOR_ADC_CHANNEL,
                                              VBAT_ADC_SCALING_FACTOR,
-                                             cs_battery_voltage_threshold_low,
-                                             cs_battery_voltage_threshold_high);
-VoltageMonitoring motor_voltage_monitoring("motor",
-                                           VMOTOR_MONITOR_ADC_PIN,
-                                           VMOTOR_MONITOR_ADC_CHANNEL,
-                                           VMOTOR_ADC_SCALING_FACTOR,
-                                           cs_motor_voltage_threshold_low,
-                                           cs_motor_voltage_threshold_high);
+                                             CX_BATTERY_VOLTAGE_THRESHOLD_LOW,
+                                             CX_BATTERY_VOLTAGE_THRESHOLD_HIGH);
+VoltageMonitoring motor_voltage_monitoring(
+    "motor",
+    VMOTOR_MONITOR_ADC_PIN,
+    VMOTOR_MONITOR_ADC_CHANNEL,
+    VMOTOR_ADC_SCALING_FACTOR,
+    CX_MOTOR_IDLE_VOLTAGE_THRESHOLD_LOW,
+    CX_MOTOR_IDLE_VOLTAGE_THRESHOLD_HIGH);
+
+// Static variables
+// TODO: Implement these as facets of the ControlInterface class
+static uint32_t s_tmc_last_active_timestamp_ms = 0U;
+static uint32_t s_joystick_last_active_timestamp_ms = 0U;
+static uint32_t s_usb_last_active_timestamp_ms = 0U;
 
 /*
  * SETUP FUNCTIONS
@@ -70,17 +79,36 @@ VoltageMonitoring motor_voltage_monitoring("motor",
 void setup()
 {
     setup_power_control();
-    setup_vusb_monitoring();
+    setup_watchdog();
+    setup_buzzer();
     setup_led();
+    setup_vusb_monitoring();
     setup_tmc2300();
     setup_boost_converter();
     setup_voltage_monitoring();
     setup_joystick();
-    setup_buzzer();
+}
+
+void setup_watchdog()
+{
+    LOG_INFO("Watchdog setup...");
+    if (watchdog_caused_reboot())
+    {
+        LOG_INFO("Watchdog caused reboot");
+    }
+    // Enable the watchdog timer
+    watchdog_enable(CX_WATCHDOG_TIMEOUT_MS, 1 /*pause_on_debug*/);
+
+    // Set the watchdog timer to reset the system if it is not fed within the
+    // specified timeout period
+    watchdog_update();
+
+    LOG_INFO("Watchdog setup... OK");
 }
 
 void setup_power_control()
 {
+    LOG_INFO("Power control...");
     // Enable power control control pins
     gpio_init(MCU_PWR_CTRL_PIN);
     gpio_set_dir(MCU_PWR_CTRL_PIN, GPIO_OUT);
@@ -91,6 +119,7 @@ void setup_power_control()
 
     // Assert power control pin HIGH to keep circuit powered
     gpio_put(MCU_PWR_CTRL_PIN, 1);
+    LOG_INFO("Power control... OK");
 }
 
 void setup_vusb_monitoring()
@@ -100,16 +129,6 @@ void setup_vusb_monitoring()
     // Enable boost converter pin control
     gpio_set_input_enabled(VUSB_MONITOR_PIN, true);
     gpio_disable_pulls(VUSB_MONITOR_PIN);
-
-    // N.B: IRQ handler must be initialised before enabling IRQs
-    gpio_add_raw_irq_handler(VUSB_MONITOR_PIN, &usb_detect_callback);
-    gpio_set_irq_enabled(VUSB_MONITOR_PIN,
-                         GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE,
-                         true);
-    if (!irq_is_enabled(IO_IRQ_BANK0))
-    {
-        irq_set_enabled(IO_IRQ_BANK0, true);
-    }
 
     if (gpio_get(VUSB_MONITOR_PIN))
     {
@@ -159,8 +178,6 @@ void setup_tmc2300()
 void setup_boost_converter()
 {
     LOG_INFO("Boost converter setup...");
-
-    adc_gpio_init(VMOTOR_MONITOR_ADC_PIN);
 
     // Enable boost converter pin control
     gpio_init(TMC_PIN_BOOST_EN);
@@ -225,8 +242,6 @@ void setup_led()
     LOG_INFO("LED setup... OK");
 }
 
-// FIXME: This method may need a re-think, how do we handle the case where the
-// voltage is out of bounds at this early stage?
 void setup_voltage_monitoring()
 {
     LOG_INFO("Voltage monitoring setup...");
@@ -245,6 +260,13 @@ void setup_voltage_monitoring()
     if (motor_voltage_monitoring.init())
     {
         motor_voltage_monitoring.enableFunctionality(true);
+
+        // Now we know the motor voltage is in spec, we can broaden the expected
+        // motor voltage range to accommodate the back-emf generated by a
+        // spinning motor (10% bounds)
+        motor_voltage_monitoring.setVoltageThresholds(
+            CX_MOTOR_ACTIVE_VOLTAGE_THRESHOLD_LOW,
+            CX_MOTOR_ACTIVE_VOLTAGE_THRESHOLD_HIGH);
         LOG_INFO("Boost/Motor voltage monitoring setup... OK");
     }
     else
@@ -279,9 +301,6 @@ void setup_voltage_monitoring()
 
         tmc_state = tmc_control.processJob(xTaskGetTickCount());
 
-        // LOG_DEBUG("TMC state: " +
-        //                  (string)ControllerStateString[tmc_state]);
-
         switch (tmc_state)
         {
             case ControllerState::STATE_IDLE:
@@ -303,9 +322,6 @@ void setup_voltage_monitoring()
                 if (xQueueReceive(queue_motor_control_data, &motor_data, 0) ==
                     pdPASS)
                 {
-                    // printf("Velocity diff: %d\n",
-                    // motor_data.velocity_delta); printf("Direction: %d\n",
-                    // motor_data.direction);
                     if (motor_data.button_press)
                     {
                         LOG_INFO("Button press - stopping motor!");
@@ -326,6 +342,7 @@ void setup_voltage_monitoring()
             {
                 // tmc_control get State
                 tmc_data = tmc_control.getTMCData();
+
                 if (tmc_data.diag.normal_operation)
                 {
                     tmc_control.enableFunctionality(true);
@@ -401,7 +418,8 @@ void setup_voltage_monitoring()
                 // (either NEGATIVE:-1, IDLE:0, POSITIVE:+1) multiplied by
                 // the change in velocity we should incur.
                 motor_data.velocity_delta =
-                    joystick_data.state_y * VELOCITY_DELTA_VALUE;
+                    joystick_data.state_y *
+                    VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
 
                 // This ensures that, no matter which direction we face, the
                 // joystick will "speed up" or "slow down" consistent with
@@ -538,11 +556,75 @@ void setup_voltage_monitoring()
     enum ControllerNotification voltage_monitoring_notify =
         ControllerNotification::NOTIFY_BOOT;
 
-    // FIXME: Lots of duplication here, can we refactor this?
+    // TODO: Implement detection of both falling and rising edges
+    PinEventManager usb_pin_event_manager(VUSB_MONITOR_PIN, GPIO_IRQ_EDGE_FALL);
+    usb_pin_event_manager.init();
+
+    PinEventManager power_pin_event_manager(MCU_PWR_BTN_PIN,
+                                            GPIO_IRQ_EDGE_FALL,
+                                            5000U);
+    power_pin_event_manager.init();
+
+    // TODO: Lots of duplication here, can we refactor this?
     while (true)
     {
+        uint32_t last_deactive_timestamp =
+            ControlInterface::getLastTimeControlPeripheralWasUsedMs();
+
+        LOG_DATA("Last deactived timestamp: %lu", last_deactive_timestamp);
+
         battery_voltage_monitoring_state =
             battery_voltage_monitoring.processJob(xTaskGetTickCount());
+
+        // TODO: Consider moving these pin event checks to a separate task
+        if (usb_pin_event_manager.hasEventOccurred())
+        {
+            s_usb_is_inserted = true;
+            LOG_INFO("USB cable detected");
+            usb_pin_event_manager.clearPinEventCount();
+
+            // Set INFO notification status
+            enum ControllerNotification usb_detect_notify =
+                ControllerNotification::NOTIFY_INFO;
+
+            xQueueSendToBack(queue_led_notification_task,
+                             &usb_detect_notify,
+                             0);
+
+            xQueueSendToBack(queue_buzzer_notification_task,
+                             &usb_detect_notify,
+                             0);
+        }
+
+        if (power_pin_event_manager.hasEventOccurred())
+        {
+            LOG_INFO("Power button pressed");
+            power_pin_event_manager.clearPinEventCount();
+
+            // Set INFO notification status
+            enum ControllerNotification usb_detect_notify =
+                ControllerNotification::NOTIFY_POWER_DOWN;
+
+            xQueueSendToBack(queue_led_notification_task,
+                             &usb_detect_notify,
+                             0);
+
+            xQueueSendToBack(queue_buzzer_notification_task,
+                             &usb_detect_notify,
+                             0);
+
+            // TODO: Power down the boost converter
+            gpio_put(TMC_PIN_BOOST_EN, 0);
+            // TODO: Safely power down the TM2300
+            tmc_control.enableFunctionality(false);
+            // TODO: Change the LED pattern to indicate power down
+            // Power down the circuit
+            gpio_put(MCU_PWR_CTRL_PIN, 0);
+
+            // FIXME: This is a blocking call to wait for the power down to
+            // complete
+            while (1);
+        }
 
         switch (battery_voltage_monitoring_state)
         {
@@ -576,25 +658,28 @@ void setup_voltage_monitoring()
 
                     if (Utils::isNumberWithinBounds<float>(
                             voltage_monitor_data.voltage,
-                            cs_battery_voltage_threshold_low,
-                            cs_battery_voltage_threshold_mid_low))
+                            CX_BATTERY_VOLTAGE_THRESHOLD_LOW,
+                            CX_BATTERY_VOLTAGE_THRESHOLD_MID_LOW))
                     {
                         led_colour = LEDColourNames::LED_COLOUR_RED;
                     }
                     else if (Utils::isNumberWithinBounds<float>(
                                  voltage_monitor_data.voltage,
-                                 cs_battery_voltage_threshold_mid_low,
-                                 cs_battery_voltage_threshold_mid_high))
+                                 CX_BATTERY_VOLTAGE_THRESHOLD_MID_LOW,
+                                 CX_BATTERY_VOLTAGE_THRESHOLD_MID_HIGH))
                     {
                         led_colour = LEDColourNames::LED_COLOUR_ORANGE;
                     }
                     else if (Utils::isNumberWithinBounds<float>(
                                  voltage_monitor_data.voltage,
-                                 cs_battery_voltage_threshold_mid_high,
-                                 cs_battery_voltage_threshold_high))
+                                 CX_BATTERY_VOLTAGE_THRESHOLD_MID_HIGH,
+                                 CX_BATTERY_VOLTAGE_THRESHOLD_HIGH))
                     {
                         led_colour = LEDColourNames::LED_COLOUR_GREEN;
                     }
+
+                    LOG_DATA("Battery voltage: %.2fV",
+                             voltage_monitor_data.voltage);
 
                     xQueueSendToBack(queue_led_colour_data, &led_colour, 0);
                 }
@@ -678,11 +763,36 @@ int main()
     setup();
     LOG_INFO("Setting up peripherals... OK!");
 
+    // Create a FreeRTOS timer with a period slightly shorter than the watchdog
+    // timeout
+    TimerHandle_t timer_watchdog_service =
+        xTimerCreate("WatchdogTimer",           // Timer name
+                     watchdog_job_delay_ms,     // Timer period in ticks
+                     pdTRUE,                    // Auto-reload timer
+                     (void *)0,                 // Timer ID (not used here)
+                     watchdog_timer_callback);  // Callback function
+
+    if (timer_watchdog_service == NULL)
+    {
+        LOG_ERROR("Failed to create FreeRTOS timer!");
+    }
+    else
+    {
+        if (xTimerStart(timer_watchdog_service, 0) != pdPASS)
+        {
+            LOG_ERROR("Failed to start FreeRTOS timer!");
+        }
+        else
+        {
+            LOG_INFO("FreeRTOS timer started successfully!");
+        }
+    }
+
     // FROM 1.0.1 Store handles referencing the tasks; get return values
     // NOTE Arg 3 is the stack depth -- in words, not bytes
     BaseType_t led_status = xTaskCreate(led_process_job,
                                         "GPIO_LED_TASK",
-                                        512,
+                                        256,
                                         NULL,
                                         job_priority_led_control,
                                         &led_task_handle);
@@ -701,7 +811,7 @@ int main()
 
     BaseType_t buzzer_status = xTaskCreate(buzzer_process_job,
                                            "BUZZER_JOB_TASK",
-                                           512,
+                                           256,
                                            NULL,
                                            job_priority_buzzer_control,
                                            &buzzer_task_handle);
@@ -709,10 +819,10 @@ int main()
     BaseType_t voltage_monitoring_status =
         xTaskCreate(voltage_monitoring_process_job,
                     "VOLTAGE_MONITORING_JOB_TASK",
-                    512,
+                    256,
                     NULL,
                     job_priority_voltage_monitoring,
-                    &buzzer_task_handle);
+                    &voltage_monitoring_task_handle);
 
     // Set up the event queue
     queue_motor_control_data = xQueueCreate(2, sizeof(struct MotorControlData));
@@ -737,37 +847,8 @@ int main()
     }
 }
 
-void usb_detect_callback()
+// Callback function for the repeating timer
+void watchdog_timer_callback(__unused TimerHandle_t xTimer)
 {
-    bool irq_is_valid = true;
-    if (gpio_get_irq_event_mask(VUSB_MONITOR_PIN) & (GPIO_IRQ_EDGE_RISE))
-    {
-        gpio_acknowledge_irq(VUSB_MONITOR_PIN, (GPIO_IRQ_EDGE_RISE));
-        s_usb_is_inserted = true;
-    }
-    else if (gpio_get_irq_event_mask(VUSB_MONITOR_PIN) & (GPIO_IRQ_EDGE_FALL))
-    {
-        gpio_acknowledge_irq(VUSB_MONITOR_PIN, (GPIO_IRQ_EDGE_FALL));
-        s_usb_is_inserted = false;
-    }
-    else
-    {
-        irq_is_valid = false;
-    }
-
-    // Remember that this IRQ will fire if a shared IRQ bank is used
-    if (irq_is_valid)
-    {
-        // Set INFO notification status
-        enum ControllerNotification usb_detect_notify =
-            ControllerNotification::NOTIFY_INFO;
-
-        xQueueSendToBackFromISR(queue_led_notification_task,
-                                &usb_detect_notify,
-                                0);
-
-        xQueueSendToBackFromISR(queue_buzzer_notification_task,
-                                &usb_detect_notify,
-                                0);
-    }
+    watchdog_update();  // Feed the watchdog timer
 }

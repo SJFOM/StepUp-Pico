@@ -21,7 +21,7 @@
 #include "pico/stdlib.h"
 
 // Control libraries
-#include "../../../Interfaces/ControlInterface.hpp"
+#include "ControlInterface.hpp"
 
 enum class VoltageBoundsCheckState
 {
@@ -53,6 +53,9 @@ public:
     enum ControllerState processJob(uint32_t tick_count) override;
 
     struct VoltageMonitorData getVoltageData() const;
+
+    void setVoltageThresholds(float voltage_threshold_low,
+                              float voltage_threshold_high);
 
 protected:
 private:

@@ -21,10 +21,10 @@
 #include "board_definitions.h"
 
 // Logging utilities
-#include "utils.h"
+#include "PicoUtils.h"
 
 // Control libraries
-#include "../../../Interfaces/ControlInterface.hpp"
+#include "ControlInterface.hpp"
 
 #define LED_MAX_TRANSITION_COUNT (10U)
 #define LED_BASE_PWM_FREQ_IN_HZ  (8000U)
@@ -46,13 +46,13 @@ struct RGBPinHandlers
 enum LEDDuration
 {
     // These have all been prescribed as durations in milli-seconds
-    LED_SLOW = 1000U,
-    LED_MEDIUM = 500U,
-    LED_FAST = 150U,
-    LED_VERY_FAST = 80U
+    LED_SLOW = 500U,
+    LED_MEDIUM = 300U,
+    LED_FAST = 100U,
+    LED_VERY_FAST = 50U
 };
 
-// FIXME: This will keep the LED ON only by virtue of the fact that the length
+// NOTE: This will keep the LED ON only by virtue of the fact that the length
 // of the array is LED_MAX_TRANSITION_COUNT. Otherwise, the effect will be empty
 // (0) and turn the LED off
 static struct LEDEffect effect_fade_to_on = {
@@ -95,7 +95,7 @@ static struct LEDEffect effect_rapid_blink = {
                  LEDDuration::LED_VERY_FAST,
                  LEDDuration::LED_VERY_FAST}};
 
-enum class LEDColourNames
+enum LEDColourNames
 {
     LED_COLOUR_RED = 0U,
     LED_COLOUR_GREEN = 1U,
@@ -143,6 +143,7 @@ private:
     bool m_init_success;
     uint16_t m_pwm_slice_num;
     enum ControllerState m_control_state;
+    enum LEDColourNames m_active_colour_name;
     void enableLED(bool enable);
 };
 
