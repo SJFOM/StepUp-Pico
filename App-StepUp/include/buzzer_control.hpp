@@ -21,7 +21,7 @@
 #include "board_definitions.h"
 
 // Logging utilities
-#include "utils.h"
+#include "PicoUtils.h"
 
 // Control libraries
 #include "../../../Interfaces/ControlInterface.hpp"

@@ -11,7 +11,7 @@
  */
 
 #include "../include/voltage_monitoring.hpp"
-#include "../include/utils.h"  // For logging utilities
+#include "PicoUtils.h"
 
 VoltageMonitoring::VoltageMonitoring(const std::string &voltage_rail_name,
                                      uint8_t voltage_pin,

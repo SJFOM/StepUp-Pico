@@ -7,7 +7,8 @@
  * @licence   MIT
  *
  */
-#include "../include/utils.h"
+
+#include "utils.h"
 #include <cstdarg>  // For va_list, va_start, va_end
 #include <cstdio>
 #include <string>
@@ -183,6 +184,8 @@ namespace Utils
     void log_error(const string msg)
     {
         printf("[ERROR] %s\n", msg.c_str());
+        // printf("[POWER] Powering down...\n");
+        // PowerControl::powerDown();
         while (true)
         {
             ;
@@ -192,6 +195,35 @@ namespace Utils
     /**************************
      * LOGGING UTILS - FINISH *
      **************************/
+
+    /***************************
+     * TIMESTAMP UTILS - START *
+     ***************************/
+    uint32_t getCurrentTimestampMs()
+    {
+        // Get the current time in milliseconds since boot
+        absolute_time_t current_time = get_absolute_time();
+        uint32_t current_timestamp_ms =
+            to_ms_since_boot(current_time) % UINT32_MAX;
+        return current_timestamp_ms;
+    }
+
+    uint32_t getElapsedTimeMs(uint32_t start_time_ms)
+    {
+        // Get the current time in milliseconds since boot
+        absolute_time_t current_time = get_absolute_time();
+        uint32_t current_timestamp_ms =
+            to_ms_since_boot(current_time) % UINT32_MAX;
+
+        // Calculate the elapsed time in milliseconds
+        uint32_t elapsed_time_ms =
+            (current_timestamp_ms - start_time_ms) % UINT32_MAX;
+        return elapsed_time_ms;
+    }
+
+    /****************************
+     * TIMESTAMP UTILS - FINISH *
+     ****************************/
 
     /*********************
      * ADC UTILS - BEGIN *

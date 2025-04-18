@@ -16,6 +16,10 @@
 #ifndef CONTROL_INTERFACE_H_
 #define CONTROL_INTERFACE_H_
 
+#include "PicoUtils.h"
+
+constexpr uint8_t CX_CONTROL_INTERFACE_MAX_COUNT = 10U;
+
 enum ControllerState
 {
     STATE_IDLE = 0,
@@ -64,7 +68,21 @@ public:
      */
     virtual void enableFunctionality(bool enable_disable)
     {
+        if (enable_disable)
+        {
+            m_last_active_timestamp_ms = Utils::getCurrentTimestampMs();
+        }
         m_is_enabled = enable_disable;
+    }
+
+    /**
+     * @brief Get the last active timestamp in milliseconds
+     *
+     * @return uint32_t
+     */
+    virtual uint32_t getLastActiveTimestampMs()
+    {
+        return m_last_active_timestamp_ms;
     }
 
     /**
@@ -79,10 +97,19 @@ public:
     }
     virtual enum ControllerState processJob(uint32_t tick_count) = 0;
 
+    static uint32_t getMostRecentActiveTimestamp();
+
+    static ControlInterface
+        *sp_control_interfaces[CX_CONTROL_INTERFACE_MAX_COUNT];
+    static uint8_t s_control_interfaces_count;
+
 protected:
 private:
     bool m_init_success;
     bool m_is_enabled;
+
+    uint8_t m_control_interface_index;
+    uint32_t m_last_active_timestamp_ms;
 };
 
 #endif  // CONTROL_INTERFACE_H_

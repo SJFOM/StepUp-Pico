@@ -37,12 +37,14 @@
 #include "pico/binary_info.h"
 #include "pico/stdlib.h"  // Includes `hardware_gpio.h`
 // App
+// Adjusted path to match the correct location of PicoUtils.h
+#include <PicoUtils.h>
 #include "board_definitions.h"
-#include "utils.h"
 // Control includes
 #include "buzzer_control.hpp"
 #include "joystick_control.hpp"
 #include "led_control.hpp"
+#include "power_control.hpp"
 #include "tmc_control.hpp"
 #include "voltage_monitoring.hpp"
 

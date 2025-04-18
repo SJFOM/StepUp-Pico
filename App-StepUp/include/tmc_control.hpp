@@ -17,16 +17,13 @@
 #include "pico/stdlib.h"  // Includes `hardware_gpio.h`
 
 // Logging utilities
-#include "utils.h"
+#include "PicoUtils.h"
 
 // Control libraries
 #include "../../../Interfaces/ControlInterface.hpp"
 
 // pin includes
 #include "board_definitions.h"
-
-// Logging utilities
-#include "utils.h"
 
 // TMC-API
 extern "C"

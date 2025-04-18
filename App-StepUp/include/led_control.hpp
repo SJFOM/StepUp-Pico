@@ -21,7 +21,7 @@
 #include "board_definitions.h"
 
 // Logging utilities
-#include "utils.h"
+#include "PicoUtils.h"
 
 // Control libraries
 #include "../../../Interfaces/ControlInterface.hpp"
@@ -52,7 +52,7 @@ enum LEDDuration
     LED_VERY_FAST = 50U
 };
 
-// FIXME: This will keep the LED ON only by virtue of the fact that the length
+// NOTE: This will keep the LED ON only by virtue of the fact that the length
 // of the array is LED_MAX_TRANSITION_COUNT. Otherwise, the effect will be empty
 // (0) and turn the LED off
 static struct LEDEffect effect_fade_to_on = {

@@ -1,3 +1,14 @@
+/**
+ * @file board_definitions.hpp
+ * @author Sam (@SJFOM)
+ * @brief ...
+ * @version 0.1
+ * @date 2025-04-17
+ *
+ * @copyright Copyright (c) 2025
+ * @license MIT
+ */
+
 #ifndef BOARD_DEFINITION_H_
 #define BOARD_DEFINITION_H_
 

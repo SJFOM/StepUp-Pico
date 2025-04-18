@@ -24,8 +24,8 @@ volatile QueueHandle_t queue_led_colour_data = NULL;
 // Set loop delay times (in ms)
 const TickType_t joystick_job_delay_ms = 10 / portTICK_PERIOD_MS;
 const TickType_t tmc_job_delay_ms = 20 / portTICK_PERIOD_MS;
+const TickType_t led_job_delay_ms = 80 / portTICK_PERIOD_MS;
 const TickType_t buzzer_job_delay_ms = 100 / portTICK_PERIOD_MS;
-const TickType_t led_job_delay_ms = 100 / portTICK_PERIOD_MS;
 const TickType_t voltage_monitoring_job_delay = 1000 / portTICK_PERIOD_MS;
 const TickType_t watchdog_job_delay_ms =
     CX_WATCHDOG_CALLBACK_MS / portTICK_PERIOD_MS;
@@ -33,12 +33,12 @@ const TickType_t watchdog_job_delay_ms =
 // FROM 1.0.1 Record references to the tasks
 TaskHandle_t joystick_task_handle = NULL;
 TaskHandle_t tmc_task_handle = NULL;
-TaskHandle_t buzzer_task_handle = NULL;
 TaskHandle_t led_task_handle = NULL;
+TaskHandle_t buzzer_task_handle = NULL;
 TaskHandle_t voltage_monitoring_task_handle = NULL;
 
 // Task priorities (higher value = higher priority)
-UBaseType_t job_priority_joystick_control = 3U;
+UBaseType_t job_priority_joystick_control = 2U;
 UBaseType_t job_priority_tmc_control = 2U;
 UBaseType_t job_priority_buzzer_control = 1U;
 UBaseType_t job_priority_led_control = 1U;
@@ -792,7 +792,7 @@ int main()
     // NOTE Arg 3 is the stack depth -- in words, not bytes
     BaseType_t led_status = xTaskCreate(led_process_job,
                                         "GPIO_LED_TASK",
-                                        512,
+                                        256,
                                         NULL,
                                         job_priority_led_control,
                                         &led_task_handle);
@@ -811,7 +811,7 @@ int main()
 
     BaseType_t buzzer_status = xTaskCreate(buzzer_process_job,
                                            "BUZZER_JOB_TASK",
-                                           512,
+                                           256,
                                            NULL,
                                            job_priority_buzzer_control,
                                            &buzzer_task_handle);
@@ -819,7 +819,7 @@ int main()
     BaseType_t voltage_monitoring_status =
         xTaskCreate(voltage_monitoring_process_job,
                     "VOLTAGE_MONITORING_JOB_TASK",
-                    512,
+                    256,
                     NULL,
                     job_priority_voltage_monitoring,
                     &voltage_monitoring_task_handle);

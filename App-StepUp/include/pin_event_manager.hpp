@@ -20,7 +20,7 @@
 #include "board_definitions.h"
 
 // Logging utilities
-#include "utils.h"
+#include "PicoUtils.h"
 
 constexpr static uint32_t cxs_pin_debounce_default_delay_time_ms = 50U;
 constexpr static uint32_t cxs_adc_settling_default_time_between_reads_in_ms =

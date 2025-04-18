@@ -90,7 +90,7 @@ void BuzzerControl::setBuzzerFunction(
             {
                 s_active_melody = &melody_sweep_down;
                 break;
-            }
+                        }
             default:
             {
                 s_active_melody = nullptr;
