@@ -38,3 +38,5 @@ pico_enable_stdio_uart(${APP_NAME} 1)
 
 # Enable extra build products
 pico_add_extra_outputs(${APP_NAME})
+
+message(STATUS "Build revision ${BUILD_NUMBER_OUTPUT}")

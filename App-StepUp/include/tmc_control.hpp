@@ -492,7 +492,7 @@ private:
 
     void enableTMCDiagInterrupt(bool enable_interrupt);
     void enableUartPins(bool enable_pins);
-    void enableDriver(bool enable_driver);
+    void enablePeripheralDriver(bool enable_disable) override;
     void setStandby(bool enable_standby);
     bool isDriverEnabled(void);
     void move(int32_t velocity);

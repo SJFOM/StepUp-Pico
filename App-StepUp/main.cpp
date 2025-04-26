@@ -49,25 +49,19 @@ TMCControl tmc_control(R_SENSE);
 JoystickControl joystick_control;
 BuzzerControl buzzer_control(BUZZER_PIN);
 LEDControl led_control(LED_PIN_RED, LED_PIN_GREEN, LED_PIN_BLUE);
-VoltageMonitoring battery_voltage_monitoring("battery",
+VoltageMonitoring battery_voltage_monitoring("Battery",
                                              VBAT_MONITOR_ADC_PIN,
                                              VBAT_MONITOR_ADC_CHANNEL,
                                              VBAT_ADC_SCALING_FACTOR,
                                              CX_BATTERY_VOLTAGE_THRESHOLD_LOW,
                                              CX_BATTERY_VOLTAGE_THRESHOLD_HIGH);
 VoltageMonitoring motor_voltage_monitoring(
-    "motor",
+    "Motor",
     VMOTOR_MONITOR_ADC_PIN,
     VMOTOR_MONITOR_ADC_CHANNEL,
     VMOTOR_ADC_SCALING_FACTOR,
     CX_MOTOR_IDLE_VOLTAGE_THRESHOLD_LOW,
     CX_MOTOR_IDLE_VOLTAGE_THRESHOLD_HIGH);
-
-// Static variables
-// TODO: Implement these as facets of the ControlInterface class
-static uint32_t s_tmc_last_active_timestamp_ms = 0U;
-static uint32_t s_joystick_last_active_timestamp_ms = 0U;
-static uint32_t s_usb_last_active_timestamp_ms = 0U;
 
 /*
  * SETUP FUNCTIONS

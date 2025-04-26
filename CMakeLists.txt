@@ -64,7 +64,7 @@ if(EXISTS ${BUILD_NUMBER_FILE})
     set(LAST_BUILD_NUMBER ${CMAKE_MATCH_2})
 else()
     set(LAST_COMMIT_HASH "")
-    set(LAST_BUILD_NUMBER 0)
+    set(LAST_BUILD_NUMBER 1)
 endif()
 
 # Check if the commit hash has changed
@@ -79,8 +79,6 @@ endif()
 file(WRITE ${BUILD_NUMBER_FILE} "${GIT_COMMIT_HASH}:${BUILD_NUMBER}")
 
 set(BUILD_NUMBER_OUTPUT "${GIT_COMMIT_HASH}:${BUILD_NUMBER}")
-
-message(STATUS "Build revision ${BUILD_NUMBER_OUTPUT}")
 
 # Make project data accessible to compiler
 add_compile_definitions(APP_NAME="${APP_NAME}")

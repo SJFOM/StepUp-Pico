@@ -76,6 +76,7 @@ public:
             m_last_deactivate_timestamp_ms = Utils::getCurrentTimestampMs();
         }
         m_is_enabled = enable_disable;
+        enablePeripheralDriver(enable_disable);
     }
 
     /**
@@ -115,12 +116,25 @@ public:
     static uint8_t s_control_interfaces_count;
 
 protected:
-private:
-    bool m_init_success;
-    bool m_is_enabled;
+    bool m_init_success, m_is_enabled;
 
+private:
     uint8_t m_control_interface_index;
     uint32_t m_last_deactivate_timestamp_ms;
+
+    /**
+     * @brief Enable or disable the peripheral driver
+     *
+     * @details This is the default implementation for enabling the peripheral.
+     * It is called via the public facing wrapper method "enableFunctionality"
+     * to append meta-data such as enable/disable timestamp information
+     *
+     * @param enable_disable
+     */
+    virtual void enablePeripheralDriver(bool enable_disable)
+    {
+        m_is_enabled = enable_disable;
+    }
 };
 
 #endif  // CONTROL_INTERFACE_H_

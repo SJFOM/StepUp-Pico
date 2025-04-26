@@ -26,8 +26,7 @@ VoltageMonitoring::VoltageMonitoring(const std::string &voltage_rail_name,
       m_voltage_scaling_factor(voltage_scaling_factor),
       m_voltage_threshold_low(voltage_threshold_low),
       m_voltage_threshold_high(voltage_threshold_high),
-      m_voltage_delta_threshold(voltage_delta_threshold),
-      m_init_success(false)
+      m_voltage_delta_threshold(voltage_delta_threshold)
 {
     m_voltage_data.voltage = 0.0f;
     m_voltage_data.state = VoltageBoundsCheckState::VOLTAGE_STATE_WITHIN_BOUNDS;

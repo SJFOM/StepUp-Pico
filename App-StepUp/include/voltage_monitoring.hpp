@@ -64,7 +64,6 @@ private:
     float m_voltage_scaling_factor, m_voltage_threshold_low,
         m_voltage_threshold_high, m_voltage_delta_threshold;
 
-    bool m_init_success;
     float m_latest_voltage;
 
     struct VoltageMonitorData m_voltage_data;
