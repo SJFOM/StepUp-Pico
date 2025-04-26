@@ -122,6 +122,8 @@ private:
     uint8_t m_control_interface_index;
     uint32_t m_last_deactivate_timestamp_ms;
 
+    static uint32_t s_most_recent_deactivate_timestamp_ms;
+
     /**
      * @brief Enable or disable the peripheral driver
      *
