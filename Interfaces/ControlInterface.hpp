@@ -71,22 +71,22 @@ public:
      */
     virtual void enableFunctionality(bool enable_disable)
     {
-        if (!enable_disable)
+        if (enable_disable)
         {
-            m_last_deactivate_timestamp_ms = Utils::getCurrentTimestampMs();
+            m_last_activate_timestamp_ms = Utils::getCurrentTimestampMs();
         }
         m_is_enabled = enable_disable;
         enablePeripheralDriver(enable_disable);
     }
 
     /**
-     * @brief Get the Last Deactivate Timestamp ms object
+     * @brief Get the Last Activate Timestamp ms object
      *
      * @return uint32_t
      */
-    virtual uint32_t getLastDeactivateTimestampMs()
+    virtual uint32_t getLastActivateTimestampMs()
     {
-        return m_last_deactivate_timestamp_ms;
+        return m_last_activate_timestamp_ms;
     }
 
     /**
@@ -120,7 +120,7 @@ protected:
 
 private:
     uint8_t m_control_interface_index;
-    uint32_t m_last_deactivate_timestamp_ms;
+    uint32_t m_last_activate_timestamp_ms;
 
     /**
      * @brief Enable or disable the peripheral driver

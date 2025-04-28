@@ -45,7 +45,7 @@ UBaseType_t job_priority_led_control = 1U;
 UBaseType_t job_priority_voltage_monitoring = 1U;
 
 // Create class instances of control interfaces
-TMCControl tmc_control(R_SENSE);
+TMCControl tmc_control(CX_R_SENSE);
 JoystickControl joystick_control;
 BuzzerControl buzzer_control(BUZZER_PIN);
 LEDControl led_control(LED_PIN_RED, LED_PIN_GREEN, LED_PIN_BLUE);
@@ -562,10 +562,10 @@ void setup_voltage_monitoring()
     // TODO: Lots of duplication here, can we refactor this?
     while (true)
     {
-        uint32_t last_deactive_timestamp =
-            ControlInterface::getLastTimeControlPeripheralWasUsedMs();
+        // uint32_t last_deactive_timestamp =
+        //     ControlInterface::getLastTimeControlPeripheralWasUsedMs();
 
-        LOG_DATA("Last deactived timestamp: %lu", last_deactive_timestamp);
+        // LOG_DATA("Last deactived timestamp: %d", last_deactive_timestamp);
 
         battery_voltage_monitoring_state =
             battery_voltage_monitoring.processJob(xTaskGetTickCount());

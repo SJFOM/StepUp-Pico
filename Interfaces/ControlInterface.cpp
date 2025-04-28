@@ -46,7 +46,7 @@ uint32_t ControlInterface::getLastTimeControlPeripheralWasUsedMs()
         if (sp_control_interfaces[index] != nullptr)
         {
             uint32_t timestamp =
-                sp_control_interfaces[index]->getLastDeactivateTimestampMs();
+                sp_control_interfaces[index]->getLastActivateTimestampMs();
             if (timestamp > most_recent_timestamp &&
                 !sp_control_interfaces[index]->isFunctionalityEnabled())
             {
