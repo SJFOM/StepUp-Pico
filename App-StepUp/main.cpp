@@ -16,12 +16,14 @@ using std::vector;
  * GLOBALS
  */
 // This is the inter-task queue
+volatile QueueHandle_t queue_power_control_data = NULL;
 volatile QueueHandle_t queue_motor_control_data = NULL;
 volatile QueueHandle_t queue_led_notification_task = NULL;
 volatile QueueHandle_t queue_buzzer_notification_task = NULL;
 volatile QueueHandle_t queue_led_colour_data = NULL;
 
 // Set loop delay times (in ms)
+const TickType_t power_control_job_delay_ms = 1000 / portTICK_PERIOD_MS;
 const TickType_t joystick_job_delay_ms = 10 / portTICK_PERIOD_MS;
 const TickType_t tmc_job_delay_ms = 20 / portTICK_PERIOD_MS;
 const TickType_t led_job_delay_ms = 80 / portTICK_PERIOD_MS;
@@ -31,6 +33,7 @@ const TickType_t watchdog_job_delay_ms =
     CX_WATCHDOG_CALLBACK_MS / portTICK_PERIOD_MS;
 
 // FROM 1.0.1 Record references to the tasks
+TaskHandle_t power_control_task_handle = NULL;
 TaskHandle_t joystick_task_handle = NULL;
 TaskHandle_t tmc_task_handle = NULL;
 TaskHandle_t led_task_handle = NULL;
@@ -38,6 +41,7 @@ TaskHandle_t buzzer_task_handle = NULL;
 TaskHandle_t voltage_monitoring_task_handle = NULL;
 
 // Task priorities (higher value = higher priority)
+UBaseType_t job_priority_power_control = 3U;
 UBaseType_t job_priority_joystick_control = 2U;
 UBaseType_t job_priority_tmc_control = 2U;
 UBaseType_t job_priority_buzzer_control = 1U;
@@ -49,6 +53,7 @@ TMCControl tmc_control(CX_R_SENSE);
 JoystickControl joystick_control;
 BuzzerControl buzzer_control(BUZZER_PIN);
 LEDControl led_control(LED_PIN_RED, LED_PIN_GREEN, LED_PIN_BLUE);
+PowerControl power_control(CX_POWER_DOWN_TIMEOUT_IN_MS);
 VoltageMonitoring battery_voltage_monitoring("Battery",
                                              VBAT_MONITOR_ADC_PIN,
                                              VBAT_MONITOR_ADC_CHANNEL,
@@ -72,11 +77,10 @@ VoltageMonitoring motor_voltage_monitoring(
  */
 void setup()
 {
-    setup_power_control();
     setup_watchdog();
+    setup_power_control();
     setup_buzzer();
     setup_led();
-    setup_vusb_monitoring();
     setup_tmc2300();
     setup_boost_converter();
     setup_voltage_monitoring();
@@ -102,35 +106,20 @@ void setup_watchdog()
 
 void setup_power_control()
 {
-    LOG_INFO("Power control...");
-    // Enable power control control pins
-    gpio_init(MCU_PWR_CTRL_PIN);
-    gpio_set_dir(MCU_PWR_CTRL_PIN, GPIO_OUT);
-
-    gpio_init(MCU_PWR_BTN_PIN);
-    gpio_set_dir(MCU_PWR_BTN_PIN, GPIO_IN);
-    gpio_pull_up(MCU_PWR_BTN_PIN);
-
-    // Assert power control pin HIGH to keep circuit powered
-    gpio_put(MCU_PWR_CTRL_PIN, 1);
-    LOG_INFO("Power control... OK");
-}
-
-void setup_vusb_monitoring()
-{
-    LOG_INFO("VUSB monitoring...");
-
-    // Enable boost converter pin control
-    gpio_set_input_enabled(VUSB_MONITOR_PIN, true);
-    gpio_disable_pulls(VUSB_MONITOR_PIN);
-
-    if (gpio_get(VUSB_MONITOR_PIN))
+    LOG_INFO("Power control setup...");
+    if (power_control.init())
     {
-        s_usb_is_inserted = true;
-        LOG_INFO("USB cable detected");
+        LOG_INFO("Power control setup... OK");
+    }
+    else
+    {
+        LOG_ERROR("Power control setup... FAIL");
     }
 
-    LOG_INFO("VUSB monitoring... OK");
+    if (power_control.isUSBInserted())
+    {
+        LOG_INFO("USB cable detected");
+    }
 }
 
 /**
@@ -550,75 +539,11 @@ void setup_voltage_monitoring()
     enum ControllerNotification voltage_monitoring_notify =
         ControllerNotification::NOTIFY_BOOT;
 
-    // TODO: Implement detection of both falling and rising edges
-    PinEventManager usb_pin_event_manager(VUSB_MONITOR_PIN, GPIO_IRQ_EDGE_FALL);
-    usb_pin_event_manager.init();
-
-    PinEventManager power_pin_event_manager(MCU_PWR_BTN_PIN,
-                                            GPIO_IRQ_EDGE_FALL,
-                                            5000U);
-    power_pin_event_manager.init();
-
     // TODO: Lots of duplication here, can we refactor this?
     while (true)
     {
-        uint32_t last_activate_timestamp =
-            ControlInterface::getLastTimeControlPeripheralWasUsedMs();
-
-        LOG_DATA("Last activated timestamp: %d", last_activate_timestamp);
-
         battery_voltage_monitoring_state =
             battery_voltage_monitoring.processJob(xTaskGetTickCount());
-
-        // TODO: Consider moving these pin event checks to a separate task
-        if (usb_pin_event_manager.hasEventOccurred())
-        {
-            s_usb_is_inserted = true;
-            LOG_INFO("USB cable detected");
-            usb_pin_event_manager.clearPinEventCount();
-
-            // Set INFO notification status
-            enum ControllerNotification usb_detect_notify =
-                ControllerNotification::NOTIFY_INFO;
-
-            xQueueSendToBack(queue_led_notification_task,
-                             &usb_detect_notify,
-                             0);
-
-            xQueueSendToBack(queue_buzzer_notification_task,
-                             &usb_detect_notify,
-                             0);
-        }
-
-        if (power_pin_event_manager.hasEventOccurred())
-        {
-            LOG_INFO("Power button pressed");
-            power_pin_event_manager.clearPinEventCount();
-
-            // Set INFO notification status
-            enum ControllerNotification usb_detect_notify =
-                ControllerNotification::NOTIFY_POWER_DOWN;
-
-            xQueueSendToBack(queue_led_notification_task,
-                             &usb_detect_notify,
-                             0);
-
-            xQueueSendToBack(queue_buzzer_notification_task,
-                             &usb_detect_notify,
-                             0);
-
-            // TODO: Power down the boost converter
-            gpio_put(TMC_PIN_BOOST_EN, 0);
-            // TODO: Safely power down the TM2300
-            tmc_control.enableFunctionality(false);
-            // TODO: Change the LED pattern to indicate power down
-            // Power down the circuit
-            gpio_put(MCU_PWR_CTRL_PIN, 0);
-
-            // FIXME: This is a blocking call to wait for the power down to
-            // complete
-            while (1);
-        }
 
         switch (battery_voltage_monitoring_state)
         {
@@ -741,6 +666,40 @@ void setup_voltage_monitoring()
     }
 }
 
+[[noreturn]] void power_control_process_job(void *unused_arg)
+{
+    ControllerState power_control_state = ControllerState::STATE_IDLE;
+
+    enum ControllerNotification power_control_notify =
+        ControllerNotification::NOTIFY_BOOT;
+
+    while (true)
+    {
+        power_control_state = power_control.processJob(xTaskGetTickCount());
+
+        switch (power_control_state)
+        {
+            case ControllerState::STATE_IDLE:
+            {
+                break;
+            }
+            case ControllerState::STATE_NEW_DATA:
+            {
+                break;
+            }
+            case ControllerState::STATE_BUSY:
+            {
+                break;
+            }
+            default:
+                break;
+        }
+
+        // Delay to allow other tasks to execute
+        vTaskDelay(power_control_job_delay_ms);
+    }
+}
+
 /*
  * RUNTIME START
  */
@@ -818,6 +777,13 @@ int main()
                     job_priority_voltage_monitoring,
                     &voltage_monitoring_task_handle);
 
+    BaseType_t power_control_status = xTaskCreate(power_control_process_job,
+                                                  "POWER_CONTROL_JOB_TASK",
+                                                  256,
+                                                  NULL,
+                                                  job_priority_power_control,
+                                                  &power_control_task_handle);
+
     // Set up the event queue
     queue_motor_control_data = xQueueCreate(2, sizeof(struct MotorControlData));
     queue_led_notification_task =
@@ -825,11 +791,14 @@ int main()
     queue_buzzer_notification_task =
         xQueueCreate(1, sizeof(enum ControllerNotification));
     queue_led_colour_data = xQueueCreate(1, sizeof(LEDColourNames));
+    queue_power_control_data =
+        xQueueCreate(1, sizeof(enum ControllerNotification));
 
     // Start the FreeRTOS scheduler if all tasks are created successfully
     if (led_status == pdPASS && tmc_status == pdPASS &&
         joystick_status == pdPASS && buzzer_status == pdPASS &&
-        voltage_monitoring_status == pdPASS)  // Add this condition
+        voltage_monitoring_status == pdPASS &&
+        power_control_status == pdPASS)  // Add this condition
     {
         vTaskStartScheduler();
     }

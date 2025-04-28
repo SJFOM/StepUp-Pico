@@ -52,8 +52,6 @@
 constexpr uint32_t CX_WATCHDOG_TIMEOUT_MS = 5000U;  // Max allowed is 8.3s
 constexpr uint32_t CX_WATCHDOG_CALLBACK_MS = 4000U;
 
-// Static variables
-static volatile bool s_usb_is_inserted = false;
 #ifdef __cplusplus
 extern "C"
 {
@@ -72,7 +70,6 @@ extern "C"
     void setup();
     void setup_watchdog();
     void setup_power_control();
-    void setup_vusb_monitoring();
     void setup_led();
     void setup_tmc2300();
     void setup_boost_converter();

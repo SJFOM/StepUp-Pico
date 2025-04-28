@@ -34,10 +34,6 @@ BuzzerControl::~BuzzerControl()
 
 bool BuzzerControl::init()
 {
-    // m_pwm_slice_num = Utils::configurePWMPin(s_buzzer_pin,
-    //                                          BUZZER_BASE_PWM_FREQ_IN_HZ,
-    //                                          BUZZER_PWM_WRAP_VALUE);
-
     m_pwm_slice_num = Utils::configurePWMPin(s_buzzer_pin);
 
     // TODO: Ensure buzzer resets output DC signal to 0V once complete as a

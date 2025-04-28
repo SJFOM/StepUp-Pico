@@ -111,6 +111,8 @@ constexpr float CX_MOTOR_ACTIVE_VOLTAGE_THRESHOLD_HIGH = 11.2f;
 /* Voltage threshold definitions - END */
 /***************************************/
 
+constexpr uint32_t CX_POWER_DOWN_TIMEOUT_IN_MS = 10000U;  // 10 seconds
+
 /*************************/
 /* Joystick pins - START */
 /*************************/

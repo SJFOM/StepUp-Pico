@@ -23,20 +23,29 @@
 // Control libraries
 #include "ControlInterface.hpp"
 
+// PinManager
+#include "pin_event_manager.hpp"
+
 class PowerControl : public ControlInterface
 {
 public:
-    PowerControl();
+    PowerControl(uint32_t power_down_timeout_in_ms = 600000U /* 10 minutes */);
     ~PowerControl();
 
     bool init() override;
     void deinit() override;
     enum ControllerState processJob(uint32_t tick_count) override;
 
-    static void powerDown();
+    bool isUSBInserted();
+
+    void powerDown();
 
 protected:
 private:
+    PinEventManager *m_usb_pin_event_manager, *m_power_pin_event_manager;
+
+    uint32_t m_power_down_timeout_in_ms;
+    bool m_is_usb_inserted;
 };
 
 #endif  // POWER_CONTROL_H_
