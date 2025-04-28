@@ -211,7 +211,10 @@ void TMCControl::defaultConfiguration()
     m_ihold_irun.ihold = DEFAULT_IHOLD_VALUE;  // Standstill current
     m_ihold_irun.irun = DEFAULT_IRUN_VALUE;    // Motor run current
     m_ihold_irun.iholddelay = 2;  // Number of clock cycles for motor power down
-                                  // after standstill detected
+    // after standstill detected
+    uint16_t run_current_in_ma =
+        convertIrunIHoldToRMSCurrentInMilliamps(m_ihold_irun.irun, m_r_sense);
+    LOG_DATA("Run current: %d mA", run_current_in_ma);
     tmc2300_writeInt(&tmc2300, m_ihold_irun.address, m_ihold_irun.sr);
 
     /* Register: VACTUAL
@@ -768,20 +771,19 @@ void TMCControl::enablePeripheralDriver(bool enable_driver)
         m_motor_move_state = MotorMoveState::MOTOR_IDLE_TO_MOVING;
     }
 
-    // LOG_DEBUG((string) "Driver enabled: " +
-    //  std::to_string(_enable_driver));
     gpio_put(TMC_PIN_ENABLE, _enable_driver ? 1 : 0);
 }
 
 /***************************/
 /* Private methods - START */
 /***************************/
-uint16_t TMCControl::convertIrunIHoldToRMSCurrentInAmps(uint8_t i_run_hold,
-                                                        float r_sense)
+uint16_t TMCControl::convertIrunIHoldToRMSCurrentInMilliamps(uint8_t i_run_hold,
+                                                             float r_sense)
 {
     float v_srt = 0.35f;  // Full scale voltage as per datasheet
     uint16_t i_rms =
-        (uint16_t)(((i_run_hold + 1) / 32) * v_srt * 0.707 / (r_sense + 0.03f));
+        (uint16_t)(1000.f * (((float)(i_run_hold + 1) / 32) * v_srt * 0.707f) /
+                   (float)(r_sense + 0.03f));
     return i_rms;
 }
 /*************************/

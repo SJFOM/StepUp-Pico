@@ -47,7 +47,7 @@
 /************************/
 /* TMC2300 pins - START */
 /************************/
-#define R_SENSE (0.15f)
+constexpr float CX_R_SENSE = (0.15f);
 
 // We are using pins 0 and 1, but see the GPIO function select table in the
 // datasheet for information on which other pins can be used.

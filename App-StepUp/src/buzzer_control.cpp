@@ -68,7 +68,8 @@ void BuzzerControl::setBuzzerFunction(
         {
             case ControllerNotification::NOTIFY_BOOT:
             {
-                s_active_melody = &melody_sweep_up;
+                // s_active_melody = &melody_sweep_up;
+                s_active_melody = &melody_off;
                 break;
             }
             case ControllerNotification::NOTIFY_INFO:
@@ -90,7 +91,7 @@ void BuzzerControl::setBuzzerFunction(
             {
                 s_active_melody = &melody_sweep_down;
                 break;
-                        }
+            }
             default:
             {
                 s_active_melody = nullptr;

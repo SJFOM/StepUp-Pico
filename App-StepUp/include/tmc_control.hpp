@@ -52,7 +52,7 @@ extern "C"
 #define VELOCITY_MAX_STEPS_PER_SECOND (100000U)
 
 // Run and hold current values (0..31U) scaled to 1.2A RMS
-#define DEFAULT_IRUN_VALUE  (20U)
+#define DEFAULT_IRUN_VALUE  (14U)
 #define DEFAULT_IHOLD_VALUE (0U)
 
 // If SG_VALUE falls below 2x SGTHRS_VALUE then a stall detection is triggered
@@ -487,8 +487,8 @@ private:
     bool m_open_circuit_detected = false;
     float m_r_sense;
 
-    static uint16_t convertIrunIHoldToRMSCurrentInAmps(uint8_t i_run_hold,
-                                                       float r_sense);
+    static uint16_t convertIrunIHoldToRMSCurrentInMilliamps(uint8_t i_run_hold,
+                                                            float r_sense);
 
     void enableTMCDiagInterrupt(bool enable_interrupt);
     void enableUartPins(bool enable_pins);
