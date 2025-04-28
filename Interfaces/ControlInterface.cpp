@@ -26,9 +26,9 @@ ControlInterface::ControlInterface()
         {
             sp_control_interfaces[index] = this;
             m_control_interface_index = index;
+            s_control_interfaces_count++;
             break;
         }
-        s_control_interfaces_count++;
     }
 }
 
@@ -48,7 +48,7 @@ uint32_t ControlInterface::getLastTimeControlPeripheralWasUsedMs()
             uint32_t timestamp =
                 sp_control_interfaces[index]->getLastActivateTimestampMs();
             if (timestamp > most_recent_timestamp &&
-                !sp_control_interfaces[index]->isFunctionalityEnabled())
+                sp_control_interfaces[index]->isFunctionalityEnabled())
             {
                 most_recent_timestamp = timestamp;
             }

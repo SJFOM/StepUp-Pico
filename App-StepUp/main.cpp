@@ -562,10 +562,10 @@ void setup_voltage_monitoring()
     // TODO: Lots of duplication here, can we refactor this?
     while (true)
     {
-        // uint32_t last_deactive_timestamp =
-        //     ControlInterface::getLastTimeControlPeripheralWasUsedMs();
+        uint32_t last_activate_timestamp =
+            ControlInterface::getLastTimeControlPeripheralWasUsedMs();
 
-        // LOG_DATA("Last deactived timestamp: %d", last_deactive_timestamp);
+        LOG_DATA("Last activated timestamp: %d", last_activate_timestamp);
 
         battery_voltage_monitoring_state =
             battery_voltage_monitoring.processJob(xTaskGetTickCount());

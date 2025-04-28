@@ -18,7 +18,7 @@
 
 #include "PicoUtils.h"
 
-constexpr uint8_t CX_CONTROL_INTERFACE_MAX_COUNT = 10U;
+constexpr uint8_t CX_CONTROL_INTERFACE_MAX_COUNT = 20U;
 
 enum ControllerState
 {
