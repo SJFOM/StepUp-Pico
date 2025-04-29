@@ -98,7 +98,7 @@ void LEDControl::setLEDFunction(
             }
             case ControllerNotification::NOTIFY_POWER_DOWN:
             {
-                s_active_effect = &effect_rapid_blink;
+                s_active_effect = &effect_blink;
                 s_rgb_led.led_pin_in_use = s_rgb_led.led_pin_red;
                 s_rgb_led.led_pwm_slice_in_use = s_rgb_led.led_red_pwm_slice;
                 break;
