@@ -52,7 +52,7 @@ extern "C"
 #define VELOCITY_MAX_STEPS_PER_SECOND (100000U)
 
 // Run and hold current values (0..31U) scaled to 1.2A RMS
-#define DEFAULT_IRUN_VALUE  (14U)
+#define DEFAULT_IRUN_VALUE  (16U)
 #define DEFAULT_IHOLD_VALUE (0U)
 
 // If SG_VALUE falls below 2x SGTHRS_VALUE then a stall detection is triggered
@@ -448,10 +448,16 @@ enum MicrostepResolution
     MRES_256_STEP = 0,
 };
 
+enum CoolStepCurrentReduction
+{
+    COOLSTEP_REDUCTION_1_2 = 0,
+    COOLSTEP_REDUCTION_1_4 = 1U,
+};
+
 class TMCControl : public ControlInterface
 {
 public:
-    TMCControl(float r_sense);
+    TMCControl(float r_sense, bool coolstep_enabled = false);
     ~TMCControl();
     bool init(void);
     void deinit(void);
@@ -484,7 +490,7 @@ private:
     struct TMCData m_tmc;
     int32_t m_target_velocity, m_ramp_velocity;
     TMCOpenCircuitAlgoData m_open_circuit_algo_data;
-    bool m_open_circuit_detected = false;
+    bool m_open_circuit_detected = false, m_coolstep_enabled = false;
     float m_r_sense;
 
     static uint16_t convertIrunIHoldToRMSCurrentInMilliamps(uint8_t i_run_hold,

@@ -55,7 +55,9 @@ void callback(TMC2300TypeDef *tmc2300, ConfigState cfg_state)
     }
 }
 
-TMCControl::TMCControl(float r_sense) : m_r_sense(r_sense)
+TMCControl::TMCControl(float r_sense, bool coolstep_enabled)
+    : m_r_sense(r_sense),
+      m_coolstep_enabled(coolstep_enabled)
 {
     m_motor_move_state = MotorMoveState::MOTOR_IDLE;
     m_init_success = false;
@@ -239,7 +241,14 @@ void TMCControl::defaultConfiguration()
      * Use: Velocity in steps/second at which to switch on this feature
      */
     // NOTE: If using, update with sane velocity at which to switch mode.
-    m_tcoolthrs.sr = 0U;  // Default value
+    if (m_coolstep_enabled)
+    {
+        m_tcoolthrs.sr = 70U;  // Experimental value
+    }
+    else
+    {
+        m_tcoolthrs.sr = 0;  // Disable CoolStep
+    }
     tmc2300_writeInt(&tmc2300, m_tcoolthrs.address, m_tcoolthrs.sr);
 
     /* Register: COOLCONF
@@ -248,11 +257,45 @@ void TMCControl::defaultConfiguration()
      */
     // NOTE: If using, update with stallgaurd value thresholds once known
     m_coolconf.sr = tmc2300_readInt(&tmc2300, TMC2300_COOLCONF);
-    m_coolconf.seup = 0;   // Step width: 1
-    m_coolconf.sedn = 0;   // SG measurements per decrement: 32
-    m_coolconf.semin = 0;  // NOTE: semin = 0, coolStep = OFF
-    m_coolconf.semax = 0;
-    m_coolconf.seimin = 0;
+
+    // SEUP: Controls how aggressively the driver will step up the current when
+    // it detects additional load (when SG_RESULT < (SEMIN+SEMAX+1)*32)
+    // Values are 0..3 corresponding to 1,2,4,8 steps up respectively
+    m_coolconf.seup = 2;  // Step up width: 0 = 1
+
+    // SEDN: Sets the number of StallGuard2 readings above the upper threshold
+    // necessary for each current decrement of the motor current.
+    // Values are 0..3 corresponding to 32,8,2,1 sg readings respectively
+    m_coolconf.sedn = 2;  // SG measurements per decrement: 0 = 32
+
+    // SEMIN: Sets the minimum threshold against which the CoolStep driver will
+    // increase the current (see CS_ACTUAL). When SG_RESULT < SEMIN*32, the
+    // driver will increase current to both coils  Values are 0..15
+    // corresponding to 0 (a.k.a OFF) through 1..15*32
+
+    // SEMAX: Sets the max threshold against which the driver will reduce
+    // current to the coils via the CoolStep feature (see CS_ACTUAL). When
+    // SG_RESULT > (SEMIN+SEMAX+1)*32, the driver will reduce current to both
+    // coils based on the SEIMIN setting
+    // Values are 0..15 corresponding to (0..15 + SEMIN + 1)*32
+
+    if (m_coolstep_enabled)
+    {
+        m_coolconf.semin =
+            m_sgthrs.sr / 16 + 1;  // Sane starting value for CoolStep
+        m_coolconf.semax = 5;
+    }
+    else
+    {
+        m_coolconf.semin = 0;  // SG measurements per decrement: 0
+        m_coolconf.semax = 0;
+    }
+
+    // SEIMIN: Sets the lower motor current limit for CoolStep
+    // operation by scaling the IRUN current setting.
+    // Values are 0 for 1/2 of I_RUN, 1 for 1/4 of I_RUN (ensure min IRUN of 16)
+    m_coolconf.seimin = CoolStepCurrentReduction::COOLSTEP_REDUCTION_1_4;
+
     tmc2300_writeInt(&tmc2300, m_coolconf.address, m_coolconf.sr);
     m_coolconf.sr = tmc2300_readInt(&tmc2300, TMC2300_COOLCONF);
 
@@ -571,41 +614,50 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
         {
             s_plot_diagnostics_counter = 0;
             uint32_t sg_value = tmc2300_readInt(&tmc2300, m_sgval.address);
-            IHOLD_IRUN_t irun_ihold;
-            irun_ihold.sr = tmc2300_readInt(&tmc2300, TMC2300_IHOLD_IRUN);
-            uint8_t motor_effort_percent = ((100 * (510 - sg_value)) / 510);
-            m_ioin.sr = tmc2300_readInt(&tmc2300, m_ioin.address);
+            // IHOLD_IRUN_t irun_ihold;
+            // irun_ihold.sr = tmc2300_readInt(&tmc2300, TMC2300_IHOLD_IRUN);
+            // uint8_t motor_effort_percent = ((100 * (510 - sg_value)) / 510);
+            // m_ioin.sr = tmc2300_readInt(&tmc2300, m_ioin.address);
             m_drv_status.sr = tmc2300_readInt(&tmc2300, TMC2300_DRVSTATUS);
             m_ihold_irun.sr = tmc2300_readInt(&tmc2300, TMC2300_IHOLD_IRUN);
             m_tstep.sr = tmc2300_readInt(&tmc2300, TMC2300_TSTEP);
             uint8_t stall = 0;
             uint8_t diag = 0;
-            if (m_ioin.diag)
-            {
-                diag = 1;
-                if (m_drv_status.stst)
-                {
-                    stall = 1;
-                }
-            }
+            // if (m_ioin.diag)
+            // {
+            //     diag = 1;
+            //     if (m_drv_status.stst)
+            //     {
+            //         stall = 1;
+            //     }
+            // }
             // printf("SG: %d\n", sg_value);
             // if (sg_value < 30U)
             // {
             // printf("High motor load: %d - %d %%\n", sg_value,
             // motor_effort_percent);
             // }
-            // printf(">sg_live: %d\n", sg_value);
+            printf(">sg_live: %d\n", sg_value);
             printf(">vel:%d\n", m_vactual.sr);
-            printf(">sg_match: %d\n",
-                   (uint8_t)((m_open_circuit_algo_data.sg_val_previous ==
-                              m_sgval.sr) *
-                             UINT8_MAX));
-            printf(">pwm_scale_sum: %d\n",
-                   (uint8_t)(m_pwm_scale.pwm_scale_sum));
+            printf(">tcoolthrs:%d\n", m_tcoolthrs.sr);
+            printf(">tstep: %lu\n", m_tstep.sr);
+            // printf(">sg_match: %d\n",
+            //        (uint8_t)((m_open_circuit_algo_data.sg_val_previous ==
+            //                   m_sgval.sr) *
+            //                  UINT8_MAX));
+            // printf(">pwm_scale_sum: %d\n",
+            //        (uint8_t)(m_pwm_scale.pwm_scale_sum));
             // printf(">diag: %d\n", diag);
             // printf(">diag_pin: %d\n", gpio_get(TMC_PIN_DIAG));
             // printf(">stall: %d\n", stall);
-            // printf(">thresh: %d\n", m_sgthrs.sr);
+            printf(
+                ">thresh: %d\n",
+                m_sgthrs.sr * 2);  // 2x the value is the threshold for sg_live
+            // to fall under to trigger a "stall" event
+
+            printf(">sg_upper: %d\n",
+                   (m_coolconf.semax + m_coolconf.semin + 1) * 32);
+            printf(">sg_lower: %d\n", m_coolconf.semin * 32);
             // printf(">drv_status: %d\n",
             //    m_drv_status.sr & m_drv_status.error_bit_mask);
 
@@ -626,9 +678,8 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
             // printf(">ot_pw: %d\n", m_drv_status.ot | m_drv_status.otpw);
             //    printf(">drv_status:
             // %d\n", m_drv_status.sr);
-            // printf(">irun: %d\n", m_ihold_irun.irun);
-            // printf(">cs_actual: %d\n", m_drv_status.cs_actual);
-            // printf(">tstep: %lu\n", m_tstep.sr);
+            printf(">irun: %d\n", m_ihold_irun.irun);
+            printf(">cs_actual: %d\n", m_drv_status.cs_actual);
         }
         process_count = 0;
     }

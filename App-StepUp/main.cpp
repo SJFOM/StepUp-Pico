@@ -28,7 +28,7 @@ const TickType_t joystick_job_delay_ms = 10 / portTICK_PERIOD_MS;
 const TickType_t tmc_job_delay_ms = 20 / portTICK_PERIOD_MS;
 const TickType_t led_job_delay_ms = 80 / portTICK_PERIOD_MS;
 const TickType_t buzzer_job_delay_ms = 100 / portTICK_PERIOD_MS;
-const TickType_t voltage_monitoring_job_delay = 1000 / portTICK_PERIOD_MS;
+const TickType_t voltage_monitoring_job_delay = 10000 / portTICK_PERIOD_MS;
 const TickType_t watchdog_job_delay_ms =
     CX_WATCHDOG_CALLBACK_MS / portTICK_PERIOD_MS;
 
@@ -49,7 +49,7 @@ UBaseType_t job_priority_led_control = 1U;
 UBaseType_t job_priority_voltage_monitoring = 1U;
 
 // Create class instances of control interfaces
-TMCControl tmc_control(CX_R_SENSE);
+TMCControl tmc_control(CX_R_SENSE, CX_COOLSTEP_ENABLED);
 JoystickControl joystick_control;
 BuzzerControl buzzer_control(BUZZER_PIN);
 LEDControl led_control(LED_PIN_RED, LED_PIN_GREEN, LED_PIN_BLUE);

@@ -44,10 +44,20 @@
 /* Status pins - END */
 /*********************/
 
+/**************************/
+/* TMC2300 config - START */
+/**************************/
+
+constexpr float CX_R_SENSE = (0.15f);
+constexpr bool CX_COOLSTEP_ENABLED = true;
+
+/************************/
+/* TMC2300 config - END */
+/************************/
+
 /************************/
 /* TMC2300 pins - START */
 /************************/
-constexpr float CX_R_SENSE = (0.15f);
 
 // We are using pins 0 and 1, but see the GPIO function select table in the
 // datasheet for information on which other pins can be used.
@@ -111,10 +121,18 @@ constexpr float CX_MOTOR_ACTIVE_VOLTAGE_THRESHOLD_HIGH = 12.75f;
 /* Voltage threshold definitions - END */
 /***************************************/
 
+/**********************************/
+/* Power control timeouts - START */
+/**********************************/
+
 constexpr uint32_t CX_POWER_BUTTON_OFF_HOLD_TIMEOUT_MS =
     5 * 1000U;  // 5 seconds
 constexpr uint32_t CX_POWER_DOWN_INACTIVE_TIMEOUT_MS =
     10 * 60 * 1000U;  // 10 minutes
+
+/********************************/
+/* Power control timeouts - END */
+/********************************/
 
 /*************************/
 /* Joystick pins - START */
