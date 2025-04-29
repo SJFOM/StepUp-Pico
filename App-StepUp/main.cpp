@@ -53,7 +53,8 @@ TMCControl tmc_control(CX_R_SENSE);
 JoystickControl joystick_control;
 BuzzerControl buzzer_control(BUZZER_PIN);
 LEDControl led_control(LED_PIN_RED, LED_PIN_GREEN, LED_PIN_BLUE);
-PowerControl power_control(CX_POWER_DOWN_TIMEOUT_IN_MS);
+PowerControl power_control(CX_POWER_BUTTON_OFF_HOLD_TIMEOUT_MS,
+                           CX_POWER_DOWN_INACTIVE_TIMEOUT_MS);
 VoltageMonitoring battery_voltage_monitoring("Battery",
                                              VBAT_MONITOR_ADC_PIN,
                                              VBAT_MONITOR_ADC_CHANNEL,
@@ -188,7 +189,7 @@ void setup_joystick()
     {
         // This will be true if no joystick present OR the josytick is not
         // centered
-        // LOG_ERROR("Joystick setup... FAIL");
+        LOG_ERROR("Joystick setup... FAIL");
     }
     LOG_INFO("Joystick setup... OK");
 }
@@ -581,6 +582,11 @@ void setup_voltage_monitoring()
                             CX_BATTERY_VOLTAGE_THRESHOLD_MID_LOW))
                     {
                         led_colour = LEDColourNames::LED_COLOUR_RED;
+
+                        // TODO: Implement some power down mechanism based on
+                        // battery voltage being low, call
+                        // triggerPowerDownProcess() in the power_control
+                        // library
                     }
                     else if (Utils::isNumberWithinBounds<float>(
                                  voltage_monitor_data.voltage,
@@ -596,9 +602,6 @@ void setup_voltage_monitoring()
                     {
                         led_colour = LEDColourNames::LED_COLOUR_GREEN;
                     }
-
-                    LOG_DATA("Battery voltage: %.2fV",
-                             voltage_monitor_data.voltage);
 
                     xQueueSendToBack(queue_led_colour_data, &led_colour, 0);
                 }
@@ -685,6 +688,23 @@ void setup_voltage_monitoring()
             }
             case ControllerState::STATE_NEW_DATA:
             {
+                if (power_control.isPowerDownTriggered())
+                {
+                    power_control_notify =
+                        ControllerNotification::NOTIFY_POWER_DOWN;
+                }
+                else
+                {
+                    power_control_notify = ControllerNotification::NOTIFY_INFO;
+                }
+
+                xQueueSendToBack(queue_led_notification_task,
+                                 &power_control_notify,
+                                 0);
+                xQueueSendToBack(queue_buzzer_notification_task,
+                                 &power_control_notify,
+                                 0);
+
                 break;
             }
             case ControllerState::STATE_BUSY:

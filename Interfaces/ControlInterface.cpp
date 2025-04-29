@@ -40,20 +40,21 @@ ControlInterface::~ControlInterface()
     s_control_interfaces_count--;
 }
 
-uint32_t ControlInterface::getLastTimeControlPeripheralWasUsedMs()
+uint32_t ControlInterface::getLastTimeControlPeripheralActivityWasUpdatedMs()
 {
-    uint32_t most_recent_timestamp = ControlInterface::s_most_recent_deactivate_timestamp_ms;
+    uint32_t most_recent_timestamp =
+        ControlInterface::s_most_recent_deactivate_timestamp_ms;
     for (uint8_t index = 0; index < s_control_interfaces_count; index++)
     {
         if (sp_control_interfaces[index] != nullptr)
         {
-            uint32_t timestamp =
-                sp_control_interfaces[index]->getLastActivateTimestampMs();
-            if (timestamp > most_recent_timestamp &&
-                sp_control_interfaces[index]->isFunctionalityEnabled())
+            uint32_t timestamp = sp_control_interfaces[index]
+                                     ->getLatestActivityChangeTimestampMs();
+            if (timestamp > most_recent_timestamp)
             {
                 most_recent_timestamp = timestamp;
-                ControlInterface::s_most_recent_deactivate_timestamp_ms = timestamp;
+                ControlInterface::s_most_recent_deactivate_timestamp_ms =
+                    timestamp;
             }
         }
     }

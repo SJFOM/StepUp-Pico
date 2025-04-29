@@ -71,10 +71,7 @@ public:
      */
     virtual void enableFunctionality(bool enable_disable)
     {
-        if (enable_disable)
-        {
-            m_last_activate_timestamp_ms = Utils::getCurrentTimestampMs();
-        }
+        m_latest_activity_change_timestamp_ms = Utils::getCurrentTimestampMs();
         m_is_enabled = enable_disable;
         enablePeripheralDriver(enable_disable);
     }
@@ -84,9 +81,9 @@ public:
      *
      * @return uint32_t
      */
-    virtual uint32_t getLastActivateTimestampMs()
+    virtual uint32_t getLatestActivityChangeTimestampMs()
     {
-        return m_last_activate_timestamp_ms;
+        return m_latest_activity_change_timestamp_ms;
     }
 
     /**
@@ -109,7 +106,7 @@ public:
      *
      * @return uint32_t
      */
-    static uint32_t getLastTimeControlPeripheralWasUsedMs();
+    static uint32_t getLastTimeControlPeripheralActivityWasUpdatedMs();
 
     static ControlInterface
         *sp_control_interfaces[CX_CONTROL_INTERFACE_MAX_COUNT];
@@ -120,7 +117,7 @@ protected:
 
 private:
     uint8_t m_control_interface_index;
-    uint32_t m_last_activate_timestamp_ms;
+    uint32_t m_latest_activity_change_timestamp_ms;
 
     static uint32_t s_most_recent_deactivate_timestamp_ms;
 

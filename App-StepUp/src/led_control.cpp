@@ -121,6 +121,9 @@ void LEDControl::setLEDFunction(
             // Enable the led
             pwm_set_enabled(s_rgb_led.led_pwm_slice_in_use, true);
 
+            // Reset the effect index to start a new pattern
+            s_effect_index_in_transition = 0;
+
             queueNextLEDEffect();
         }
     }

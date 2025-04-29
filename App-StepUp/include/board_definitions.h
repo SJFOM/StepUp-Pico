@@ -103,15 +103,16 @@ constexpr float CX_BATTERY_VOLTAGE_THRESHOLD_HIGH = 4.3f;
 constexpr float CX_MOTOR_IDLE_VOLTAGE_THRESHOLD_LOW = 10.1f;
 constexpr float CX_MOTOR_IDLE_VOLTAGE_THRESHOLD_HIGH = 10.3f;
 
-// Within 10% of 10.2V when ACTIVE
+// Within -10->25% of 10.2V when ACTIVE
 constexpr float CX_MOTOR_ACTIVE_VOLTAGE_THRESHOLD_LOW = 9.2f;
-constexpr float CX_MOTOR_ACTIVE_VOLTAGE_THRESHOLD_HIGH = 11.2f;
+constexpr float CX_MOTOR_ACTIVE_VOLTAGE_THRESHOLD_HIGH = 12.75f;
 
 /***************************************/
 /* Voltage threshold definitions - END */
 /***************************************/
 
-constexpr uint32_t CX_POWER_DOWN_TIMEOUT_IN_MS = 10000U;  // 10 seconds
+constexpr uint32_t CX_POWER_BUTTON_OFF_HOLD_TIMEOUT_MS = 5000U;  // 5 seconds
+constexpr uint32_t CX_POWER_DOWN_INACTIVE_TIMEOUT_MS = 60000U;   // 60 seconds
 
 /*************************/
 /* Joystick pins - START */

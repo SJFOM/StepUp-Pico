@@ -116,7 +116,7 @@ bool TMCControl::init()
         }
 
         setStandby(false);
-        enablePeripheralDriver(false);
+        enableFunctionality(false);
 
         // Reset open circuit detection algorithm values to default
         resetOpenCircuitDetectionAlgorithm();
@@ -351,7 +351,7 @@ void TMCControl::updateMovementDynamics(int32_t velocity_delta,
     // suggest renaming or splitting into two separate methods
     if (direction == 0)
     {
-        enablePeripheralDriver(false);
+        enableFunctionality(false);
     }
     else
     {
@@ -368,14 +368,14 @@ void TMCControl::updateMovementDynamics(int32_t velocity_delta,
 
         m_target_velocity = cached_velocity;
 
-        enablePeripheralDriver(true);
+        enableFunctionality(true);
     }
 }
 
 void TMCControl::resetMovementDynamics()
 {
     move(VELOCITY_STARTING_STEPS_PER_SECOND);
-    enablePeripheralDriver(false);
+    enableFunctionality(false);
     setCurrent(DEFAULT_IRUN_VALUE, DEFAULT_IHOLD_VALUE);
 }
 
@@ -393,7 +393,7 @@ void TMCControl::move(int32_t velocity)
         velocity = VELOCITY_MAX_STEPS_PER_SECOND;
     }
     m_vactual.sr = velocity;
-    enablePeripheralDriver(velocity == 0 ? false : true);
+    enableFunctionality(velocity == 0 ? false : true);
     tmc2300_writeInt(&tmc2300, m_vactual.address, m_vactual.sr);
 }
 
@@ -734,7 +734,7 @@ void TMCControl::setStandby(bool enable_standby)
     if (enable_standby)
     {
         // Just entered standby -> disable the driver
-        enablePeripheralDriver(false);
+        enableFunctionality(false);
     }
 
     // Set the Standby pin state - after enable so we retain control over driver

@@ -34,6 +34,7 @@ BuzzerControl::~BuzzerControl()
 
 bool BuzzerControl::init()
 {
+    m_init_success = true;
     m_pwm_slice_num = Utils::configurePWMPin(s_buzzer_pin);
 
     // TODO: Ensure buzzer resets output DC signal to 0V once complete as a
@@ -44,7 +45,6 @@ bool BuzzerControl::init()
 
     m_control_state = ControllerState::STATE_READY;
 
-    m_init_success = true;
     return m_init_success;
 }
 

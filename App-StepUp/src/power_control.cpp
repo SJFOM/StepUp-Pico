@@ -13,8 +13,10 @@
 #include "../include/power_control.hpp"
 #include "PicoUtils.h"
 
-PowerControl::PowerControl(uint32_t power_down_timeout_in_ms)
-    : m_power_down_timeout_in_ms(power_down_timeout_in_ms)
+PowerControl::PowerControl(uint32_t power_button_hold_timeout_ms,
+                           uint32_t power_down_inactive_timeout_ms)
+    : m_power_button_hold_timeout_ms(power_button_hold_timeout_ms),
+      m_power_down_inactive_timeout_ms(power_down_inactive_timeout_ms)
 {
 }
 
@@ -47,10 +49,14 @@ bool PowerControl::init()
         new PinEventManager(VUSB_MONITOR_PIN, GPIO_IRQ_EDGE_FALL);
 
     m_power_pin_event_manager =
-        new PinEventManager(MCU_PWR_CTRL_PIN, GPIO_IRQ_EDGE_FALL, 5000U);
+        new PinEventManager(MCU_PWR_BTN_PIN,
+                            GPIO_IRQ_EDGE_FALL,
+                            m_power_button_hold_timeout_ms);
 
     m_init_success |= m_usb_pin_event_manager->init();
     m_init_success |= m_power_pin_event_manager->init();
+
+    m_power_down_triggered = false;
 
     return m_init_success;
 }
@@ -62,32 +68,44 @@ void PowerControl::deinit()
     delete m_usb_pin_event_manager, m_power_pin_event_manager;
 }
 
-void PowerControl::powerDown()
-{
-    LOG_INFO("Power button pressed");
-
-    // Set INFO notification status
-    enum ControllerNotification usb_detect_notify =
-        ControllerNotification::NOTIFY_POWER_DOWN;
-
-    // TODO: Hand over this functionality to other running processes
-
-    // TODO: Power down the boost converter
-    gpio_put(TMC_PIN_BOOST_EN, 0);
-    // TODO: Safely power down the TM2300
-    // tmc_control.enableFunctionality(false);
-    // TODO: Change the LED pattern to indicate power down
-    // Power down the circuit
-    gpio_put(MCU_PWR_CTRL_PIN, 0);
-
-    // FIXME: This is a blocking call to wait for the power down to
-    // complete
-    while (1);
-}
-
 bool PowerControl::isUSBInserted()
 {
     return m_is_usb_inserted;
+}
+
+bool PowerControl::isPowerDownTriggered()
+{
+    return m_power_down_triggered;
+}
+
+int64_t power_down_timer_callback(alarm_id_t id, void *user_data)
+{
+    // FIXME: These pins should be handled in their respective classes vs having
+    // inherent knowledge of them here
+
+    // Power down the TMC
+    gpio_put(TMC_PIN_ENABLE, 0);
+
+    // Power down the boost converter
+    gpio_put(TMC_PIN_BOOST_EN, 0);
+
+    // Power down the MCU
+    gpio_put(MCU_PWR_CTRL_PIN, 0);
+
+    while (1);
+    return 0;
+}
+
+void PowerControl::triggerPowerDownProcess()
+{
+    m_power_down_triggered = true;
+
+    // Start a timer callback to enable powering down the rest of the
+    // circuit in main.cpp and, then, physcially power off
+    add_alarm_in_ms(500U,
+                    power_down_timer_callback,
+                    NULL, /*user_data*/
+                    false /*fire_if_past*/);
 }
 
 enum ControllerState PowerControl::processJob(uint32_t tick_count)
@@ -101,34 +119,28 @@ enum ControllerState PowerControl::processJob(uint32_t tick_count)
     }
 
     uint32_t last_activate_timestamp =
-        ControlInterface::getLastTimeControlPeripheralWasUsedMs();
-
-    LOG_DATA("Last activated timestamp: %d", last_activate_timestamp);
-
-    LOG_DATA("Time since last activate: %lu",
-             Utils::getCurrentTimestampMs() - last_activate_timestamp);
+        ControlInterface::getLastTimeControlPeripheralActivityWasUpdatedMs();
 
     bool power_down_timestamp_elapsed =
         Utils::getCurrentTimestampMs() - last_activate_timestamp >
-        m_power_down_timeout_in_ms;
+        m_power_down_inactive_timeout_ms;
 
     if (m_usb_pin_event_manager->hasEventOccurred())
     {
         m_is_usb_inserted = true;
-        LOG_INFO("USB cable detected");
+        LOG_INFO("USB cable removed");
         m_usb_pin_event_manager->clearPinEventCount();
         power_state = ControllerState::STATE_NEW_DATA;
     }
-
-    if (m_power_pin_event_manager->hasEventOccurred() ||
-        power_down_timestamp_elapsed)
+    else if (m_power_pin_event_manager->hasEventOccurred() ||
+             power_down_timestamp_elapsed)
     {
+        LOG_INFO("Power down event triggered");
+
         m_power_pin_event_manager->clearPinEventCount();
         power_state = ControllerState::STATE_NEW_DATA;
 
-        // FIXME: Implement a timeout for this to allow time for other loops to
-        // power down.
-        powerDown();
+        triggerPowerDownProcess();
     }
 
     return power_state;
