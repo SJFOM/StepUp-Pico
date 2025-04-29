@@ -116,7 +116,7 @@ bool TMCControl::init()
         }
 
         setStandby(false);
-        enableDriver(false);
+        enableFunctionality(false);
 
         // Reset open circuit detection algorithm values to default
         resetOpenCircuitDetectionAlgorithm();
@@ -211,7 +211,10 @@ void TMCControl::defaultConfiguration()
     m_ihold_irun.ihold = DEFAULT_IHOLD_VALUE;  // Standstill current
     m_ihold_irun.irun = DEFAULT_IRUN_VALUE;    // Motor run current
     m_ihold_irun.iholddelay = 2;  // Number of clock cycles for motor power down
-                                  // after standstill detected
+    // after standstill detected
+    uint16_t run_current_in_ma =
+        convertIrunIHoldToRMSCurrentInMilliamps(m_ihold_irun.irun, m_r_sense);
+    LOG_DATA("Run current: %d mA", run_current_in_ma);
     tmc2300_writeInt(&tmc2300, m_ihold_irun.address, m_ihold_irun.sr);
 
     /* Register: VACTUAL
@@ -348,31 +351,31 @@ void TMCControl::updateMovementDynamics(int32_t velocity_delta,
     // suggest renaming or splitting into two separate methods
     if (direction == 0)
     {
-        enableDriver(false);
+        enableFunctionality(false);
     }
     else
     {
-        int32_t ramp_velocity = abs(m_vactual.sr);
-        ramp_velocity *= direction;
+        int32_t cached_velocity = abs(m_vactual.sr);
+        cached_velocity *= direction;
 
         // We do not wish to allow a velocity update to make the motor stop, the
         // direction flag should control this. Instead, we want to enforce a
         // call to resetMotorDynamics or move(0) to have this effect.
-        if ((ramp_velocity + velocity_delta) != 0)
+        if ((cached_velocity + velocity_delta) != 0)
         {
-            ramp_velocity += velocity_delta;
+            cached_velocity += velocity_delta;
         }
 
-        m_target_velocity = ramp_velocity;
+        m_target_velocity = cached_velocity;
 
-        enableDriver(true);
+        enableFunctionality(true);
     }
 }
 
 void TMCControl::resetMovementDynamics()
 {
     move(VELOCITY_STARTING_STEPS_PER_SECOND);
-    enableDriver(false);
+    enableFunctionality(false);
     setCurrent(DEFAULT_IRUN_VALUE, DEFAULT_IHOLD_VALUE);
 }
 
@@ -383,16 +386,14 @@ void TMCControl::move(int32_t velocity)
         return;
     }
 
-    // LOG_DEBUG((string) "velocity: " + std::to_string(velocity));
     if (abs(velocity) > VELOCITY_MAX_STEPS_PER_SECOND)
     {
         LOG_WARN("Max motor velocity reached!");
 
         velocity = VELOCITY_MAX_STEPS_PER_SECOND;
     }
-    // printf("New velocity: %d\n", velocity);
     m_vactual.sr = velocity;
-    enableDriver(velocity == 0 ? false : true);
+    enableFunctionality(velocity == 0 ? false : true);
     tmc2300_writeInt(&tmc2300, m_vactual.address, m_vactual.sr);
 }
 
@@ -635,25 +636,32 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
     // Ramp profile using internal TMC step generator
     switch (m_motor_move_state)
     {
-        static int32_t ramp_velocity = 0;
         case (MOTOR_IDLE):
             break;
         case (MOTOR_IDLE_TO_MOVING):
         {
-            m_vactual.sr = VELOCITY_MAX_STEPS_PER_SECOND;
+            m_ramp_velocity = VELOCITY_STARTING_STEPS_PER_SECOND;
+            if (m_target_velocity < 0)
+            {
+                m_ramp_velocity *= -1;
+            }
+            move(m_ramp_velocity);
+
             m_motor_move_state = MotorMoveState::MOTOR_MOVING;
         }
         case (MOTOR_MOVING):
         {
-            if (m_vactual.sr != m_target_velocity)
+            if (m_vactual.sr != m_target_velocity &&
+                abs(m_target_velocity) <= VELOCITY_MAX_STEPS_PER_SECOND)
             {
                 if (abs(m_vactual.sr) > abs(m_target_velocity))
                 {
                     // If we are moving faster than the target velocity then we
                     // can safely jump to using the target velocity. Use of the
-                    // ramp profile makes sense when we are trying to increase
-                    // our velocity to a VMAX vs the other way around.
-                    ramp_velocity = m_target_velocity;
+                    // ramp profile really only makes sense when we are trying
+                    // to increase our velocity to a VMAX vs the other way
+                    // around.
+                    m_ramp_velocity = m_target_velocity;
                 }
                 else
                 {
@@ -662,26 +670,21 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
                     // direction of motor rotation.
                     if (m_target_velocity < 0)
                     {
-                        ramp_velocity -=
+                        m_ramp_velocity -=
                             VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
                     }
                     else
                     {
-                        ramp_velocity +=
+                        m_ramp_velocity +=
                             VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
                     }
                 }
-                // printf("%d -> %d -> %d\n",
-                //        m_vactual.sr,
-                //        ramp_velocity,
-                //        m_target_velocity);
-                move(ramp_velocity);
+                move(m_ramp_velocity);
             }
             break;
         }
         case (MOTOR_MOVING_TO_IDLE):
         {
-            // printf("Moving -> Idle\n");
             m_motor_move_state = MotorMoveState::MOTOR_IDLE;
             break;
         }
@@ -731,7 +734,7 @@ void TMCControl::setStandby(bool enable_standby)
     if (enable_standby)
     {
         // Just entered standby -> disable the driver
-        enableDriver(false);
+        enableFunctionality(false);
     }
 
     // Set the Standby pin state - after enable so we retain control over driver
@@ -755,7 +758,7 @@ void TMCControl::enableTMCDiagInterrupt(bool enable_interrupt)
                          enable_interrupt);  // monitor pin 1 connected to pin 0
 }
 
-void TMCControl::enableDriver(bool enable_driver)
+void TMCControl::enablePeripheralDriver(bool enable_driver)
 {
     bool _enable_driver = (bool)(driver_can_be_enabled && enable_driver);
 
@@ -768,20 +771,19 @@ void TMCControl::enableDriver(bool enable_driver)
         m_motor_move_state = MotorMoveState::MOTOR_IDLE_TO_MOVING;
     }
 
-    // LOG_DEBUG((string) "Driver enabled: " +
-    //  std::to_string(_enable_driver));
     gpio_put(TMC_PIN_ENABLE, _enable_driver ? 1 : 0);
 }
 
 /***************************/
 /* Private methods - START */
 /***************************/
-uint16_t TMCControl::convertIrunIHoldToRMSCurrentInAmps(uint8_t i_run_hold,
-                                                        float r_sense)
+uint16_t TMCControl::convertIrunIHoldToRMSCurrentInMilliamps(uint8_t i_run_hold,
+                                                             float r_sense)
 {
     float v_srt = 0.35f;  // Full scale voltage as per datasheet
     uint16_t i_rms =
-        (uint16_t)(((i_run_hold + 1) / 32) * v_srt * 0.707 / (r_sense + 0.03f));
+        (uint16_t)(1000.f * (((float)(i_run_hold + 1) / 32) * v_srt * 0.707f) /
+                   (float)(r_sense + 0.03f));
     return i_rms;
 }
 /*************************/
@@ -797,7 +799,8 @@ void tmc_diag_callback()
     if (gpio_get_irq_event_mask(TMC_PIN_DIAG) & GPIO_IRQ_EDGE_RISE)
     {
         gpio_acknowledge_irq(TMC_PIN_DIAG, GPIO_IRQ_EDGE_RISE);
-        // TODO: Check if this needs de-bouncing
+        // TODO: Check if this needs de-bouncing. If so, consider migrating to
+        // the PinEventManager library
         s_diag_event = true;
     }
 }

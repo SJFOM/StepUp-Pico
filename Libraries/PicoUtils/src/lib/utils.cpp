@@ -7,7 +7,8 @@
  * @licence   MIT
  *
  */
-#include "../include/utils.h"
+
+#include "utils.h"
 #include <cstdarg>  // For va_list, va_start, va_end
 #include <cstdio>
 #include <string>
@@ -139,7 +140,7 @@ namespace Utils
      */
     void log_device_info(void)
     {
-        printf("[INFO] App: %s %s (%i)\n", APP_NAME, APP_VERSION, BUILD_NUM);
+        printf("[INFO] App: %s %s (%s)\n", APP_NAME, APP_VERSION, BUILD_NUM);
     }
 
     /**
@@ -183,6 +184,8 @@ namespace Utils
     void log_error(const string msg)
     {
         printf("[ERROR] %s\n", msg.c_str());
+        // printf("[POWER] Powering down...\n");
+        // PowerControl::powerDown();
         while (true)
         {
             ;
@@ -192,6 +195,35 @@ namespace Utils
     /**************************
      * LOGGING UTILS - FINISH *
      **************************/
+
+    /***************************
+     * TIMESTAMP UTILS - START *
+     ***************************/
+    uint32_t getCurrentTimestampMs()
+    {
+        // Get the current time in milliseconds since boot
+        absolute_time_t current_time = get_absolute_time();
+        uint32_t current_timestamp_ms =
+            to_ms_since_boot(current_time) % UINT32_MAX;
+        return current_timestamp_ms;
+    }
+
+    uint32_t getElapsedTimeMs(uint32_t start_time_ms)
+    {
+        // Get the current time in milliseconds since boot
+        absolute_time_t current_time = get_absolute_time();
+        uint32_t current_timestamp_ms =
+            to_ms_since_boot(current_time) % UINT32_MAX;
+
+        // Calculate the elapsed time in milliseconds
+        uint32_t elapsed_time_ms =
+            (current_timestamp_ms - start_time_ms) % UINT32_MAX;
+        return elapsed_time_ms;
+    }
+
+    /****************************
+     * TIMESTAMP UTILS - FINISH *
+     ****************************/
 
     /*********************
      * ADC UTILS - BEGIN *
@@ -222,12 +254,16 @@ namespace Utils
     /*********************
      * PWM UTILS - BEGIN *
      *********************/
-    uint16_t configurePWMPin(uint pwm_pin, uint16_t pwm_freq_in_hz)
+
+    uint16_t configurePWMPin(uint pwm_pin)
     {
+        // Ensure valid PWM pins are being used (0 -> 29)
+        assert(pwm_pin < NUM_BANK0_GPIOS);
+
         // Configure the led pins and direction
         gpio_set_function(pwm_pin, GPIO_FUNC_PWM);
 
-        // Find out which PWM slice is connected to LED_PIN
+        // Find out which PWM slice is connected to pwm_pin
         uint16_t pwm_slice_num = pwm_gpio_to_slice_num(pwm_pin);
 
         // Get some sensible defaults for the slice configuration. By
@@ -235,14 +271,51 @@ namespace Utils
         // to 2**16-1)
         pwm_config config = pwm_get_default_config();
 
-        // Set divider, reduces counter clock to sysclock/this value
-        // (sysclock = 125MHz default), 125MHz / pwm_freq_in_hz =
-        // pwm_clk_div (in Hz)
-        float pwm_clk_div = (float)(125000000.f / (float)pwm_freq_in_hz);
-        pwm_config_set_clkdiv(&config,
-                              pwm_clk_div);  // should give 8kHz div clk
+        // Apply the configuration to the PWM slice
+        pwm_init(pwm_slice_num, &config, true);
 
         return pwm_slice_num;
+    }
+
+    void setPWMFrequency(uint pwm_pin,
+                         uint16_t pwm_freq_in_hz,
+                         uint8_t duty_cycle_percentage)
+    {
+        uint pwm_slice_num = pwm_gpio_to_slice_num(pwm_pin);
+
+        if (pwm_freq_in_hz > 0)
+        {
+            check_slice_num_param(
+                pwm_slice_num);  // Check slice number is valid
+
+            uint32_t system_clock = SYS_CLK_HZ;
+            uint32_t divider_16 = system_clock / pwm_freq_in_hz / 4096 +
+                                  (system_clock % (pwm_freq_in_hz * 4096) != 0);
+
+            if (divider_16 / 16 == 0)
+            {
+                divider_16 = 16;
+            }
+
+            // Calculate the pwm wrap value, which is the maximum value of the
+            // counter. The counter will count from 0 to wrap, and then
+            // wrap around to 0 again.
+            uint32_t wrap = system_clock * 16 / divider_16 / pwm_freq_in_hz - 1;
+
+            pwm_set_clkdiv_int_frac(pwm_slice_num,
+                                    divider_16 / 16,
+                                    divider_16 & 0xF);
+            pwm_set_wrap(pwm_slice_num, wrap);
+            pwm_set_gpio_level(pwm_pin, wrap * duty_cycle_percentage / 100);
+
+            // Enable the PWM output
+            pwm_set_enabled(pwm_slice_num, true);
+        }
+        else
+        {
+            // Disable the PWM output
+            pwm_set_enabled(pwm_slice_num, false);
+        }
     }
 
     /**********************

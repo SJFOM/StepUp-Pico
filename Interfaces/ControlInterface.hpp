@@ -16,6 +16,10 @@
 #ifndef CONTROL_INTERFACE_H_
 #define CONTROL_INTERFACE_H_
 
+#include "PicoUtils.h"
+
+constexpr uint8_t CX_CONTROL_INTERFACE_MAX_COUNT = 20U;
+
 enum ControllerState
 {
     STATE_IDLE = 0,
@@ -39,6 +43,7 @@ enum ControllerNotification
     NOTIFY_DATA = 2U,
     NOTIFY_WARN = 3U,
     NOTIFY_ERROR = 4U,
+    NOTIFY_POWER_DOWN = 5U,
     NOTIFY_FUNC_MAX_COUNT
 };
 
@@ -47,11 +52,15 @@ static const char *ControllerNotificationString
                                                        "NOTIFY_INFO",
                                                        "NOTIFY_DATA",
                                                        "NOTIFY_WARN",
-                                                       "NOTIFY_ERROR"};
+                                                       "NOTIFY_ERROR",
+                                                       "NOTIFY_POWER_DOWN"};
 
 class ControlInterface
 {
 public:
+    ControlInterface();
+    virtual ~ControlInterface();
+
     virtual bool init() = 0;
     virtual void deinit() = 0;
 
@@ -62,7 +71,19 @@ public:
      */
     virtual void enableFunctionality(bool enable_disable)
     {
+        m_latest_activity_change_timestamp_ms = Utils::getCurrentTimestampMs();
         m_is_enabled = enable_disable;
+        enablePeripheralDriver(enable_disable);
+    }
+
+    /**
+     * @brief Get the Last Activate Timestamp ms object
+     *
+     * @return uint32_t
+     */
+    virtual uint32_t getLatestActivityChangeTimestampMs()
+    {
+        return m_latest_activity_change_timestamp_ms;
     }
 
     /**
@@ -77,10 +98,42 @@ public:
     }
     virtual enum ControllerState processJob(uint32_t tick_count) = 0;
 
+    /**
+     * @brief ...
+     *
+     * @details Static access function to poll all control interfaces for the
+     * latest active timestamp information
+     *
+     * @return uint32_t
+     */
+    static uint32_t getLastTimeControlPeripheralActivityWasUpdatedMs();
+
+    static ControlInterface
+        *sp_control_interfaces[CX_CONTROL_INTERFACE_MAX_COUNT];
+    static uint8_t s_control_interfaces_count;
+
 protected:
+    bool m_init_success, m_is_enabled;
+
 private:
-    bool m_init_success;
-    bool m_is_enabled;
+    uint8_t m_control_interface_index;
+    uint32_t m_latest_activity_change_timestamp_ms;
+
+    static uint32_t s_most_recent_deactivate_timestamp_ms;
+
+    /**
+     * @brief Enable or disable the peripheral driver
+     *
+     * @details This is the default implementation for enabling the peripheral.
+     * It is called via the public facing wrapper method "enableFunctionality"
+     * to append meta-data such as enable/disable timestamp information
+     *
+     * @param enable_disable
+     */
+    virtual void enablePeripheralDriver(bool enable_disable)
+    {
+        m_is_enabled = enable_disable;
+    }
 };
 
 #endif  // CONTROL_INTERFACE_H_

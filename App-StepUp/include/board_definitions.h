@@ -1,3 +1,14 @@
+/**
+ * @file board_definitions.hpp
+ * @author Sam (@SJFOM)
+ * @brief ...
+ * @version 0.1
+ * @date 2025-04-17
+ *
+ * @copyright Copyright (c) 2025
+ * @license MIT
+ */
+
 #ifndef BOARD_DEFINITION_H_
 #define BOARD_DEFINITION_H_
 
@@ -19,7 +30,7 @@
 #    define LED_PIN_RED   (2U)  // PWM1_A
 #    define LED_PIN_GREEN (3U)  // PWM1_B
 #    define LED_PIN_BLUE  (5U)  // PWM2_B
-#elif PCB_REVISION == 2U
+#elif PCB_REVISION >= 2U
 #    define LED_PIN_RED   (3U)  // PWM1_B
 #    define LED_PIN_GREEN (6U)  // Unsure if assigned to any PWM...
 #    define LED_PIN_BLUE  (5U)  // PWM2_B
@@ -36,7 +47,7 @@
 /************************/
 /* TMC2300 pins - START */
 /************************/
-#define R_SENSE (0.15f)
+constexpr float CX_R_SENSE = (0.15f);
 
 // We are using pins 0 and 1, but see the GPIO function select table in the
 // datasheet for information on which other pins can be used.
@@ -82,18 +93,28 @@
 /* Voltage threshold definitions - START */
 /*****************************************/
 
-constexpr static float cs_battery_voltage_threshold_low = 3.2f;
-constexpr static float cs_battery_voltage_threshold_mid_low = 3.6f;
-constexpr static float cs_battery_voltage_threshold_mid_high = 3.8f;
-constexpr static float cs_battery_voltage_threshold_high = 4.3f;
+constexpr float CX_BATTERY_VOLTAGE_THRESHOLD_LOW = 3.2f;
+constexpr float CX_BATTERY_VOLTAGE_THRESHOLD_MID_LOW = 3.6f;
+constexpr float CX_BATTERY_VOLTAGE_THRESHOLD_MID_HIGH = 3.8f;
+constexpr float CX_BATTERY_VOLTAGE_THRESHOLD_HIGH = 4.3f;
 
-// Motor voltage thresholds - within 1% of 10.2V
-constexpr static float cs_motor_voltage_threshold_low = 10.1f;
-constexpr static float cs_motor_voltage_threshold_high = 10.3f;
+// Motor voltage thresholds
+// Within 1% of 10.2V when IDLE
+constexpr float CX_MOTOR_IDLE_VOLTAGE_THRESHOLD_LOW = 10.1f;
+constexpr float CX_MOTOR_IDLE_VOLTAGE_THRESHOLD_HIGH = 10.3f;
+
+// Within -10->25% of 10.2V when ACTIVE
+constexpr float CX_MOTOR_ACTIVE_VOLTAGE_THRESHOLD_LOW = 9.2f;
+constexpr float CX_MOTOR_ACTIVE_VOLTAGE_THRESHOLD_HIGH = 12.75f;
 
 /***************************************/
 /* Voltage threshold definitions - END */
 /***************************************/
+
+constexpr uint32_t CX_POWER_BUTTON_OFF_HOLD_TIMEOUT_MS =
+    5 * 1000U;  // 5 seconds
+constexpr uint32_t CX_POWER_DOWN_INACTIVE_TIMEOUT_MS =
+    10 * 60 * 1000U;  // 10 minutes
 
 /*************************/
 /* Joystick pins - START */
@@ -105,7 +126,7 @@ constexpr static float cs_motor_voltage_threshold_high = 10.3f;
 #    define JOYSTICK_ADC_CHANNEL_X (3U)
 #    define JOYSTICK_ADC_PIN_Y     (28U)
 #    define JOYSTICK_ADC_CHANNEL_Y (2U)
-#elif PCB_REVISION == 2U
+#elif PCB_REVISION >= 2U
 #    define JOYSTICK_ADC_PIN_X     (28U)
 #    define JOYSTICK_ADC_CHANNEL_X (2U)
 #    define JOYSTICK_ADC_PIN_Y     (29U)
@@ -127,7 +148,7 @@ constexpr static float cs_motor_voltage_threshold_high = 10.3f;
 /**************************/
 #if PCB_REVISION == 1U
 #    define GPIO_PIN_8 (8U)
-#elif PCB_REVISION == 2U
+#elif PCB_REVISION >= 2U
 #    define GPIO_PIN_2 (2U)
 #else
 #    error "No valid PCB version found!!"

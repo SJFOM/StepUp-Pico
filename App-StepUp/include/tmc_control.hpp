@@ -17,16 +17,13 @@
 #include "pico/stdlib.h"  // Includes `hardware_gpio.h`
 
 // Logging utilities
-#include "utils.h"
+#include "PicoUtils.h"
 
 // Control libraries
-#include "../../../Interfaces/ControlInterface.hpp"
+#include "ControlInterface.hpp"
 
 // pin includes
 #include "board_definitions.h"
-
-// Logging utilities
-#include "utils.h"
 
 // TMC-API
 extern "C"
@@ -44,7 +41,7 @@ extern "C"
 
 #define TMC_UART_CHANNEL (0)  // Not as relevant for single IC use case
 
-#define VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND (500U)
+#define VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND (1000U)
 #define VELOCITY_STARTING_STEPS_PER_SECOND       (10000U)
 
 // Used for threshold where open-circuit flags are valid - datasheet says they
@@ -55,7 +52,7 @@ extern "C"
 #define VELOCITY_MAX_STEPS_PER_SECOND (100000U)
 
 // Run and hold current values (0..31U) scaled to 1.2A RMS
-#define DEFAULT_IRUN_VALUE  (13U)
+#define DEFAULT_IRUN_VALUE  (14U)
 #define DEFAULT_IHOLD_VALUE (0U)
 
 // If SG_VALUE falls below 2x SGTHRS_VALUE then a stall detection is triggered
@@ -485,17 +482,17 @@ private:
     MotorMoveState m_motor_move_state;
     bool m_init_success, m_uart_pins_enabled;
     struct TMCData m_tmc;
-    int32_t m_target_velocity;
+    int32_t m_target_velocity, m_ramp_velocity;
     TMCOpenCircuitAlgoData m_open_circuit_algo_data;
     bool m_open_circuit_detected = false;
     float m_r_sense;
 
-    static uint16_t convertIrunIHoldToRMSCurrentInAmps(uint8_t i_run_hold,
-                                                       float r_sense);
+    static uint16_t convertIrunIHoldToRMSCurrentInMilliamps(uint8_t i_run_hold,
+                                                            float r_sense);
 
     void enableTMCDiagInterrupt(bool enable_interrupt);
     void enableUartPins(bool enable_pins);
-    void enableDriver(bool enable_driver);
+    void enablePeripheralDriver(bool enable_disable) override;
     void setStandby(bool enable_standby);
     bool isDriverEnabled(void);
     void move(int32_t velocity);

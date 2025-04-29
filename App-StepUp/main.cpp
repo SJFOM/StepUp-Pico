@@ -16,49 +16,58 @@ using std::vector;
  * GLOBALS
  */
 // This is the inter-task queue
+volatile QueueHandle_t queue_power_control_data = NULL;
 volatile QueueHandle_t queue_motor_control_data = NULL;
 volatile QueueHandle_t queue_led_notification_task = NULL;
 volatile QueueHandle_t queue_buzzer_notification_task = NULL;
 volatile QueueHandle_t queue_led_colour_data = NULL;
 
 // Set loop delay times (in ms)
+const TickType_t power_control_job_delay_ms = 1000 / portTICK_PERIOD_MS;
 const TickType_t joystick_job_delay_ms = 10 / portTICK_PERIOD_MS;
 const TickType_t tmc_job_delay_ms = 20 / portTICK_PERIOD_MS;
+const TickType_t led_job_delay_ms = 80 / portTICK_PERIOD_MS;
 const TickType_t buzzer_job_delay_ms = 100 / portTICK_PERIOD_MS;
-const TickType_t led_job_delay_ms = 100 / portTICK_PERIOD_MS;
-const TickType_t voltage_monitoring_job_delay = 10000 / portTICK_PERIOD_MS;
+const TickType_t voltage_monitoring_job_delay = 1000 / portTICK_PERIOD_MS;
+const TickType_t watchdog_job_delay_ms =
+    CX_WATCHDOG_CALLBACK_MS / portTICK_PERIOD_MS;
 
 // FROM 1.0.1 Record references to the tasks
+TaskHandle_t power_control_task_handle = NULL;
 TaskHandle_t joystick_task_handle = NULL;
 TaskHandle_t tmc_task_handle = NULL;
-TaskHandle_t buzzer_task_handle = NULL;
 TaskHandle_t led_task_handle = NULL;
+TaskHandle_t buzzer_task_handle = NULL;
 TaskHandle_t voltage_monitoring_task_handle = NULL;
 
 // Task priorities (higher value = higher priority)
-UBaseType_t job_priority_joystick_control = 3U;
+UBaseType_t job_priority_power_control = 3U;
+UBaseType_t job_priority_joystick_control = 2U;
 UBaseType_t job_priority_tmc_control = 2U;
 UBaseType_t job_priority_buzzer_control = 1U;
 UBaseType_t job_priority_led_control = 1U;
 UBaseType_t job_priority_voltage_monitoring = 1U;
 
 // Create class instances of control interfaces
-TMCControl tmc_control(R_SENSE);
+TMCControl tmc_control(CX_R_SENSE);
 JoystickControl joystick_control;
 BuzzerControl buzzer_control(BUZZER_PIN);
 LEDControl led_control(LED_PIN_RED, LED_PIN_GREEN, LED_PIN_BLUE);
-VoltageMonitoring battery_voltage_monitoring("battery",
+PowerControl power_control(CX_POWER_BUTTON_OFF_HOLD_TIMEOUT_MS,
+                           CX_POWER_DOWN_INACTIVE_TIMEOUT_MS);
+VoltageMonitoring battery_voltage_monitoring("Battery",
                                              VBAT_MONITOR_ADC_PIN,
                                              VBAT_MONITOR_ADC_CHANNEL,
                                              VBAT_ADC_SCALING_FACTOR,
-                                             cs_battery_voltage_threshold_low,
-                                             cs_battery_voltage_threshold_high);
-VoltageMonitoring motor_voltage_monitoring("motor",
-                                           VMOTOR_MONITOR_ADC_PIN,
-                                           VMOTOR_MONITOR_ADC_CHANNEL,
-                                           VMOTOR_ADC_SCALING_FACTOR,
-                                           cs_motor_voltage_threshold_low,
-                                           cs_motor_voltage_threshold_high);
+                                             CX_BATTERY_VOLTAGE_THRESHOLD_LOW,
+                                             CX_BATTERY_VOLTAGE_THRESHOLD_HIGH);
+VoltageMonitoring motor_voltage_monitoring(
+    "Motor",
+    VMOTOR_MONITOR_ADC_PIN,
+    VMOTOR_MONITOR_ADC_CHANNEL,
+    VMOTOR_ADC_SCALING_FACTOR,
+    CX_MOTOR_IDLE_VOLTAGE_THRESHOLD_LOW,
+    CX_MOTOR_IDLE_VOLTAGE_THRESHOLD_HIGH);
 
 /*
  * SETUP FUNCTIONS
@@ -69,55 +78,49 @@ VoltageMonitoring motor_voltage_monitoring("motor",
  */
 void setup()
 {
+    setup_watchdog();
     setup_power_control();
-    setup_vusb_monitoring();
+    setup_buzzer();
     setup_led();
     setup_tmc2300();
     setup_boost_converter();
     setup_voltage_monitoring();
     setup_joystick();
-    setup_buzzer();
+}
+
+void setup_watchdog()
+{
+    LOG_INFO("Watchdog setup...");
+    if (watchdog_caused_reboot())
+    {
+        LOG_INFO("Watchdog caused reboot");
+    }
+    // Enable the watchdog timer
+    watchdog_enable(CX_WATCHDOG_TIMEOUT_MS, 1 /*pause_on_debug*/);
+
+    // Set the watchdog timer to reset the system if it is not fed within the
+    // specified timeout period
+    watchdog_update();
+
+    LOG_INFO("Watchdog setup... OK");
 }
 
 void setup_power_control()
 {
-    // Enable power control control pins
-    gpio_init(MCU_PWR_CTRL_PIN);
-    gpio_set_dir(MCU_PWR_CTRL_PIN, GPIO_OUT);
-
-    gpio_init(MCU_PWR_BTN_PIN);
-    gpio_set_dir(MCU_PWR_BTN_PIN, GPIO_IN);
-    gpio_pull_up(MCU_PWR_BTN_PIN);
-
-    // Assert power control pin HIGH to keep circuit powered
-    gpio_put(MCU_PWR_CTRL_PIN, 1);
-}
-
-void setup_vusb_monitoring()
-{
-    LOG_INFO("VUSB monitoring...");
-
-    // Enable boost converter pin control
-    gpio_set_input_enabled(VUSB_MONITOR_PIN, true);
-    gpio_disable_pulls(VUSB_MONITOR_PIN);
-
-    // N.B: IRQ handler must be initialised before enabling IRQs
-    gpio_add_raw_irq_handler(VUSB_MONITOR_PIN, &usb_detect_callback);
-    gpio_set_irq_enabled(VUSB_MONITOR_PIN,
-                         GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE,
-                         true);
-    if (!irq_is_enabled(IO_IRQ_BANK0))
+    LOG_INFO("Power control setup...");
+    if (power_control.init())
     {
-        irq_set_enabled(IO_IRQ_BANK0, true);
+        LOG_INFO("Power control setup... OK");
+    }
+    else
+    {
+        LOG_ERROR("Power control setup... FAIL");
     }
 
-    if (gpio_get(VUSB_MONITOR_PIN))
+    if (power_control.isUSBInserted())
     {
-        s_usb_is_inserted = true;
         LOG_INFO("USB cable detected");
     }
-
-    LOG_INFO("VUSB monitoring... OK");
 }
 
 /**
@@ -160,8 +163,6 @@ void setup_boost_converter()
 {
     LOG_INFO("Boost converter setup...");
 
-    adc_gpio_init(VMOTOR_MONITOR_ADC_PIN);
-
     // Enable boost converter pin control
     gpio_init(TMC_PIN_BOOST_EN);
     gpio_set_dir(TMC_PIN_BOOST_EN, GPIO_OUT);
@@ -188,7 +189,7 @@ void setup_joystick()
     {
         // This will be true if no joystick present OR the josytick is not
         // centered
-        // LOG_ERROR("Joystick setup... FAIL");
+        LOG_ERROR("Joystick setup... FAIL");
     }
     LOG_INFO("Joystick setup... OK");
 }
@@ -225,8 +226,6 @@ void setup_led()
     LOG_INFO("LED setup... OK");
 }
 
-// FIXME: This method may need a re-think, how do we handle the case where the
-// voltage is out of bounds at this early stage?
 void setup_voltage_monitoring()
 {
     LOG_INFO("Voltage monitoring setup...");
@@ -245,6 +244,13 @@ void setup_voltage_monitoring()
     if (motor_voltage_monitoring.init())
     {
         motor_voltage_monitoring.enableFunctionality(true);
+
+        // Now we know the motor voltage is in spec, we can broaden the expected
+        // motor voltage range to accommodate the back-emf generated by a
+        // spinning motor (10% bounds)
+        motor_voltage_monitoring.setVoltageThresholds(
+            CX_MOTOR_ACTIVE_VOLTAGE_THRESHOLD_LOW,
+            CX_MOTOR_ACTIVE_VOLTAGE_THRESHOLD_HIGH);
         LOG_INFO("Boost/Motor voltage monitoring setup... OK");
     }
     else
@@ -279,9 +285,6 @@ void setup_voltage_monitoring()
 
         tmc_state = tmc_control.processJob(xTaskGetTickCount());
 
-        // LOG_DEBUG("TMC state: " +
-        //                  (string)ControllerStateString[tmc_state]);
-
         switch (tmc_state)
         {
             case ControllerState::STATE_IDLE:
@@ -303,9 +306,6 @@ void setup_voltage_monitoring()
                 if (xQueueReceive(queue_motor_control_data, &motor_data, 0) ==
                     pdPASS)
                 {
-                    // printf("Velocity diff: %d\n",
-                    // motor_data.velocity_delta); printf("Direction: %d\n",
-                    // motor_data.direction);
                     if (motor_data.button_press)
                     {
                         LOG_INFO("Button press - stopping motor!");
@@ -326,6 +326,7 @@ void setup_voltage_monitoring()
             {
                 // tmc_control get State
                 tmc_data = tmc_control.getTMCData();
+
                 if (tmc_data.diag.normal_operation)
                 {
                     tmc_control.enableFunctionality(true);
@@ -401,7 +402,8 @@ void setup_voltage_monitoring()
                 // (either NEGATIVE:-1, IDLE:0, POSITIVE:+1) multiplied by
                 // the change in velocity we should incur.
                 motor_data.velocity_delta =
-                    joystick_data.state_y * VELOCITY_DELTA_VALUE;
+                    joystick_data.state_y *
+                    VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
 
                 // This ensures that, no matter which direction we face, the
                 // joystick will "speed up" or "slow down" consistent with
@@ -538,7 +540,7 @@ void setup_voltage_monitoring()
     enum ControllerNotification voltage_monitoring_notify =
         ControllerNotification::NOTIFY_BOOT;
 
-    // FIXME: Lots of duplication here, can we refactor this?
+    // TODO: Lots of duplication here, can we refactor this?
     while (true)
     {
         battery_voltage_monitoring_state =
@@ -576,22 +578,27 @@ void setup_voltage_monitoring()
 
                     if (Utils::isNumberWithinBounds<float>(
                             voltage_monitor_data.voltage,
-                            cs_battery_voltage_threshold_low,
-                            cs_battery_voltage_threshold_mid_low))
+                            CX_BATTERY_VOLTAGE_THRESHOLD_LOW,
+                            CX_BATTERY_VOLTAGE_THRESHOLD_MID_LOW))
                     {
                         led_colour = LEDColourNames::LED_COLOUR_RED;
+
+                        // TODO: Implement some power down mechanism based on
+                        // battery voltage being low, call
+                        // triggerPowerDownProcess() in the power_control
+                        // library
                     }
                     else if (Utils::isNumberWithinBounds<float>(
                                  voltage_monitor_data.voltage,
-                                 cs_battery_voltage_threshold_mid_low,
-                                 cs_battery_voltage_threshold_mid_high))
+                                 CX_BATTERY_VOLTAGE_THRESHOLD_MID_LOW,
+                                 CX_BATTERY_VOLTAGE_THRESHOLD_MID_HIGH))
                     {
                         led_colour = LEDColourNames::LED_COLOUR_ORANGE;
                     }
                     else if (Utils::isNumberWithinBounds<float>(
                                  voltage_monitor_data.voltage,
-                                 cs_battery_voltage_threshold_mid_high,
-                                 cs_battery_voltage_threshold_high))
+                                 CX_BATTERY_VOLTAGE_THRESHOLD_MID_HIGH,
+                                 CX_BATTERY_VOLTAGE_THRESHOLD_HIGH))
                     {
                         led_colour = LEDColourNames::LED_COLOUR_GREEN;
                     }
@@ -662,6 +669,57 @@ void setup_voltage_monitoring()
     }
 }
 
+[[noreturn]] void power_control_process_job(void *unused_arg)
+{
+    ControllerState power_control_state = ControllerState::STATE_IDLE;
+
+    enum ControllerNotification power_control_notify =
+        ControllerNotification::NOTIFY_BOOT;
+
+    while (true)
+    {
+        power_control_state = power_control.processJob(xTaskGetTickCount());
+
+        switch (power_control_state)
+        {
+            case ControllerState::STATE_IDLE:
+            {
+                break;
+            }
+            case ControllerState::STATE_NEW_DATA:
+            {
+                if (power_control.isPowerDownTriggered())
+                {
+                    power_control_notify =
+                        ControllerNotification::NOTIFY_POWER_DOWN;
+                }
+                else
+                {
+                    power_control_notify = ControllerNotification::NOTIFY_INFO;
+                }
+
+                xQueueSendToBack(queue_led_notification_task,
+                                 &power_control_notify,
+                                 0);
+                xQueueSendToBack(queue_buzzer_notification_task,
+                                 &power_control_notify,
+                                 0);
+
+                break;
+            }
+            case ControllerState::STATE_BUSY:
+            {
+                break;
+            }
+            default:
+                break;
+        }
+
+        // Delay to allow other tasks to execute
+        vTaskDelay(power_control_job_delay_ms);
+    }
+}
+
 /*
  * RUNTIME START
  */
@@ -678,11 +736,36 @@ int main()
     setup();
     LOG_INFO("Setting up peripherals... OK!");
 
+    // Create a FreeRTOS timer with a period slightly shorter than the watchdog
+    // timeout
+    TimerHandle_t timer_watchdog_service =
+        xTimerCreate("WatchdogTimer",           // Timer name
+                     watchdog_job_delay_ms,     // Timer period in ticks
+                     pdTRUE,                    // Auto-reload timer
+                     (void *)0,                 // Timer ID (not used here)
+                     watchdog_timer_callback);  // Callback function
+
+    if (timer_watchdog_service == NULL)
+    {
+        LOG_ERROR("Failed to create FreeRTOS timer!");
+    }
+    else
+    {
+        if (xTimerStart(timer_watchdog_service, 0) != pdPASS)
+        {
+            LOG_ERROR("Failed to start FreeRTOS timer!");
+        }
+        else
+        {
+            LOG_INFO("FreeRTOS timer started successfully!");
+        }
+    }
+
     // FROM 1.0.1 Store handles referencing the tasks; get return values
     // NOTE Arg 3 is the stack depth -- in words, not bytes
     BaseType_t led_status = xTaskCreate(led_process_job,
                                         "GPIO_LED_TASK",
-                                        512,
+                                        256,
                                         NULL,
                                         job_priority_led_control,
                                         &led_task_handle);
@@ -701,7 +784,7 @@ int main()
 
     BaseType_t buzzer_status = xTaskCreate(buzzer_process_job,
                                            "BUZZER_JOB_TASK",
-                                           512,
+                                           256,
                                            NULL,
                                            job_priority_buzzer_control,
                                            &buzzer_task_handle);
@@ -709,10 +792,17 @@ int main()
     BaseType_t voltage_monitoring_status =
         xTaskCreate(voltage_monitoring_process_job,
                     "VOLTAGE_MONITORING_JOB_TASK",
-                    512,
+                    256,
                     NULL,
                     job_priority_voltage_monitoring,
-                    &buzzer_task_handle);
+                    &voltage_monitoring_task_handle);
+
+    BaseType_t power_control_status = xTaskCreate(power_control_process_job,
+                                                  "POWER_CONTROL_JOB_TASK",
+                                                  256,
+                                                  NULL,
+                                                  job_priority_power_control,
+                                                  &power_control_task_handle);
 
     // Set up the event queue
     queue_motor_control_data = xQueueCreate(2, sizeof(struct MotorControlData));
@@ -721,11 +811,14 @@ int main()
     queue_buzzer_notification_task =
         xQueueCreate(1, sizeof(enum ControllerNotification));
     queue_led_colour_data = xQueueCreate(1, sizeof(LEDColourNames));
+    queue_power_control_data =
+        xQueueCreate(1, sizeof(enum ControllerNotification));
 
     // Start the FreeRTOS scheduler if all tasks are created successfully
     if (led_status == pdPASS && tmc_status == pdPASS &&
         joystick_status == pdPASS && buzzer_status == pdPASS &&
-        voltage_monitoring_status == pdPASS)  // Add this condition
+        voltage_monitoring_status == pdPASS &&
+        power_control_status == pdPASS)  // Add this condition
     {
         vTaskStartScheduler();
     }
@@ -737,37 +830,8 @@ int main()
     }
 }
 
-void usb_detect_callback()
+// Callback function for the repeating timer
+void watchdog_timer_callback(__unused TimerHandle_t xTimer)
 {
-    bool irq_is_valid = true;
-    if (gpio_get_irq_event_mask(VUSB_MONITOR_PIN) & (GPIO_IRQ_EDGE_RISE))
-    {
-        gpio_acknowledge_irq(VUSB_MONITOR_PIN, (GPIO_IRQ_EDGE_RISE));
-        s_usb_is_inserted = true;
-    }
-    else if (gpio_get_irq_event_mask(VUSB_MONITOR_PIN) & (GPIO_IRQ_EDGE_FALL))
-    {
-        gpio_acknowledge_irq(VUSB_MONITOR_PIN, (GPIO_IRQ_EDGE_FALL));
-        s_usb_is_inserted = false;
-    }
-    else
-    {
-        irq_is_valid = false;
-    }
-
-    // Remember that this IRQ will fire if a shared IRQ bank is used
-    if (irq_is_valid)
-    {
-        // Set INFO notification status
-        enum ControllerNotification usb_detect_notify =
-            ControllerNotification::NOTIFY_INFO;
-
-        xQueueSendToBackFromISR(queue_led_notification_task,
-                                &usb_detect_notify,
-                                0);
-
-        xQueueSendToBackFromISR(queue_buzzer_notification_task,
-                                &usb_detect_notify,
-                                0);
-    }
+    watchdog_update();  // Feed the watchdog timer
 }

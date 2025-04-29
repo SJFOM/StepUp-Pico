@@ -22,10 +22,13 @@
 #include "board_definitions.h"
 
 // Logging utilities
-#include "utils.h"
+#include "PicoUtils.h"
 
 // Control libraries
-#include "../../../Interfaces/ControlInterface.hpp"
+#include "ControlInterface.hpp"
+
+// PinManager
+#include "pin_event_manager.hpp"
 
 #define JOYSTICK_ADC_HOME_THRESHOLD_RAW (200U)
 #define JOYSTICK_ADC_LOWER_HOME_THRESHOLD_RAW \
@@ -35,8 +38,6 @@
 
 #define JOYSTICK_THRESHOLD_UPPER (1000)
 #define JOYSTICK_THRESHOLD_LOWER (-JOYSTICK_THRESHOLD_UPPER)
-
-#define SETTLING_TIME_BETWEEN_JOYSTICK_READS_IN_MS (50U)
 
 struct JoystickPosition
 {
@@ -71,9 +72,10 @@ public:
 
 protected:
 private:
-    bool m_init_success;
     struct JoystickData m_joystick;
     uint32_t m_next_joystick_read_deadline_in_ms;
+
+    PinEventManager *m_pin_event_manager = nullptr;
 
     void getLatestJoystickPosition();
 };

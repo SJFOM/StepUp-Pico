@@ -21,7 +21,7 @@
 #include "pico/stdlib.h"
 
 // Control libraries
-#include "../../../Interfaces/ControlInterface.hpp"
+#include "ControlInterface.hpp"
 
 enum class VoltageBoundsCheckState
 {
@@ -54,6 +54,9 @@ public:
 
     struct VoltageMonitorData getVoltageData() const;
 
+    void setVoltageThresholds(float voltage_threshold_low,
+                              float voltage_threshold_high);
+
 protected:
 private:
     const std::string m_voltage_rail_name;
@@ -61,7 +64,6 @@ private:
     float m_voltage_scaling_factor, m_voltage_threshold_low,
         m_voltage_threshold_high, m_voltage_delta_threshold;
 
-    bool m_init_success;
     float m_latest_voltage;
 
     struct VoltageMonitorData m_voltage_data;

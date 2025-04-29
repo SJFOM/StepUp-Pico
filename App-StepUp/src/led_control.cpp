@@ -36,13 +36,14 @@ LEDControl::~LEDControl()
 
 bool LEDControl::init()
 {
-    s_rgb_led.led_red_pwm_slice =
-        Utils::configurePWMPin(s_rgb_led.led_pin_red, LED_BASE_PWM_FREQ_IN_HZ);
+    s_rgb_led.led_red_pwm_slice = Utils::configurePWMPin(s_rgb_led.led_pin_red);
+    Utils::setPWMFrequency(s_rgb_led.led_pin_red, LED_BASE_PWM_FREQ_IN_HZ);
     s_rgb_led.led_green_pwm_slice =
-        Utils::configurePWMPin(s_rgb_led.led_pin_green,
-                               LED_BASE_PWM_FREQ_IN_HZ);
+        Utils::configurePWMPin(s_rgb_led.led_pin_green);
+    Utils::setPWMFrequency(s_rgb_led.led_pin_green, LED_BASE_PWM_FREQ_IN_HZ);
     s_rgb_led.led_blue_pwm_slice =
-        Utils::configurePWMPin(s_rgb_led.led_pin_blue, LED_BASE_PWM_FREQ_IN_HZ);
+        Utils::configurePWMPin(s_rgb_led.led_pin_blue);
+    Utils::setPWMFrequency(s_rgb_led.led_pin_blue, LED_BASE_PWM_FREQ_IN_HZ);
 
     enableLED(false);
 
@@ -95,6 +96,13 @@ void LEDControl::setLEDFunction(
                 s_rgb_led.led_pwm_slice_in_use = s_rgb_led.led_red_pwm_slice;
                 break;
             }
+            case ControllerNotification::NOTIFY_POWER_DOWN:
+            {
+                s_active_effect = &effect_blink;
+                s_rgb_led.led_pin_in_use = s_rgb_led.led_pin_red;
+                s_rgb_led.led_pwm_slice_in_use = s_rgb_led.led_red_pwm_slice;
+                break;
+            }
             default:
             {
                 s_active_effect = nullptr;
@@ -106,8 +114,15 @@ void LEDControl::setLEDFunction(
 
         if (m_control_state == ControllerState::STATE_BUSY)
         {
+            // Firstly, power off all LED's to ensure we only show the newly
+            // active LED
+            setLEDColour(LEDColourNames::LED_COLOUR_OFF);
+
             // Enable the led
             pwm_set_enabled(s_rgb_led.led_pwm_slice_in_use, true);
+
+            // Reset the effect index to start a new pattern
+            s_effect_index_in_transition = 0;
 
             queueNextLEDEffect();
         }
@@ -123,6 +138,8 @@ void LEDControl::setLEDColour(enum LEDColourNames led_colour)
             pwm_set_gpio_level(s_rgb_led.led_pin_red, colour.red);
             pwm_set_gpio_level(s_rgb_led.led_pin_green, colour.green);
             pwm_set_gpio_level(s_rgb_led.led_pin_blue, colour.blue);
+
+            m_active_colour_name = led_colour;
 
             enableLED(true);
             break;
@@ -144,8 +161,12 @@ enum ControllerState LEDControl::processJob(uint32_t tick_count)
     {
         s_effect_index_in_transition = 0;
         s_active_effect = nullptr;
-        // LED transition was ongoing but has now completed, update state to
-        // represent this
+        // LED transition was ongoing but has now completed
+
+        // Re-instate LED colour
+        setLEDColour(m_active_colour_name);
+
+        // Update state to represent this
         m_control_state = ControllerState::STATE_READY;
     }
     return m_control_state;

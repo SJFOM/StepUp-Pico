@@ -11,12 +11,6 @@ endif()
 
 message(STATUS "Compiling for PCB Revision ${PCB_REVISION}")
 
-# Make project data accessible to compiler
-add_compile_definitions(APP_NAME="${APP_NAME}")
-add_compile_definitions(APP_VERSION="${APP_VERSION_NUMBER}")
-add_compile_definitions(PCB_REVISION=${PCB_REVISION})
-add_compile_definitions(BUILD_NUM=${BUILD_NUMBER})
-
 # Include app source code file(s)
 file(GLOB APP_SOURCES
     "${APP_SRC_DIRECTORY}/*.c*"
@@ -34,7 +28,9 @@ target_link_libraries(${APP_NAME} LINK_PUBLIC
     pico_stdlib
     hardware_adc
     hardware_pwm
-    FreeRTOS)
+    FreeRTOS
+    ControlInterface
+    PicoUtils)
 
 # Enable/disable STDIO via USB and UART
 pico_enable_stdio_usb(${APP_NAME} 0)
@@ -42,3 +38,5 @@ pico_enable_stdio_uart(${APP_NAME} 1)
 
 # Enable extra build products
 pico_add_extra_outputs(${APP_NAME})
+
+message(STATUS "Build revision ${BUILD_NUMBER_OUTPUT}")
