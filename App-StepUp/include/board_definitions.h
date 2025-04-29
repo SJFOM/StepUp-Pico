@@ -38,7 +38,7 @@
 #    error "No valid PCB version found!!"
 #endif
 
-#define BUZZER_PIN (15)  //(16U)  // PWM0_A
+#define BUZZER_PIN (16U)  // PWM0_A
 
 /*********************/
 /* Status pins - END */
