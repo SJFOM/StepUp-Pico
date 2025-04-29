@@ -28,7 +28,7 @@ const TickType_t joystick_job_delay_ms = 10 / portTICK_PERIOD_MS;
 const TickType_t tmc_job_delay_ms = 20 / portTICK_PERIOD_MS;
 const TickType_t led_job_delay_ms = 80 / portTICK_PERIOD_MS;
 const TickType_t buzzer_job_delay_ms = 100 / portTICK_PERIOD_MS;
-const TickType_t voltage_monitoring_job_delay = 1000 / portTICK_PERIOD_MS;
+const TickType_t voltage_monitoring_job_delay = 10000 / portTICK_PERIOD_MS;
 const TickType_t watchdog_job_delay_ms =
     CX_WATCHDOG_CALLBACK_MS / portTICK_PERIOD_MS;
 
