@@ -1,0 +1,136 @@
+{
+   "widgets": [
+      {
+         "type": "chart",
+         "gridPos": {
+            "h": 6,
+            "w": 12,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "sg_live",
+               "sourceNames": [
+                  "sg_live"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "sg_live",
+                  "_id": "data-serie-0",
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "type": "number"
+            },
+            {
+               "name": "sg_upper",
+               "sourceNames": [
+                  "sg_upper"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "sg_upper",
+                  "_id": "data-serie-9",
+                  "stroke": "rgba(52,152,219,1)",
+                  "fill": "rgba(52,152,219,0.1)"
+               },
+               "type": "number"
+            },
+            {
+               "name": "sg_lower",
+               "sourceNames": [
+                  "sg_lower"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "sg_lower",
+                  "_id": "data-serie-10",
+                  "stroke": "rgba(46,204,113,1)",
+                  "fill": "rgba(46,204,113,0.1)"
+               },
+               "type": "number"
+            }
+         ]
+      },
+      {
+         "type": "chart",
+         "gridPos": {
+            "h": 6,
+            "w": 12,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "irun",
+               "sourceNames": [
+                  "irun"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "irun",
+                  "_id": "data-serie-11",
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "type": "number"
+            },
+            {
+               "name": "cs_actual",
+               "sourceNames": [
+                  "cs_actual"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "cs_actual",
+                  "_id": "data-serie-12",
+                  "stroke": "rgba(52,152,219,1)",
+                  "fill": "rgba(52,152,219,0.1)"
+               },
+               "type": "number"
+            }
+         ]
+      },
+      {
+         "type": "chart",
+         "gridPos": {
+            "h": 6,
+            "w": 12,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "tstep",
+               "sourceNames": [
+                  "tstep"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "tstep",
+                  "_id": "data-serie-13",
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "type": "number"
+            },
+            {
+               "name": "tcoolthrs",
+               "sourceNames": [
+                  "tcoolthrs"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "tcoolthrs",
+                  "_id": "data-serie-14",
+                  "stroke": "rgba(52,152,219,1)",
+                  "fill": "rgba(52,152,219,0.1)"
+               },
+               "type": "number"
+            }
+         ]
+      }
+   ],
+   "viewDuration": 15
+}
