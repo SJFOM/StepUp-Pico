@@ -305,8 +305,10 @@ void TMCControl::defaultConfiguration()
      * parameters
      */
     m_chopconf.sr = tmc2300_readInt(&tmc2300, m_chopconf.address);
-    m_chopconf.enabledrv = true;       // Driver enable
-    m_chopconf.tbl = 2;                // Comparator blank time in clock-counts
+    m_chopconf.enabledrv = true;  // Driver enable
+    m_chopconf.tbl = ComparatorBlankTime::
+        COMPARATOR_BLANK_TIME_32_CLK_CYCLES;  // Comparator blank time in
+                                              // clock-counts
     m_chopconf.mres = MRES_FULL_STEP;  // Microstep setting (0=256 μsteps)
     m_chopconf.intpol = true;          // Interpolation to 256 μsteps
     m_chopconf.dedge = false;          // Enable double edge step pulses
@@ -327,7 +329,9 @@ void TMCControl::defaultConfiguration()
     m_pwmconf.sr = tmc2300_readInt(&tmc2300, m_pwmconf.address);
     m_pwmconf.pwm_ofs = 36;   // User defined PWM amplitude offset
     m_pwmconf.pwm_grad = 16;  // Velocity dependent gradient for PWM amplitude
-    m_pwmconf.pwm_freq = 0;   // PWM frequency selection
+    m_pwmconf.pwm_freq =
+        StealthchopPWMFrequency::PWM_FREQ_2_1024_FCLK;  // PWM frequency
+                                                        // selection
     m_pwmconf.pwm_autoscale = true;  // PWM automatic amplitude scaling
     m_pwmconf.pwm_autograd = true;   // PWM automatic gradient adaptation
     m_pwmconf.freewheel = FREEWHEEL_FREEWHEELING;  // Standstill option when
@@ -417,9 +421,15 @@ void TMCControl::updateMovementDynamics(int32_t velocity_delta,
 
 void TMCControl::resetMovementDynamics()
 {
-    move(VELOCITY_STARTING_STEPS_PER_SECOND);
     enableFunctionality(false);
+    setMotorVelocityRegisterValue(VELOCITY_STARTING_STEPS_PER_SECOND);
     setCurrent(DEFAULT_IRUN_VALUE, DEFAULT_IHOLD_VALUE);
+}
+
+void TMCControl::setMotorVelocityRegisterValue(int32_t velocity)
+{
+    m_vactual.sr = velocity;
+    tmc2300_writeInt(&tmc2300, m_vactual.address, m_vactual.sr);
 }
 
 void TMCControl::move(int32_t velocity)
@@ -435,9 +445,9 @@ void TMCControl::move(int32_t velocity)
 
         velocity = VELOCITY_MAX_STEPS_PER_SECOND;
     }
-    m_vactual.sr = velocity;
+
     enableFunctionality(velocity == 0 ? false : true);
-    tmc2300_writeInt(&tmc2300, m_vactual.address, m_vactual.sr);
+    setMotorVelocityRegisterValue(velocity);
 }
 
 uint8_t TMCControl::getChipID()
@@ -705,7 +715,7 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
             if (m_vactual.sr != m_target_velocity &&
                 abs(m_target_velocity) <= VELOCITY_MAX_STEPS_PER_SECOND)
             {
-                if (abs(m_vactual.sr) > abs(m_target_velocity))
+                if (abs(m_vactual.sr) >= abs(m_target_velocity))
                 {
                     // If we are moving faster than the target velocity then we
                     // can safely jump to using the target velocity. Use of the

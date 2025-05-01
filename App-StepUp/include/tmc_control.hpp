@@ -454,6 +454,22 @@ enum CoolStepCurrentReduction
     COOLSTEP_REDUCTION_1_4 = 1U,
 };
 
+enum ComparatorBlankTime
+{
+    COMPARATOR_BLANK_TIME_16_CLK_CYCLES = 0,
+    COMPARATOR_BLANK_TIME_24_CLK_CYCLES = 1U,  // Default
+    COMPARATOR_BLANK_TIME_32_CLK_CYCLES = 2U,
+    COMPARATOR_BLANK_TIME_40_CLK_CYCLES = 3U,
+};
+
+enum StealthchopPWMFrequency
+{
+    PWM_FREQ_2_1024_FCLK = 0,
+    PWM_FREQ_2_683_FCLK = 1U,
+    PWM_FREQ_2_512_FCLK = 2U,
+    PWM_FREQ_2_410_FCLK = 3U,
+};
+
 class TMCControl : public ControlInterface
 {
 public:
@@ -502,6 +518,7 @@ private:
     void setStandby(bool enable_standby);
     bool isDriverEnabled(void);
     void move(int32_t velocity);
+    void setMotorVelocityRegisterValue(int32_t velocity);
     void setCurrent(uint8_t i_run, uint8_t i_hold);
     void updateCurrent(uint8_t i_run_delta);
     bool isOpenCircuitDetected();
