@@ -41,8 +41,14 @@ extern "C"
 
 #define TMC_UART_CHANNEL (0)  // Not as relevant for single IC use case
 
+// Default motion profile ramp configurations
 #define VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND (1000U)
 #define VELOCITY_STARTING_STEPS_PER_SECOND       (10000U)
+
+// Rate at which we decrement the velocity if we reach Stallgaurd threshold
+// limits
+#define VELOCITY_RAMP_SG_LIMIT_DECREMENT_STEPS_PER_SECOND \
+    (VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND * 5U)
 
 // Used for threshold where open-circuit flags are valid - datasheet says they
 // are valid for "slow speed" movements
@@ -59,7 +65,7 @@ extern "C"
 // SG_VALUE = 0..510 (higher number, lighter loading)
 // 90% loading = 510 - 0.9*510 = 0.1*510 - 51
 // SGTHRS = 51/2 ~= 25
-#define DEFAULT_SGTHRS_VALUE (25U)
+constexpr uint16_t CX_DEFAULT_SGTHRS_VALUE = 25U;
 
 /*****************************/
 /* General Registers - START */
@@ -404,6 +410,7 @@ struct TMCDiagnostics
     bool overheating = false;
     bool short_circuit = false;
     bool open_circuit = false;
+    bool stall_detected = false;
 };
 
 struct TMCData
@@ -506,7 +513,7 @@ private:
     struct TMCData m_tmc;
     int32_t m_target_velocity, m_ramp_velocity;
     TMCOpenCircuitAlgoData m_open_circuit_algo_data;
-    bool m_open_circuit_detected = false, m_coolstep_enabled = false;
+    bool m_open_circuit_detected, m_coolstep_enabled, m_peak_velocity_detected;
     float m_r_sense;
 
     static uint16_t convertIrunIHoldToRMSCurrentInMilliamps(uint8_t i_run_hold,

@@ -150,7 +150,6 @@ void setup_tmc2300()
 
     if (tmc_setup_success)
     {
-        tmc_control.enableFunctionality(true);
         LOG_INFO("TMC2300 setup... OK");
     }
     else
@@ -329,7 +328,7 @@ void setup_voltage_monitoring()
 
                 if (tmc_data.diag.normal_operation)
                 {
-                    tmc_control.enableFunctionality(true);
+                    LOG_DEBUG("Normal operation\n");
                 }
                 else
                 {
@@ -337,6 +336,11 @@ void setup_voltage_monitoring()
                     // this state
                     tmc_notify = ControllerNotification::NOTIFY_WARN;
 
+                    if (tmc_data.diag.stall_detected)
+                    {
+                        LOG_DEBUG(
+                            "Stall detected! Automatically reducing speed");
+                    }
                     if (tmc_data.diag.open_circuit)
                     {
                         LOG_DEBUG("Open circuit detected!");
@@ -454,8 +458,6 @@ void setup_voltage_monitoring()
     {
         buzzer_controller_state =
             buzzer_control.processJob(xTaskGetTickCount());
-        // printf("Buzzer queue read, state: %s\n",
-        //        ControllerStateString[buzzer_controller_state]);
         switch (buzzer_controller_state)
         {
             case ControllerState::STATE_IDLE:
