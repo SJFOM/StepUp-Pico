@@ -335,11 +335,24 @@ void setup_voltage_monitoring()
                     // Most likely case is to emit a WARN signal if we enter
                     // this state
                     tmc_notify = ControllerNotification::NOTIFY_WARN;
+                    bool trigger_led = true;
+                    bool trigger_buzzer = true;
 
                     if (tmc_data.diag.stall_detected)
                     {
                         LOG_DEBUG(
                             "Stall detected! Automatically reducing speed");
+                        // Don't trigger a typical info or warn message as we don't need 
+                        // to alert to the user that a max rpm has been reached as this
+                        // will likely happen very often
+                        trigger_led = false;
+                        trigger_buzzer = false;
+
+                        tmc_notify = ControllerNotification::NOTIFY_DATA;
+
+                        enum LEDColourNames led_colour =
+                        LEDColourNames::LED_COLOUR_MAGENTA;
+                        xQueueSendToBack(queue_led_colour_data, &led_colour, 0);
                     }
                     if (tmc_data.diag.open_circuit)
                     {
@@ -358,12 +371,18 @@ void setup_voltage_monitoring()
                         LOG_DEBUG("Short circuit detected!");
                     }
 
-                    xQueueSendToBack(queue_led_notification_task,
-                                     &tmc_notify,
-                                     0);
-                    xQueueSendToBack(queue_buzzer_notification_task,
-                                     &tmc_notify,
-                                     0);
+                    if(trigger_led)
+                    {
+                        xQueueSendToBack(queue_led_notification_task,
+                                        &tmc_notify,
+                                        0);
+                    }
+                    if(trigger_buzzer)
+                    {
+                        xQueueSendToBack(queue_buzzer_notification_task,
+                                        &tmc_notify,
+                                        0);
+                    }
                 }
                 break;
             }
