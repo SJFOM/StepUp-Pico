@@ -133,6 +133,6 @@ void VoltageMonitoring::updateVoltageRead()
 {
     // TODO: Consider using a moving average to smooth the voltage reading
     m_voltage_data.voltage =
-        Utils::getValidADCResultVolts(m_voltage_adc_channel) *
+        PicoUtils::getValidADCResultVolts(m_voltage_adc_channel) *
         m_voltage_scaling_factor;
 }
