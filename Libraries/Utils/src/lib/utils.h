@@ -73,14 +73,13 @@ namespace Utils
         printf("[DATA] %s\n", formatted_message);
     }
 
-    // /**
-    //  * @brief Generate and print a formatted log message with data for more
-    //  than
-    //  * one argument.
-    //  *
-    //  * @param format: The format string (e.g., "Voltage is low: %.2fV").
-    //  * @param ...args: The values to format and log.
-    //  */
+    /**
+     * @brief Generate and print a formatted log message with data for more
+     * than one argument.
+     *
+     * @param format: The format string (e.g., "Voltage is low: %.2fV").
+     * @param ...args: The values to format and log.
+     */
     template <typename... Args>
     void log_data(const char *format, Args... args)
     {
