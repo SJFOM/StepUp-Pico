@@ -30,6 +30,9 @@ VoltageMonitoring::VoltageMonitoring(const std::string &voltage_rail_name,
 {
     m_voltage_data.voltage = 0.0f;
     m_voltage_data.state = VoltageBoundsCheckState::VOLTAGE_STATE_WITHIN_BOUNDS;
+
+    m_voltage_average =
+        Utils::ExponentialMovingAverage(csx_exponential_moving_average_alpha);
 }
 
 VoltageMonitoring::~VoltageMonitoring()
@@ -131,8 +134,13 @@ struct VoltageMonitorData VoltageMonitoring::getVoltageData() const
 
 void VoltageMonitoring::updateVoltageRead()
 {
-    // TODO: Consider using a moving average to smooth the voltage reading
-    m_voltage_data.voltage =
+    float latest_voltage_in_volts =
         PicoUtils::getValidADCResultVolts(m_voltage_adc_channel) *
         m_voltage_scaling_factor;
+
+    // Add latest voltage read value to the exponential moving average
+    m_voltage_average.push(latest_voltage_in_volts);
+
+    // Return latest average voltage value
+    m_voltage_data.voltage = m_voltage_average.getAverage();
 }

@@ -19,18 +19,6 @@
 #ifndef PICO_UTILS_HEADER_H_
 #define PICO_UTILS_HEADER_H_
 
-#include <algorithm>
-#include <cmath>
-#include <cstdint>
-#include <cstdlib>
-#include <cstring>
-#include <iomanip>
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <type_traits>
-#include <vector>
-
 // Utils Library
 #include <Utils.h>
 
@@ -39,9 +27,6 @@
 #include "hardware/pwm.h"
 #include "pico/binary_info.h"
 #include "pico/stdlib.h"  // Includes `hardware_gpio.h`
-
-using std::string;
-using std::vector;
 
 // ADC ENOB ~= 8.7 - See Section 4.9.3 of datasheet
 #define ADC_ENOB_MASK (0xFF8)  // top 9 MSB's are valid

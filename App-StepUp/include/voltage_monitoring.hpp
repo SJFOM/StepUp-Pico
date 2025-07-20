@@ -23,6 +23,8 @@
 // Control libraries
 #include "ControlInterface.hpp"
 
+constexpr static float csx_exponential_moving_average_alpha = 0.1f;
+
 enum class VoltageBoundsCheckState
 {
     VOLTAGE_STATE_WITHIN_BOUNDS = 0U,
@@ -67,6 +69,8 @@ private:
     float m_latest_voltage;
 
     struct VoltageMonitorData m_voltage_data;
+
+    Utils::ExponentialMovingAverage m_voltage_average;
 
     void updateVoltageRead();
 };

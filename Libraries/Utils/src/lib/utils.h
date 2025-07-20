@@ -19,16 +19,10 @@
 #ifndef UTILS_HEADER_H_
 #define UTILS_HEADER_H_
 
+#include <assert.h>
 #include <algorithm>
-#include <cmath>
 #include <cstdint>
-#include <cstdlib>
-#include <cstring>
-#include <iomanip>
 #include <iostream>
-#include <sstream>
-#include <string>
-#include <type_traits>
 #include <vector>
 
 using std::string;
@@ -46,6 +40,9 @@ using std::vector;
  */
 namespace Utils
 {
+    // Constants local to the namespace
+    constexpr static float csx_epsilon = 1e-6f;
+
     /*************************
      * LOGGING UTILS - BEGIN *
      *************************/
@@ -110,8 +107,8 @@ namespace Utils
         // Handle floating-point precision issues
         if constexpr (std::is_floating_point<T>::value)
         {
-            constexpr T epsilon =
-                static_cast<T>(1e-6);  // Adjust tolerance as needed
+            constexpr T epsilon = static_cast<T>(
+                Utils::csx_epsilon);  // Adjust tolerance as needed
             return (value <= upper_bound + epsilon) &&
                    (value >= lower_bound - epsilon);
         }
@@ -119,6 +116,40 @@ namespace Utils
         // For integral types, perform direct comparison
         return (bool)(value <= upper_bound) && (value >= lower_bound);
     }
+
+    class ExponentialMovingAverage
+    {
+    public:
+        ExponentialMovingAverage(float alpha = 0.1f)
+            : m_alpha(alpha),
+              m_accumulator(0)
+        {
+            assert(Utils::isNumberWithinBounds<float>(m_alpha, 0.f, 1.0f));
+        };
+
+        ~ExponentialMovingAverage()
+        {
+            m_accumulator = 0.f;
+        }
+
+        void push(float new_value)
+        {
+            // The closer (1.0 - alpha) is to 1.0, the longer the effect of
+            // previous numbers hangs around, and the less impact each new
+            // number has. Covnersely, the closer alpha is to 1.0, the faster
+            // the moving average updates in response to new values.
+            m_accumulator =
+                (m_alpha * new_value) + (1.0f - m_alpha) * m_accumulator;
+        }
+
+        float getAverage()
+        {
+            return m_accumulator;
+        }
+
+    private:
+        float m_alpha, m_accumulator;
+    };
 
     /*************************
      * NUMBER UTILS - FINISH *
