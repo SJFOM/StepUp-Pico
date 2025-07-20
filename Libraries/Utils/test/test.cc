@@ -2,24 +2,35 @@
 #include "gtest/gtest.h"
 
 using ::testing::Test;
+using ::Utils::ExponentialMovingAverage;
 
 class UtilsTest : public ::testing::Test
 {
 protected:
-    Utils::ExponentialMovingAverage moving_average;
+    ExponentialMovingAverage *moving_average;
     virtual void SetUp()
     {
-        // function = new MockTestFunction();
-        ;
+        moving_average = new ExponentialMovingAverage(0.1f);
     }
     virtual void TearDown()
     {
-        // delete function;
-        ;
+        delete moving_average;
     }
 };
 
-TEST_F(UtilsTest, SampleTest1)
+TEST_F(UtilsTest, CreateExpMovingAverageInstanceWithValidAndInvalidInputs)
 {
-    ;
+    // If alpha value provided, expect that an assert will catch an out of
+    // bounds value (valid range is between 0 to 1.0 inclusive)
+
+    // Valid inputs
+    ASSERT_TRUE(new ExponentialMovingAverage());
+    ASSERT_TRUE(new ExponentialMovingAverage(0.00001f));
+    ASSERT_TRUE(new ExponentialMovingAverage(0.9f));
+    ASSERT_TRUE(new ExponentialMovingAverage(1.0f));
+
+    // Invalid inputs
+    ASSERT_DEATH(new ExponentialMovingAverage(-1.f), "");
+    ASSERT_DEATH(new ExponentialMovingAverage(-00001.f), "");
+    ASSERT_DEATH(new ExponentialMovingAverage(1.1f), "");
 }

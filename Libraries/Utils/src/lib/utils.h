@@ -128,6 +128,7 @@ namespace Utils
 
         ~ExponentialMovingAverage()
         {
+            m_alpha = 0.f;
             m_accumulator = 0.f;
         }
 
