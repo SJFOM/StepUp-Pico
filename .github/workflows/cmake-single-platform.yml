@@ -32,9 +32,15 @@ jobs:
           restore-keys: |
             bazel-${{ runner.os }}-
 
+      - name: Get SDK version from CMakeLists.txt
+        id: get_sdk_version
+        run: |
+          SDK_VERSION=$(grep -Po '(?<=set\(PICO_SDK_VERSION )[^)]+' CMakeLists.txt | head -n1)
+          echo "sdk_version=$SDK_VERSION" >> $GITHUB_OUTPUT
+
       - name: Install Pi Pico SDK
         run: |
-          git clone --depth=1 https://github.com/raspberrypi/pico-sdk.git ${{github.workspace}}/pico-sdk
+          git clone --depth=1 https://github.com/raspberrypi/pico-sdk/releases/tag/${{ steps.get_sdk_version.outputs.sdk_version }}.git ${{github.workspace}}/pico-sdk
           cd ${{github.workspace}}/pico-sdk
           git submodule update --init
         shell: bash
