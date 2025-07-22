@@ -24,6 +24,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Trust GitHub workspace directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - name: Cache Bazel output and repository cache
         uses: actions/cache@v4
         with:
