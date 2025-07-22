@@ -142,6 +142,16 @@ namespace Utils
             m_accumulator = 0.f;
         }
 
+        struct MovingAverageSensitivity
+        {
+            static constexpr float LOW = 0.9f;
+            static constexpr float MEDIUM = 0.5f;
+            static constexpr float HIGH = 0.1f;
+            static constexpr float INSTANT =
+                0.f;  // Moving average is not
+                      // used, just the latest value
+        };
+
         void push(float new_value)
         {
             // The closer (1.0 - alpha) is to 1.0, the longer the effect of

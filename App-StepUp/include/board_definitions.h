@@ -103,7 +103,7 @@ constexpr bool CX_COOLSTEP_ENABLED = true;
 /* Voltage threshold definitions - START */
 /*****************************************/
 
-constexpr float CX_BATTERY_VOLTAGE_THRESHOLD_LOW = 3.2f;
+constexpr float CX_BATTERY_VOLTAGE_THRESHOLD_LOW = 3.3f;
 constexpr float CX_BATTERY_VOLTAGE_THRESHOLD_MID_LOW = 3.6f;
 constexpr float CX_BATTERY_VOLTAGE_THRESHOLD_MID_HIGH = 3.8f;
 constexpr float CX_BATTERY_VOLTAGE_THRESHOLD_HIGH = 4.3f;
@@ -113,9 +113,14 @@ constexpr float CX_BATTERY_VOLTAGE_THRESHOLD_HIGH = 4.3f;
 constexpr float CX_MOTOR_IDLE_VOLTAGE_THRESHOLD_LOW = 10.1f;
 constexpr float CX_MOTOR_IDLE_VOLTAGE_THRESHOLD_HIGH = 10.3f;
 
-// Within -10->25% of 10.2V when ACTIVE
-constexpr float CX_MOTOR_ACTIVE_VOLTAGE_THRESHOLD_LOW = 9.2f;
-constexpr float CX_MOTOR_ACTIVE_VOLTAGE_THRESHOLD_HIGH = 12.75f;
+// Within 10% of 10.2V when ACTIVE
+constexpr float CX_MOTOR_ACTIVE_VOLTAGE_THRESHOLD_LOW = 9.18f;
+constexpr float CX_MOTOR_ACTIVE_VOLTAGE_THRESHOLD_HIGH = 11.22f;
+
+// Voltage delta threshold for detecting changes in voltage
+// This is used to determine if the voltage has changed significantly enough
+// to warrant a state change in the voltage monitoring system.
+constexpr float CX_BATTERY_VOLTAGE_DELTA_THRESHOLD = 0.1f;
 
 /***************************************/
 /* Voltage threshold definitions - END */

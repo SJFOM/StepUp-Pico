@@ -13,26 +13,57 @@
 #include "../include/voltage_monitoring.hpp"
 #include "PicoUtils.h"
 
-VoltageMonitoring::VoltageMonitoring(const std::string &voltage_rail_name,
-                                     uint8_t voltage_pin,
-                                     uint8_t voltage_adc_channel,
-                                     float voltage_scaling_factor,
-                                     float voltage_threshold_low,
-                                     float voltage_threshold_high,
-                                     float voltage_delta_threshold)
+using namespace Utils;
+
+VoltageMonitoring::VoltageMonitoring(
+    const std::string &voltage_rail_name,
+    uint8_t voltage_pin,
+    uint8_t voltage_adc_channel,
+    float voltage_scaling_factor,
+    float voltage_threshold_low,
+    float voltage_threshold_high,
+    float voltage_delta_threshold,
+    VoltageBoundsSensitivityState sensitivity_state)
     : m_voltage_rail_name(voltage_rail_name),
       m_voltage_pin(voltage_pin),
       m_voltage_adc_channel(voltage_adc_channel),
       m_voltage_scaling_factor(voltage_scaling_factor),
       m_voltage_threshold_low(voltage_threshold_low),
       m_voltage_threshold_high(voltage_threshold_high),
-      m_voltage_delta_threshold(voltage_delta_threshold)
+      m_voltage_delta_threshold(voltage_delta_threshold),
+      m_sensitivity_state(sensitivity_state)
 {
     m_voltage_data.voltage = 0.0f;
     m_voltage_data.state = VoltageBoundsCheckState::VOLTAGE_STATE_WITHIN_BOUNDS;
 
-    m_voltage_average =
-        Utils::ExponentialMovingAverage(csx_exponential_moving_average_alpha);
+    switch (m_sensitivity_state)
+    {
+        case VoltageBoundsSensitivityState::VOLTAGE_STATE_SENSITIVITY_LOW:
+        {
+            m_voltage_average = ExponentialMovingAverage(
+                ExponentialMovingAverage::MovingAverageSensitivity::LOW);
+            break;
+        }
+        case VoltageBoundsSensitivityState::VOLTAGE_STATE_SENSITIVITY_HIGH:
+        {
+            m_voltage_average = ExponentialMovingAverage(
+                ExponentialMovingAverage::MovingAverageSensitivity::HIGH);
+            break;
+        }
+        case VoltageBoundsSensitivityState::VOLTAGE_STATE_SENSITIVITY_INSTANT:
+        {
+            m_voltage_average = ExponentialMovingAverage(
+                ExponentialMovingAverage::MovingAverageSensitivity::INSTANT);
+            break;
+        }
+        case VoltageBoundsSensitivityState::VOLTAGE_STATE_SENSITIVITY_MEDIUM:
+        default:
+        {
+            m_voltage_average = ExponentialMovingAverage(
+                ExponentialMovingAverage::MovingAverageSensitivity::MEDIUM);
+            break;
+        }
+    }
 }
 
 VoltageMonitoring::~VoltageMonitoring()
@@ -51,15 +82,20 @@ bool VoltageMonitoring::init()
     // Give time for the voltage on the boost converter ADC pin to settle
     sleep_ms(100);
 
-    updateVoltageRead();
+    // Fill out the moving average with some initial values
+    // This is to ensure the first read is not a "spike" from the ADC
+    for (int i = 0; i < 10; i++)
+    {
+        updateVoltageReadMovingAverage();
+    }
 
     LOG_DATA("%s voltage: %.2fV",
              m_voltage_rail_name.c_str(),
              m_voltage_data.voltage);
 
-    if (false == Utils::isNumberWithinBounds<float>(m_voltage_data.voltage,
-                                                    m_voltage_threshold_low,
-                                                    m_voltage_threshold_high))
+    if (false == isNumberWithinBounds<float>(m_voltage_data.voltage,
+                                             m_voltage_threshold_low,
+                                             m_voltage_threshold_high))
     {
         m_init_success = false;
         LOG_ERROR("Voltage out of range... FAIL");
@@ -87,12 +123,12 @@ enum ControllerState VoltageMonitoring::processJob(uint32_t tick_count)
     }
 
     // Read the current voltage - updates m_voltage_data.voltage
-    updateVoltageRead();
+    updateVoltageReadMovingAverage();
 
     // Determine the state based on voltage thresholds
-    if (false == Utils::isNumberWithinBounds<float>(m_voltage_data.voltage,
-                                                    m_voltage_threshold_low,
-                                                    m_voltage_threshold_high))
+    if (false == isNumberWithinBounds<float>(m_voltage_data.voltage,
+                                             m_voltage_threshold_low,
+                                             m_voltage_threshold_high))
     {
         m_voltage_data.state =
             VoltageBoundsCheckState::VOLTAGE_STATE_OUTSIDE_BOUNDS;
@@ -100,17 +136,17 @@ enum ControllerState VoltageMonitoring::processJob(uint32_t tick_count)
     }
     else
     {
-        // Important to set/reset this value if it was previously out of bounds
+        // Important to set/reset this value if it was previously out of
+        // bounds
         m_voltage_data.state =
             VoltageBoundsCheckState::VOLTAGE_STATE_WITHIN_BOUNDS;
     }
 
     // New state info if the voltage has changed by more than
     // m_voltage_delta_threshold
-    if (Utils::isNumberWithinBounds<float>(
-            m_voltage_data.voltage,
-            s_last_voltage - m_voltage_delta_threshold,
-            s_last_voltage + m_voltage_delta_threshold))
+    if (isNumberWithinBounds<float>(m_voltage_data.voltage,
+                                    s_last_voltage - m_voltage_delta_threshold,
+                                    s_last_voltage + m_voltage_delta_threshold))
     {
         monitor_state = ControllerState::STATE_NEW_DATA;
     }
@@ -132,7 +168,7 @@ struct VoltageMonitorData VoltageMonitoring::getVoltageData() const
     return m_voltage_data;
 }
 
-void VoltageMonitoring::updateVoltageRead()
+void VoltageMonitoring::updateVoltageReadMovingAverage()
 {
     float latest_voltage_in_volts =
         PicoUtils::getValidADCResultVolts(m_voltage_adc_channel) *

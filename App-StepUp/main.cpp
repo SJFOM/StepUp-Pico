@@ -55,19 +55,27 @@ BuzzerControl buzzer_control(BUZZER_PIN);
 LEDControl led_control(LED_PIN_RED, LED_PIN_GREEN, LED_PIN_BLUE);
 PowerControl power_control(CX_POWER_BUTTON_OFF_HOLD_TIMEOUT_MS,
                            CX_POWER_DOWN_INACTIVE_TIMEOUT_MS);
-VoltageMonitoring battery_voltage_monitoring("Battery",
-                                             VBAT_MONITOR_ADC_PIN,
-                                             VBAT_MONITOR_ADC_CHANNEL,
-                                             VBAT_ADC_SCALING_FACTOR,
-                                             CX_BATTERY_VOLTAGE_THRESHOLD_LOW,
-                                             CX_BATTERY_VOLTAGE_THRESHOLD_HIGH);
+
+// Create voltage monitoring class instances
+VoltageMonitoring battery_voltage_monitoring(
+    "Battery",
+    VBAT_MONITOR_ADC_PIN,
+    VBAT_MONITOR_ADC_CHANNEL,
+    VBAT_ADC_SCALING_FACTOR,
+    CX_BATTERY_VOLTAGE_THRESHOLD_LOW,
+    CX_BATTERY_VOLTAGE_THRESHOLD_HIGH,
+    CX_BATTERY_VOLTAGE_DELTA_THRESHOLD,
+    VoltageBoundsSensitivityState::VOLTAGE_STATE_SENSITIVITY_MEDIUM);
+
 VoltageMonitoring motor_voltage_monitoring(
     "Motor",
     VMOTOR_MONITOR_ADC_PIN,
     VMOTOR_MONITOR_ADC_CHANNEL,
     VMOTOR_ADC_SCALING_FACTOR,
     CX_MOTOR_IDLE_VOLTAGE_THRESHOLD_LOW,
-    CX_MOTOR_IDLE_VOLTAGE_THRESHOLD_HIGH);
+    CX_MOTOR_IDLE_VOLTAGE_THRESHOLD_HIGH,
+    CX_BATTERY_VOLTAGE_DELTA_THRESHOLD,
+    VoltageBoundsSensitivityState::VOLTAGE_STATE_SENSITIVITY_LOW);
 
 /*
  * SETUP FUNCTIONS
