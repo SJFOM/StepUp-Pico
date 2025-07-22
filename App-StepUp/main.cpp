@@ -28,7 +28,7 @@ const TickType_t joystick_job_delay_ms = 10 / portTICK_PERIOD_MS;
 const TickType_t tmc_job_delay_ms = 20 / portTICK_PERIOD_MS;
 const TickType_t led_job_delay_ms = 80 / portTICK_PERIOD_MS;
 const TickType_t buzzer_job_delay_ms = 100 / portTICK_PERIOD_MS;
-const TickType_t voltage_monitoring_job_delay = 10000 / portTICK_PERIOD_MS;
+const TickType_t voltage_monitoring_job_delay = 1000 / portTICK_PERIOD_MS;
 const TickType_t watchdog_job_delay_ms =
     CX_WATCHDOG_CALLBACK_MS / portTICK_PERIOD_MS;
 
@@ -158,7 +158,6 @@ void setup_tmc2300()
 
     if (tmc_setup_success)
     {
-        tmc_control.enableFunctionality(true);
         LOG_INFO("TMC2300 setup... OK");
     }
     else
@@ -337,14 +336,32 @@ void setup_voltage_monitoring()
 
                 if (tmc_data.diag.normal_operation)
                 {
-                    tmc_control.enableFunctionality(true);
+                    LOG_DEBUG("Normal operation\n");
                 }
                 else
                 {
                     // Most likely case is to emit a WARN signal if we enter
                     // this state
                     tmc_notify = ControllerNotification::NOTIFY_WARN;
+                    bool trigger_led = true;
+                    bool trigger_buzzer = true;
 
+                    if (tmc_data.diag.stall_detected)
+                    {
+                        LOG_DEBUG(
+                            "Stall detected! Automatically reducing speed");
+                        // Don't trigger a typical info or warn message as we don't need 
+                        // to alert to the user that a max rpm has been reached as this
+                        // will likely happen very often
+                        trigger_led = false;
+                        trigger_buzzer = false;
+
+                        tmc_notify = ControllerNotification::NOTIFY_DATA;
+
+                        enum LEDColourNames led_colour =
+                        LEDColourNames::LED_COLOUR_MAGENTA;
+                        xQueueSendToBack(queue_led_colour_data, &led_colour, 0);
+                    }
                     if (tmc_data.diag.open_circuit)
                     {
                         LOG_DEBUG("Open circuit detected!");
@@ -362,12 +379,18 @@ void setup_voltage_monitoring()
                         LOG_DEBUG("Short circuit detected!");
                     }
 
-                    xQueueSendToBack(queue_led_notification_task,
-                                     &tmc_notify,
-                                     0);
-                    xQueueSendToBack(queue_buzzer_notification_task,
-                                     &tmc_notify,
-                                     0);
+                    if(trigger_led)
+                    {
+                        xQueueSendToBack(queue_led_notification_task,
+                                        &tmc_notify,
+                                        0);
+                    }
+                    if(trigger_buzzer)
+                    {
+                        xQueueSendToBack(queue_buzzer_notification_task,
+                                        &tmc_notify,
+                                        0);
+                    }
                 }
                 break;
             }
@@ -462,8 +485,6 @@ void setup_voltage_monitoring()
     {
         buzzer_controller_state =
             buzzer_control.processJob(xTaskGetTickCount());
-        // printf("Buzzer queue read, state: %s\n",
-        //        ControllerStateString[buzzer_controller_state]);
         switch (buzzer_controller_state)
         {
             case ControllerState::STATE_IDLE:
