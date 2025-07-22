@@ -41,8 +41,14 @@ extern "C"
 
 #define TMC_UART_CHANNEL (0)  // Not as relevant for single IC use case
 
+// Default motion profile ramp configurations
 #define VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND (1000U)
 #define VELOCITY_STARTING_STEPS_PER_SECOND       (10000U)
+
+// Rate at which we decrement the velocity if we reach Stallgaurd threshold
+// limits
+#define VELOCITY_RAMP_SG_LIMIT_DECREMENT_STEPS_PER_SECOND \
+    (VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND * 5U)
 
 // Used for threshold where open-circuit flags are valid - datasheet says they
 // are valid for "slow speed" movements
@@ -52,14 +58,14 @@ extern "C"
 #define VELOCITY_MAX_STEPS_PER_SECOND (100000U)
 
 // Run and hold current values (0..31U) scaled to 1.2A RMS
-#define DEFAULT_IRUN_VALUE  (16U)
+#define DEFAULT_IRUN_VALUE  (13U)
 #define DEFAULT_IHOLD_VALUE (0U)
 
 // If SG_VALUE falls below 2x SGTHRS_VALUE then a stall detection is triggered
 // SG_VALUE = 0..510 (higher number, lighter loading)
 // 90% loading = 510 - 0.9*510 = 0.1*510 - 51
 // SGTHRS = 51/2 ~= 25
-#define DEFAULT_SGTHRS_VALUE (25U)
+constexpr uint16_t CX_DEFAULT_SGTHRS_VALUE = 25U;
 
 /*****************************/
 /* General Registers - START */
@@ -404,6 +410,7 @@ struct TMCDiagnostics
     bool overheating = false;
     bool short_circuit = false;
     bool open_circuit = false;
+    bool stall_detected = false;
 };
 
 struct TMCData
@@ -454,6 +461,22 @@ enum CoolStepCurrentReduction
     COOLSTEP_REDUCTION_1_4 = 1U,
 };
 
+enum ComparatorBlankTime
+{
+    COMPARATOR_BLANK_TIME_16_CLK_CYCLES = 0,
+    COMPARATOR_BLANK_TIME_24_CLK_CYCLES = 1U,  // Default
+    COMPARATOR_BLANK_TIME_32_CLK_CYCLES = 2U,
+    COMPARATOR_BLANK_TIME_40_CLK_CYCLES = 3U,
+};
+
+enum StealthchopPWMFrequency
+{
+    PWM_FREQ_2_1024_FCLK = 0,
+    PWM_FREQ_2_683_FCLK = 1U,
+    PWM_FREQ_2_512_FCLK = 2U,
+    PWM_FREQ_2_410_FCLK = 3U,
+};
+
 class TMCControl : public ControlInterface
 {
 public:
@@ -490,7 +513,7 @@ private:
     struct TMCData m_tmc;
     int32_t m_target_velocity, m_ramp_velocity;
     TMCOpenCircuitAlgoData m_open_circuit_algo_data;
-    bool m_open_circuit_detected = false, m_coolstep_enabled = false;
+    bool m_open_circuit_detected, m_coolstep_enabled, m_peak_velocity_detected;
     float m_r_sense;
 
     static uint16_t convertIrunIHoldToRMSCurrentInMilliamps(uint8_t i_run_hold,
@@ -502,6 +525,7 @@ private:
     void setStandby(bool enable_standby);
     bool isDriverEnabled(void);
     void move(int32_t velocity);
+    void setMotorVelocityRegisterValue(int32_t velocity);
     void setCurrent(uint8_t i_run, uint8_t i_hold);
     void updateCurrent(uint8_t i_run_delta);
     bool isOpenCircuitDetected();
