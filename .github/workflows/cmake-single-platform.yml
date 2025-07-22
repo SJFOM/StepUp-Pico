@@ -25,7 +25,7 @@ jobs:
           path: |
             ~/.cache/bazel
             ~/.cache/bazelisk
-          key: bazel-${{ runner.os }}-${{ hashFiles('**/WORKSPACE', '**/BUILD.bazel', '**/BUILD') }}
+          key: bazel-${{ runner.os }}-${{ github.sha }}
           restore-keys: |
             bazel-${{ runner.os }}-
 
