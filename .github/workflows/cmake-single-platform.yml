@@ -24,8 +24,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Trust GitHub workspace directory
-        run: git config --global --add safe.directory /github/workspace
+      # - name: Trust GitHub workspace directory
+      #   run: git config --global --add safe.directory /github/workspace
 
       - name: Cache Bazel output and repository cache
         uses: actions/cache@v4
@@ -43,6 +43,9 @@ jobs:
       #     cd ${{github.workspace}}/pico-sdk
       #     git submodule update --init
       #   shell: bash
+
+      - name: Ensure submodules are initialized
+        run: git submodule update --init --recursive
 
       # - name: Install ARM GCC toolchain and make
       #   run: |
