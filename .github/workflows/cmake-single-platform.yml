@@ -32,10 +32,19 @@ jobs:
           restore-keys: |
             bazel-${{ runner.os }}-
 
+      - name: Install Pi Pico SDK
+        run: |
+          git clone --depth=1 https://github.com/raspberrypi/pico-sdk.git ${{github.workspace}}/pico-sdk
+          cd ${{github.workspace}}/pico-sdk
+          git submodule update --init
+        shell: bash
+
       - name: Configure CMake
         # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
         # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+        env:
+          PICO_SDK_PATH: ${{github.workspace}}/pico-sdk
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DPICO_SDK_PATH=${{github.workspace}}/pico-sdk
 
       - name: Build using CMake
         # Build your program with the given configuration
