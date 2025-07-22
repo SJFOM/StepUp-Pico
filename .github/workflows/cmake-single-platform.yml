@@ -40,7 +40,7 @@ jobs:
 
       - name: Install Pi Pico SDK
         run: |
-          git clone --depth=1 https://github.com/raspberrypi/pico-sdk/releases/tag/${{ steps.get_sdk_version.outputs.sdk_version }}.git ${{github.workspace}}/pico-sdk
+          git clone --branch ${{ steps.get_sdk_version.outputs.sdk_version }} --depth=1 https://github.com/raspberrypi/pico-sdk.git ${{github.workspace}}/pico-sdk
           cd ${{github.workspace}}/pico-sdk
           git submodule update --init
         shell: bash
