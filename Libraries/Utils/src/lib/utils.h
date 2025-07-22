@@ -116,6 +116,16 @@ namespace Utils
         return (bool)(value <= upper_bound) && (value >= lower_bound);
     }
 
+    /**
+     * @brief An approximation of an Exponential Moving Average (EMA)
+     * with configurable decay factor "alpha" as input
+     *
+     * @details: This type of moving average gives more weight to recent values,
+     * making it more responsive than a simple moving average. Unlike a simple
+     * moving average, it does not require a RAM buffer to store previous
+     * samples. It just has to store one value (the previous average).
+     *
+     */
     class ExponentialMovingAverage
     {
     public:
@@ -136,7 +146,7 @@ namespace Utils
         {
             // The closer (1.0 - alpha) is to 1.0, the longer the effect of
             // previous numbers hangs around, and the less impact each new
-            // number has. Covnersely, the closer alpha is to 1.0, the faster
+            // number has. Conversely, the closer alpha is to 1.0, the faster
             // the moving average updates in response to new values.
             m_accumulator =
                 (m_alpha * new_value) + (1.0f - m_alpha) * m_accumulator;
