@@ -350,21 +350,25 @@ void setup_voltage_monitoring()
                     {
                         LOG_DEBUG(
                             "Stall detected! Automatically reducing speed");
-                        // Don't trigger a typical info or warn message as we don't need 
-                        // to alert to the user that a max rpm has been reached as this
-                        // will likely happen very often
+                        // Don't trigger a typical info or warn message as we
+                        // don't need to alert to the user that a max rpm has
+                        // been reached as this will likely happen very often
                         trigger_led = false;
                         trigger_buzzer = false;
 
                         tmc_notify = ControllerNotification::NOTIFY_DATA;
 
                         enum LEDColourNames led_colour =
-                        LEDColourNames::LED_COLOUR_MAGENTA;
+                            LEDColourNames::LED_COLOUR_MAGENTA;
                         xQueueSendToBack(queue_led_colour_data, &led_colour, 0);
                     }
-                    if (tmc_data.diag.open_circuit)
+                    if (tmc_data.diag.open_circuit ||
+                        tmc_data.open_circuit_detected)
                     {
+                        // Open circuit detected, trigger a notification
+                        tmc_notify = ControllerNotification::NOTIFY_ERROR;
                         LOG_DEBUG("Open circuit detected!");
+                        tmc_control.enableFunctionality(false);
                     }
                     if (tmc_data.diag.overheating)
                     {
@@ -379,17 +383,17 @@ void setup_voltage_monitoring()
                         LOG_DEBUG("Short circuit detected!");
                     }
 
-                    if(trigger_led)
+                    if (trigger_led)
                     {
                         xQueueSendToBack(queue_led_notification_task,
-                                        &tmc_notify,
-                                        0);
+                                         &tmc_notify,
+                                         0);
                     }
-                    if(trigger_buzzer)
+                    if (trigger_buzzer)
                     {
                         xQueueSendToBack(queue_buzzer_notification_task,
-                                        &tmc_notify,
-                                        0);
+                                         &tmc_notify,
+                                         0);
                     }
                 }
                 break;
@@ -597,6 +601,19 @@ void setup_voltage_monitoring()
                     xQueueSendToBack(queue_buzzer_notification_task,
                                      &voltage_monitoring_notify,
                                      0);
+
+                    if (voltage_monitor_data.voltage <
+                        CX_BATTERY_VOLTAGE_THRESHOLD_LOW)
+                    {
+                        // Implement some power down mechanism based on
+                        // battery voltage being low, call
+                        // triggerPowerDownProcess() in the power_control
+                        // library
+                        LOG_WARN(
+                            "Battery voltage too low, triggering power down "
+                            "process!");
+                        power_control.triggerPowerDownProcess();
+                    }
                 }
                 else
                 {
@@ -611,11 +628,6 @@ void setup_voltage_monitoring()
                             CX_BATTERY_VOLTAGE_THRESHOLD_MID_LOW))
                     {
                         led_colour = LEDColourNames::LED_COLOUR_RED;
-
-                        // TODO: Implement some power down mechanism based on
-                        // battery voltage being low, call
-                        // triggerPowerDownProcess() in the power_control
-                        // library
                     }
                     else if (Utils::isNumberWithinBounds<float>(
                                  voltage_monitor_data.voltage,
