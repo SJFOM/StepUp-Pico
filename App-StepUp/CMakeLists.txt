@@ -1,9 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 
 # Should we set app-level debugging?
-# NOTE Equivalent of `#define DEBUG 1`
 if(${DO_DEBUG})
-    add_compile_definitions(DEBUG=1)
     message(STATUS "App-side debugging enabled for ${APP_NAME}")
 else()
     message(STATUS "App-side debugging disabled for ${APP_NAME}")
