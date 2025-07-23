@@ -45,10 +45,15 @@ extern "C"
 #define VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND (1000U)
 #define VELOCITY_STARTING_STEPS_PER_SECOND       (10000U)
 
+#define MAX_MOTOR_EFFORT_PERCENTAGE (0.95f)
+#define MAX_MOTOR_EFFORT_AS_PWM_SCALE_SUM_VALUE \
+    (uint8_t)(UINT8_MAX * MAX_MOTOR_EFFORT_PERCENTAGE)
+
 // Rate at which we decrement the velocity if we reach Stallgaurd threshold
 // limits
 #define VELOCITY_RAMP_SG_LIMIT_DECREMENT_STEPS_PER_SECOND \
     (VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND * 5U)
+
 
 // Used for threshold where open-circuit flags are valid - datasheet says they
 // are valid for "slow speed" movements
@@ -529,7 +534,7 @@ private:
     void setMotorVelocityRegisterValue(int32_t velocity);
     void setCurrent(uint8_t i_run, uint8_t i_hold);
     void updateCurrent(uint8_t i_run_delta);
-    bool isOpenCircuitDetected();
+    bool isOpenCircuitDetected(uint16_t sg_value, uint8_t pwm_scale_sum);
     void resetOpenCircuitDetectionAlgorithm();
     TMCDiagnostics readTMCDiagnostics();
 };
