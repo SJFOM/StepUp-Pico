@@ -641,16 +641,14 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
     m_sgval.sr = tmc2300_readInt(&tmc2300, m_sgval.address);
     m_pwm_scale.sr = tmc2300_readInt(&tmc2300, m_pwm_scale.address);
 
-    m_open_circuit_detected =
+    m_tmc.open_circuit_detected =
         isOpenCircuitDetected(m_sgval.sr, m_pwm_scale.pwm_scale_sum);
 
     // Stall detection, over temperature & short-circuit detection are all
     // mapped to the DIAG pin. However, open-circuit flags must be polled and
     // are not mapped to the DIAG pin flag.
-    if (s_diag_event || m_open_circuit_detected)
+    if (s_diag_event || m_tmc.open_circuit_detected)
     {
-        m_tmc.open_circuit_detected = isOpenCircuitDetected();
-
         process_count = 0;
 
         // Stall detection, over temperature & short-circuit detection are
@@ -835,12 +833,12 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
                         // direction of motor rotation.
                         if (m_target_velocity < 0)
                         {
-                            ramp_velocity -=
+                            m_ramp_velocity -=
                                 VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
                         }
                         else
                         {
-                            ramp_velocity +=
+                            m_ramp_velocity +=
                                 VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND;
                         }
                     }
