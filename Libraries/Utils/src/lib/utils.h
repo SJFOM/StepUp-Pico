@@ -3,9 +3,9 @@
  * @author Sam (@SJFOM)
  * @brief Util methods for the Pico SDK
  * @version 0.1
- * @date 2025-04-18
+ * @date 2025-07-23
  *
- * @copyright Copyright (c) 2024
+ * @copyright Copyright (c) 2025
  * @license   MIT
  *
  *

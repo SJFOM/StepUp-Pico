@@ -4,7 +4,7 @@
  * @details Library for Pico to provide common access methods which using Pico
  * specific hardware access functions
  * @version 0.1
- * @date 2025-07-18
+ * @date 2025-07-23
  *
  * @copyright Copyright (c) 2025
  * @license MIT

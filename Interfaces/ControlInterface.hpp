@@ -7,9 +7,9 @@
  * of child peripherals which can be processed via a master control loop
  * (usually in main.cpp).
  * @version 0.1
- * @date 2023-02-11
+ * @date 2025-07-23
  *
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2025
  * @license MIT
  */
 

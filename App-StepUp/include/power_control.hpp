@@ -4,7 +4,7 @@
  * @brief Library for monitoring voltage levels and reporting on them when they
  * are detected to be out of bounds
  * @version 0.1
- * @date 2025-04-17
+ * @date 2025-07-23
  *
  * @copyright Copyright (c) 2025
  * @license MIT

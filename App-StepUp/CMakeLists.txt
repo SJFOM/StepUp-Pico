@@ -29,7 +29,8 @@ target_link_libraries(${APP_NAME} LINK_PUBLIC
     FreeRTOS
     ControlInterface
     PicoUtils
-    Utils)
+    Utils
+    AxisToActuatorEngine)
 
 # Enable/disable STDIO via USB and UART
 pico_enable_stdio_usb(${APP_NAME} 0)

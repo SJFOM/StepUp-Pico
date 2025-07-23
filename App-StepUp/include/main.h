@@ -3,9 +3,9 @@
  * @author Sam (@SJFOM)
  * @brief Main header file for App-StepUp
  * @version 0.1
- * @date 2024-09-25
+ * @date 2025-07-23
  *
- * @copyright Copyright (c) 2024
+ * @copyright Copyright (c) 2025
  * @license   MIT
  *
  * Adapted from:
