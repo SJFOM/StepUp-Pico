@@ -19,8 +19,6 @@ static volatile bool s_button_press_event = false;
 
 // Button debounce control
 static volatile uint32_t s_time_of_last_button_press;
-// Millisecond delay between valid button press events
-static const uint32_t s_pin_debounce_delay_time_ms = 50U;
 
 static void joystick_button_callback();
 
@@ -34,16 +32,6 @@ static void enableJoystickButtonInterrupt(bool enable_interrupt)
 /*********************************/
 /* Joystick button control - END */
 /*********************************/
-
-/*************************************/
-/* Joystick ADC read control - START */
-/*************************************/
-// Millisecond delay between valid joystick ADC read events
-static const uint32_t s_adc_settling_time_between_reads_in_ms = 50U;
-
-/***********************************/
-/* Joystick ADC read control - END */
-/***********************************/
 
 JoystickControl::JoystickControl()
 {
@@ -67,7 +55,7 @@ bool JoystickControl::init()
         gpio_set_input_enabled(JOYSTICK_BUTTON_PIN, true);
         gpio_pull_up(JOYSTICK_BUTTON_PIN);
 
-        if (!Utils::isADCInitialised())
+        if (!PicoUtils::isADCInitialised())
         {
             adc_init();
         }
@@ -75,22 +63,18 @@ bool JoystickControl::init()
         adc_gpio_init(JOYSTICK_ADC_PIN_X);
         adc_gpio_init(JOYSTICK_ADC_PIN_Y);
         m_joystick.position.x_offset =
-            Utils::getValidADCResultRaw(JOYSTICK_ADC_CHANNEL_X);
+            PicoUtils::getValidADCResultRaw(JOYSTICK_ADC_CHANNEL_X);
         m_joystick.position.y_offset =
-            Utils::getValidADCResultRaw(JOYSTICK_ADC_CHANNEL_Y);
+            PicoUtils::getValidADCResultRaw(JOYSTICK_ADC_CHANNEL_Y);
 
-        Utils::log_info((string) "X - Raw value: " +
-                        std::to_string(m_joystick.position.x_offset) +
-                        " - voltage: " +
-                        std::to_string(m_joystick.position.x_offset *
-                                       ADC_TO_VOLTAGE_CONVERSION_FACTOR) +
-                        " V");
-        Utils::log_info((string) "Y - Raw value: " +
-                        std::to_string(m_joystick.position.y_offset) +
-                        " - voltage: " +
-                        std::to_string(m_joystick.position.y_offset *
-                                       ADC_TO_VOLTAGE_CONVERSION_FACTOR) +
-                        " V");
+        LOG_DATA("X - Raw value: %d - voltage: %.2fV",
+                 m_joystick.position.x_offset,
+                 (float)m_joystick.position.x_offset *
+                     ADC_TO_VOLTAGE_CONVERSION_FACTOR);
+        LOG_DATA("Y - Raw value: %d - voltage: %.2fV",
+                 m_joystick.position.y_offset,
+                 (float)m_joystick.position.y_offset *
+                     ADC_TO_VOLTAGE_CONVERSION_FACTOR);
 
         if ((m_joystick.position.x_offset >
                  JOYSTICK_ADC_LOWER_HOME_THRESHOLD_RAW &&
@@ -109,16 +93,14 @@ bool JoystickControl::init()
         }
         else
         {
-            Utils::log_warn(
-                (string) "ADC lower bound:" +
-                std::to_string(JOYSTICK_ADC_LOWER_HOME_THRESHOLD_RAW));
-            Utils::log_warn(
-                (string) "ADC upper bound:" +
-                std::to_string(JOYSTICK_ADC_UPPER_HOME_THRESHOLD_RAW));
-            Utils::log_warn((string) "x stage offset: " +
-                            std::to_string(m_joystick.position.x_offset));
-            Utils::log_warn((string) "y stage offset: " +
-                            std::to_string(m_joystick.position.y_offset));
+            LOG_WARN((string) "ADC lower bound:" +
+                     std::to_string(JOYSTICK_ADC_LOWER_HOME_THRESHOLD_RAW));
+            LOG_WARN((string) "ADC upper bound:" +
+                     std::to_string(JOYSTICK_ADC_UPPER_HOME_THRESHOLD_RAW));
+            LOG_WARN((string) "x stage offset: " +
+                     std::to_string(m_joystick.position.x_offset));
+            LOG_WARN((string) "y stage offset: " +
+                     std::to_string(m_joystick.position.y_offset));
         }
 
         // Mimick first button press event against which to compare later events
@@ -128,10 +110,12 @@ bool JoystickControl::init()
     if (m_init_success)
     {
         m_joystick.control_state = ControllerState::STATE_READY;
-        enableJoystickButtonInterrupt(true);
-        gpio_add_raw_irq_handler(JOYSTICK_BUTTON_PIN,
-                                 &joystick_button_callback);
-        irq_set_enabled(IO_IRQ_BANK0, true);
+        if (m_pin_event_manager == nullptr)
+        {
+            m_pin_event_manager =
+                new PinEventManager(JOYSTICK_BUTTON_PIN, GPIO_IRQ_EDGE_FALL);
+            m_pin_event_manager->init();
+        }
         // TODO: Have the ADC's constantly sample using DMA to fill a buffer
         // which we can read the averaged value from when the processJob comes
         // around to do its job
@@ -179,6 +163,12 @@ enum ControllerState JoystickControl::processJob(uint32_t tick_count)
     if (!isFunctionalityEnabled())
     {
         return ControllerState::STATE_IDLE;
+    }
+
+    if (m_pin_event_manager->hasEventOccurred())
+    {
+        s_button_press_event = true;
+        m_pin_event_manager->clearPinEventCount();
     }
 
     if (s_button_press_event)
@@ -234,43 +224,16 @@ void JoystickControl::getLatestJoystickPosition()
         m_next_joystick_read_deadline_in_ms)
     {
         // Reset flag
-        m_next_joystick_read_deadline_in_ms = to_ms_since_boot(
-            make_timeout_time_ms(s_adc_settling_time_between_reads_in_ms));
+        m_next_joystick_read_deadline_in_ms =
+            to_ms_since_boot(make_timeout_time_ms(
+                cxs_adc_settling_default_time_between_reads_in_ms));
 
         m_joystick.position.x =
-            Utils::getValidADCResultRaw(JOYSTICK_ADC_CHANNEL_X) -
+            PicoUtils::getValidADCResultRaw(JOYSTICK_ADC_CHANNEL_X) -
             m_joystick.position.x_offset;
 
         m_joystick.position.y =
-            Utils::getValidADCResultRaw(JOYSTICK_ADC_CHANNEL_Y) -
+            PicoUtils::getValidADCResultRaw(JOYSTICK_ADC_CHANNEL_Y) -
             m_joystick.position.y_offset;
-    }
-}
-
-int64_t debounce_timer_callback(alarm_id_t id, void *user_data)
-{
-    if (false == gpio_get(JOYSTICK_BUTTON_PIN))
-    {
-        s_button_press_event = true;
-    }
-    enableJoystickButtonInterrupt(true);
-    return 0;
-}
-
-void joystick_button_callback()
-{
-    if (gpio_get_irq_event_mask(JOYSTICK_BUTTON_PIN) & GPIO_IRQ_EDGE_FALL)
-    {
-        gpio_acknowledge_irq(JOYSTICK_BUTTON_PIN, GPIO_IRQ_EDGE_FALL);
-
-        // Disable interrupt until debounce timer has elapsed
-        enableJoystickButtonInterrupt(false);
-
-        // Call debounce_timer_callback in s_pin_debounce_delay_time_ms
-        // milli-seconds
-        add_alarm_in_ms(s_pin_debounce_delay_time_ms,
-                        debounce_timer_callback,
-                        NULL,
-                        false);
     }
 }

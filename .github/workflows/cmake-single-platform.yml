@@ -1,0 +1,53 @@
+name: Build and run unit tests for the App-StepUp application
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Debug
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Bazel output and repository cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/bazel
+            ~/.cache/bazelisk
+          key: bazel-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            bazel-${{ runner.os }}-
+
+      - name: Ensure submodules are initialized
+        run: git submodule update --init --recursive
+
+      - name: Build using Pico-Build-Action
+        id: build
+        uses: samyarsadat/Pico-Build-Action@v1
+        with:
+          source_dir: "."
+          cmake_args: "-DCMAKE_BUILD_TYPE=Debug"
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: workspace_artifacts
+          path: ${{steps.build.outputs.output_dir}}
+
+      - name: Setup Bazel for unit testing
+        uses: bazelbuild/setup-bazelisk@v3
+
+      - name: Run Bazel tests
+        working-directory: ${{github.workspace}}
+        run: bazel test ...:all

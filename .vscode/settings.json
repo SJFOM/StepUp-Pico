@@ -1,119 +1,44 @@
 {
-  "editor.defaultFormatter": "ms-vscode.cpptools",
-  "C_Cpp.formatting": "clangFormat",
-  "git.autoRepositoryDetection": "openEditors",
-  "git.ignoredRepositories": [
-    "pico-sdk",
-    "FreeRTOS-Kernel"
-  ],
-  "files.associations": {
-    "optional": "c",
-    "istream": "c",
-    "ostream": "c",
-    "system_error": "c",
-    "array": "c",
-    "functional": "c",
-    "tuple": "c",
-    "type_traits": "c",
-    "utility": "c",
-    "tmc2300.h": "c",
-    "__bit_reference": "cpp",
-    "__bits": "cpp",
-    "__config": "cpp",
-    "__debug": "cpp",
-    "__errc": "cpp",
-    "__functional_base": "cpp",
-    "__locale": "cpp",
-    "__mutex_base": "cpp",
-    "__nullptr": "cpp",
-    "__split_buffer": "cpp",
-    "__string": "cpp",
-    "__threading_support": "cpp",
-    "__tuple": "cpp",
-    "algorithm": "cpp",
-    "atomic": "cpp",
-    "bit": "cpp",
-    "bitset": "cpp",
-    "cctype": "cpp",
-    "chrono": "cpp",
-    "clocale": "cpp",
-    "cstdarg": "cpp",
-    "cstddef": "cpp",
-    "cstdint": "cpp",
-    "cstdio": "cpp",
-    "cstdlib": "cpp",
-    "cstring": "cpp",
-    "ctime": "cpp",
-    "cwchar": "cpp",
-    "cwctype": "cpp",
-    "exception": "cpp",
-    "initializer_list": "cpp",
-    "iomanip": "cpp",
-    "ios": "cpp",
-    "iosfwd": "cpp",
-    "iostream": "cpp",
-    "iterator": "cpp",
-    "limits": "cpp",
-    "locale": "cpp",
-    "memory": "cpp",
-    "mutex": "cpp",
-    "new": "cpp",
-    "ratio": "cpp",
-    "sstream": "cpp",
-    "stdexcept": "cpp",
-    "streambuf": "cpp",
-    "string": "cpp",
-    "string_view": "cpp",
-    "typeinfo": "cpp",
-    "vector": "cpp",
-    "*.tcc": "cpp",
-    "cmath": "cpp",
-    "compare": "cpp",
-    "concepts": "cpp",
-    "deque": "cpp",
-    "unordered_map": "cpp",
-    "memory_resource": "cpp",
-    "numeric": "cpp",
-    "random": "cpp",
-    "ranges": "cpp",
-    "cinttypes": "cpp"
-  },
-  "cortex-debug.openocdPath.osx": "${workspaceFolder}/openocd/src/openocd",
-  "cortex-debug.openocdPath.windows": "${env:PICO_INSTALL_PATH}\\openocd\\openocd.exe",
-  "cortex-debug.gdbPath": "arm-none-eabi-gdb",
-  "C_Cpp.clang_format_fallbackStyle": "Visual Studio",
-  "C_Cpp.clang_format_style": "file",
-  "[jsonc]": {
-    "editor.defaultFormatter": "vscode.json-language-features"
-  },
-  "editor.formatOnSave": true,
-  "C_Cpp.clang_format_path": "",
-  "[python]": {
-    "editor.defaultFormatter": "ms-python.black-formatter"
-  },
-  "cmake.configureSettings": {
-    "CMAKE_MODULE_PATH": "${env:PICO_INSTALL_PATH}/pico-sdk-tools",
-    "PICO_BOARD": "pico",
-  },
-  "cmake.configureOnOpen": false,
-  // These settings tweaks to the cmake plugin will ensure
-  // that you debug using cortex-debug instead of trying to launch
-  // a Pico binary on the host - taken from raspberrypi/pico-examples
-  "cmake.statusbar.advanced": {
-    "debug": {
-      "visibility": "hidden"
+    "cmake.options.statusBarVisibility": "hidden",
+    "cmake.options.advanced": {
+        "build": {
+            "statusBarVisibility": "hidden"
+        },
+        "launch": {
+            "statusBarVisibility": "hidden"
+        },
+        "debug": {
+            "statusBarVisibility": "hidden"
+        }
     },
-    "launch": {
-      "visibility": "hidden"
+    "cmake.configureOnEdit": true,
+    "cmake.automaticReconfigure": true,
+    "cmake.configureOnOpen": true,
+    "cmake.generator": "Ninja",
+    "cmake.cmakePath": "${userHome}/.pico-sdk/cmake/v4.0.1/bin/cmake",
+    "C_Cpp.debugShortcut": false,
+    "terminal.integrated.env.windows": {
+        "PICO_SDK_PATH": "${env:USERPROFILE}/.pico-sdk/sdk/2.1.1",
+        "PICO_TOOLCHAIN_PATH": "${env:USERPROFILE}/.pico-sdk/toolchain/14_2_Rel1",
+        "Path": "${env:USERPROFILE}/.pico-sdk/toolchain/14_2_Rel1/bin;${env:USERPROFILE}/.pico-sdk/picotool/2.1.1/picotool;${env:USERPROFILE}/.pico-sdk/cmake/v4.0.1/bin;${env:USERPROFILE}/.pico-sdk/ninja/v1.12.1;${env:PATH}"
     },
-    "build": {
-      "visibility": "hidden"
+    "terminal.integrated.env.osx": {
+        "PICO_SDK_PATH": "${env:HOME}/.pico-sdk/sdk/2.1.1",
+        "PICO_TOOLCHAIN_PATH": "${env:HOME}/.pico-sdk/toolchain/14_2_Rel1",
+        "PATH": "${env:HOME}/.pico-sdk/toolchain/14_2_Rel1/bin:${env:HOME}/.pico-sdk/picotool/2.1.1/picotool:${env:HOME}/.pico-sdk/cmake/v4.0.1/bin:${env:HOME}/.pico-sdk/ninja/v1.12.1:${env:PATH}"
     },
-    "buildTarget": {
-      "visibility": "hidden"
+    "terminal.integrated.env.linux": {
+        "PICO_SDK_PATH": "${env:HOME}/.pico-sdk/sdk/2.1.1",
+        "PICO_TOOLCHAIN_PATH": "${env:HOME}/.pico-sdk/toolchain/14_2_Rel1",
+        "PATH": "${env:HOME}/.pico-sdk/toolchain/14_2_Rel1/bin:${env:HOME}/.pico-sdk/picotool/2.1.1/picotool:${env:HOME}/.pico-sdk/cmake/v4.0.1/bin:${env:HOME}/.pico-sdk/ninja/v1.12.1:${env:PATH}"
+    },
+    "raspberry-pi-pico.cmakeAutoConfigure": false,
+    "raspberry-pi-pico.useCmakeTools": true,
+    "raspberry-pi-pico.cmakePath": "${HOME}/.pico-sdk/cmake/v4.0.1/bin/cmake",
+    "raspberry-pi-pico.ninjaPath": "${HOME}/.pico-sdk/ninja/v1.12.1/ninja",
+    "files.associations": {
+        "freertosconfig.h": "c",
+        "type_traits": "cpp",
+        "variant": "cpp"
     }
-  },
-  "cmake.buildBeforeRun": true,
-  "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
-  "cmake.generator": ""
 }

@@ -17,16 +17,13 @@
 #include "pico/stdlib.h"  // Includes `hardware_gpio.h`
 
 // Logging utilities
-#include "utils.h"
+#include "PicoUtils.h"
 
 // Control libraries
-#include "../../../Interfaces/ControlInterface.hpp"
+#include "ControlInterface.hpp"
 
 // pin includes
-#include "pins_definitions.h"
-
-// Logging utilities
-#include "utils.h"
+#include "board_definitions.h"
 
 // TMC-API
 extern "C"
@@ -44,12 +41,19 @@ extern "C"
 
 #define TMC_UART_CHANNEL (0)  // Not as relevant for single IC use case
 
-#define VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND (500U)
+// Default motion profile ramp configurations
+#define VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND (1000U)
 #define VELOCITY_STARTING_STEPS_PER_SECOND       (10000U)
 
 #define MAX_MOTOR_EFFORT_PERCENTAGE (0.95f)
 #define MAX_MOTOR_EFFORT_AS_PWM_SCALE_SUM_VALUE \
     (uint8_t)(UINT8_MAX * MAX_MOTOR_EFFORT_PERCENTAGE)
+
+// Rate at which we decrement the velocity if we reach Stallgaurd threshold
+// limits
+#define VELOCITY_RAMP_SG_LIMIT_DECREMENT_STEPS_PER_SECOND \
+    (VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND * 5U)
+
 
 // Used for threshold where open-circuit flags are valid - datasheet says they
 // are valid for "slow speed" movements
@@ -58,15 +62,15 @@ extern "C"
 
 #define VELOCITY_MAX_STEPS_PER_SECOND (100000U)
 
-// Run and hold current values (0..31U) scaled to 1.4A RMS
-#define DEFAULT_IRUN_VALUE  (20U)
+// Run and hold current values (0..31U) scaled to 1.2A RMS
+#define DEFAULT_IRUN_VALUE  (13U)
 #define DEFAULT_IHOLD_VALUE (0U)
 
 // If SG_VALUE falls below 2x SGTHRS_VALUE then a stall detection is triggered
 // SG_VALUE = 0..510 (higher number, lighter loading)
 // 90% loading = 510 - 0.9*510 = 0.1*510 - 51
 // SGTHRS = 51/2 ~= 25
-#define DEFAULT_SGTHRS_VALUE (25U)
+constexpr uint16_t CX_DEFAULT_SGTHRS_VALUE = 25U;
 
 /*****************************/
 /* General Registers - START */
@@ -411,17 +415,19 @@ struct TMCDiagnostics
     bool overheating = false;
     bool short_circuit = false;
     bool open_circuit = false;
+    bool stall_detected = false;
 };
 
 struct TMCData
 {
     ControllerState control_state;
     TMCDiagnostics diag;
+    bool open_circuit_detected = false;
 };
 
 struct TMCOpenCircuitAlgoData
 {
-    const uint8_t sg_val_match_count_threshold = 5U;
+    const uint8_t sg_val_match_count_threshold = 10U;
     uint8_t sg_val_match_count;
     uint16_t sg_val_previous;
 };
@@ -455,10 +461,32 @@ enum MicrostepResolution
     MRES_256_STEP = 0,
 };
 
+enum CoolStepCurrentReduction
+{
+    COOLSTEP_REDUCTION_1_2 = 0,
+    COOLSTEP_REDUCTION_1_4 = 1U,
+};
+
+enum ComparatorBlankTime
+{
+    COMPARATOR_BLANK_TIME_16_CLK_CYCLES = 0,
+    COMPARATOR_BLANK_TIME_24_CLK_CYCLES = 1U,  // Default
+    COMPARATOR_BLANK_TIME_32_CLK_CYCLES = 2U,
+    COMPARATOR_BLANK_TIME_40_CLK_CYCLES = 3U,
+};
+
+enum StealthchopPWMFrequency
+{
+    PWM_FREQ_2_1024_FCLK = 0,
+    PWM_FREQ_2_683_FCLK = 1U,
+    PWM_FREQ_2_512_FCLK = 2U,
+    PWM_FREQ_2_410_FCLK = 3U,
+};
+
 class TMCControl : public ControlInterface
 {
 public:
-    TMCControl();
+    TMCControl(float r_sense, bool coolstep_enabled = false);
     ~TMCControl();
     bool init(void);
     void deinit(void);
@@ -489,16 +517,21 @@ private:
     MotorMoveState m_motor_move_state;
     bool m_init_success, m_uart_pins_enabled;
     struct TMCData m_tmc;
-    int32_t m_target_velocity;
+    int32_t m_target_velocity, m_ramp_velocity;
     TMCOpenCircuitAlgoData m_open_circuit_algo_data;
-    bool m_open_circuit_detected = false;
+    bool m_coolstep_enabled, m_peak_velocity_detected;
+    float m_r_sense;
+
+    static uint16_t convertIrunIHoldToRMSCurrentInMilliamps(uint8_t i_run_hold,
+                                                            float r_sense);
 
     void enableTMCDiagInterrupt(bool enable_interrupt);
     void enableUartPins(bool enable_pins);
-    void enableDriver(bool enable_driver);
+    void enablePeripheralDriver(bool enable_disable) override;
     void setStandby(bool enable_standby);
     bool isDriverEnabled(void);
     void move(int32_t velocity);
+    void setMotorVelocityRegisterValue(int32_t velocity);
     void setCurrent(uint8_t i_run, uint8_t i_hold);
     void updateCurrent(uint8_t i_run_delta);
     bool isOpenCircuitDetected(uint16_t sg_value, uint8_t pwm_scale_sum);

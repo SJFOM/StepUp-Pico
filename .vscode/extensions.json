@@ -1,11 +1,13 @@
 {
     "recommendations": [
-        "ms-vscode.cpptools",
-        "twxs.cmake",
-        "ms-vscode.cmake-tools",
         "marus25.cortex-debug",
-        "usernamehw.errorlens",
+        "raspberry-pi.raspberry-pi-pico",
+        "alexnesnes.teleplot",
         "ms-vscode.vscode-serial-monitor",
-        "alexnesnes.teleplot"
+        "ms-vscode.cpptools-extension-pack",
+        "ms-vscode.cmake-tools",
+        "usernamehw.errorlens",
+        "ms-vscode.cpptools",
+        "bazelbuild.vscode-bazel"
     ]
 }

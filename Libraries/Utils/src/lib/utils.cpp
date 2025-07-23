@@ -7,7 +7,8 @@
  * @licence   MIT
  *
  */
-#include "../include/utils.h"
+
+#include "utils.h"
 
 using std::string;
 using std::vector;
@@ -136,7 +137,7 @@ namespace Utils
      */
     void log_device_info(void)
     {
-        printf("[INFO] App: %s %s (%i)\n", APP_NAME, APP_VERSION, BUILD_NUM);
+        printf("[INFO] App: %s %s (%s)\n", APP_NAME, APP_VERSION, BUILD_NUM);
     }
 
     /**
@@ -180,6 +181,8 @@ namespace Utils
     void log_error(const string msg)
     {
         printf("[ERROR] %s\n", msg.c_str());
+        // printf("[POWER] Powering down...\n");
+        // PowerControl::powerDown();
         while (true)
         {
             ;
@@ -190,45 +193,9 @@ namespace Utils
      * LOGGING UTILS - FINISH *
      **************************/
 
-    /*********************
-     * ADC UTILS - BEGIN *
-     *********************/
-    bool isADCInitialised()
-    {
-        return (bool)(adc_hw->cs & ADC_CS_READY_BITS);
-    }
-
-    uint16_t getValidADCResultRaw(uint8_t adc_channel)
-    {
-        // Ensure valid ADC channels are being used (0 -> 3)
-        assert(isValueWithinBounds(adc_channel, 0, 3U));
-
-        adc_select_input(adc_channel);
-        return (uint16_t)(adc_read() & ADC_ENOB_MASK);
-    }
-
-    float getValidADCResultVolts(uint8_t adc_channel)
-    {
-        return (float)((float)getValidADCResultRaw(adc_channel) *
-                       ADC_TO_VOLTAGE_CONVERSION_FACTOR);
-    }
-    /**********************
-     * ADC UTILS - FINISH *
-     **********************/
-
     /************************
      * NUMBER UTILS - BEGIN *
      ************************/
-    bool isValueWithinBounds(unsigned value,
-                             unsigned lower_bound,
-                             unsigned upper_bound)
-    {
-        if ((value <= upper_bound) && (value >= lower_bound))
-        {
-            return true;
-        }
-        return false;
-    }
 
     /*************************
      * NUMBER UTILS - FINISH *
