@@ -87,6 +87,7 @@ bool VoltageMonitoring::init()
     for (int i = 0; i < 10; i++)
     {
         updateVoltageReadMovingAverage();
+        sleep_ms(10);  // Settling time between reads
     }
 
     LOG_DATA("%s voltage: %.2fV",
