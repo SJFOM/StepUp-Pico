@@ -122,7 +122,7 @@ enum ControllerState PowerControl::processJob(uint32_t tick_count)
         ControlInterface::getLastTimeControlPeripheralActivityWasUpdatedMs();
 
     bool power_down_timestamp_elapsed =
-        Utils::getCurrentTimestampMs() - last_activate_timestamp >
+        PicoUtils::getCurrentTimestampMs() - last_activate_timestamp >
         m_power_down_inactive_timeout_ms;
 
     if (m_usb_pin_event_manager->hasEventOccurred())

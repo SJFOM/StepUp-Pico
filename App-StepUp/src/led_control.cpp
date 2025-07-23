@@ -36,14 +36,16 @@ LEDControl::~LEDControl()
 
 bool LEDControl::init()
 {
-    s_rgb_led.led_red_pwm_slice = Utils::configurePWMPin(s_rgb_led.led_pin_red);
-    Utils::setPWMFrequency(s_rgb_led.led_pin_red, LED_BASE_PWM_FREQ_IN_HZ);
+    s_rgb_led.led_red_pwm_slice =
+        PicoUtils::configurePWMPin(s_rgb_led.led_pin_red);
+    PicoUtils::setPWMFrequency(s_rgb_led.led_pin_red, LED_BASE_PWM_FREQ_IN_HZ);
     s_rgb_led.led_green_pwm_slice =
-        Utils::configurePWMPin(s_rgb_led.led_pin_green);
-    Utils::setPWMFrequency(s_rgb_led.led_pin_green, LED_BASE_PWM_FREQ_IN_HZ);
+        PicoUtils::configurePWMPin(s_rgb_led.led_pin_green);
+    PicoUtils::setPWMFrequency(s_rgb_led.led_pin_green,
+                               LED_BASE_PWM_FREQ_IN_HZ);
     s_rgb_led.led_blue_pwm_slice =
-        Utils::configurePWMPin(s_rgb_led.led_pin_blue);
-    Utils::setPWMFrequency(s_rgb_led.led_pin_blue, LED_BASE_PWM_FREQ_IN_HZ);
+        PicoUtils::configurePWMPin(s_rgb_led.led_pin_blue);
+    PicoUtils::setPWMFrequency(s_rgb_led.led_pin_blue, LED_BASE_PWM_FREQ_IN_HZ);
 
     enableLED(false);
 

@@ -71,7 +71,8 @@ public:
      */
     virtual void enableFunctionality(bool enable_disable)
     {
-        m_latest_activity_change_timestamp_ms = Utils::getCurrentTimestampMs();
+        m_latest_activity_change_timestamp_ms =
+            PicoUtils::getCurrentTimestampMs();
         m_is_enabled = enable_disable;
         enablePeripheralDriver(enable_disable);
     }

@@ -30,6 +30,15 @@ enum class VoltageBoundsCheckState
     VOLTAGE_STATE_MAX_COUNT,
 };
 
+enum class VoltageBoundsSensitivityState
+{
+    VOLTAGE_STATE_SENSITIVITY_LOW = 0U,
+    VOLTAGE_STATE_SENSITIVITY_MEDIUM = 1U,
+    VOLTAGE_STATE_SENSITIVITY_HIGH = 2U,
+    VOLTAGE_STATE_SENSITIVITY_INSTANT = 3U,
+    VOLTAGE_STATE_SENSITIVITY_MAX_COUNT,
+};
+
 struct VoltageMonitorData
 {
     float voltage;
@@ -39,13 +48,16 @@ struct VoltageMonitorData
 class VoltageMonitoring : public ControlInterface
 {
 public:
-    VoltageMonitoring(const std::string &voltage_rail_name,
-                      uint8_t voltage_pin,
-                      uint8_t voltage_adc_channel,
-                      float voltage_scaling_factor,
-                      float voltage_threshold_low,
-                      float voltage_threshold_high,
-                      float voltage_delta_threshold = 0.1f);
+    VoltageMonitoring(
+        const std::string &voltage_rail_name,
+        uint8_t voltage_pin,
+        uint8_t voltage_adc_channel,
+        float voltage_scaling_factor,
+        float voltage_threshold_low,
+        float voltage_threshold_high,
+        float voltage_delta_threshold,
+        VoltageBoundsSensitivityState sensitivity_state =
+            VoltageBoundsSensitivityState::VOLTAGE_STATE_SENSITIVITY_MEDIUM);
     ~VoltageMonitoring();
 
     bool init() override;
@@ -64,11 +76,15 @@ private:
     float m_voltage_scaling_factor, m_voltage_threshold_low,
         m_voltage_threshold_high, m_voltage_delta_threshold;
 
+    VoltageBoundsSensitivityState m_sensitivity_state;
+
     float m_latest_voltage;
 
     struct VoltageMonitorData m_voltage_data;
 
-    void updateVoltageRead();
+    Utils::ExponentialMovingAverage m_voltage_average;
+
+    void updateVoltageReadMovingAverage();
 };
 
 #endif  // VOLTAGE_MONITORING_H_

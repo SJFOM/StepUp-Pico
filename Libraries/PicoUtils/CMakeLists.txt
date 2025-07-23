@@ -1,5 +1,5 @@
 add_library(PicoUtils STATIC
-    src/lib/utils.cpp
+    src/lib/pico_utils.cpp
 )
 
 target_include_directories(PicoUtils PUBLIC
@@ -10,4 +10,5 @@ target_link_libraries(PicoUtils PUBLIC
     pico_stdlib
     hardware_pwm
     hardware_adc
+    Utils
 )

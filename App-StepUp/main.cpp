@@ -55,19 +55,27 @@ BuzzerControl buzzer_control(BUZZER_PIN);
 LEDControl led_control(LED_PIN_RED, LED_PIN_GREEN, LED_PIN_BLUE);
 PowerControl power_control(CX_POWER_BUTTON_OFF_HOLD_TIMEOUT_MS,
                            CX_POWER_DOWN_INACTIVE_TIMEOUT_MS);
-VoltageMonitoring battery_voltage_monitoring("Battery",
-                                             VBAT_MONITOR_ADC_PIN,
-                                             VBAT_MONITOR_ADC_CHANNEL,
-                                             VBAT_ADC_SCALING_FACTOR,
-                                             CX_BATTERY_VOLTAGE_THRESHOLD_LOW,
-                                             CX_BATTERY_VOLTAGE_THRESHOLD_HIGH);
+
+// Create voltage monitoring class instances
+VoltageMonitoring battery_voltage_monitoring(
+    "Battery",
+    VBAT_MONITOR_ADC_PIN,
+    VBAT_MONITOR_ADC_CHANNEL,
+    VBAT_ADC_SCALING_FACTOR,
+    CX_BATTERY_VOLTAGE_THRESHOLD_LOW,
+    CX_BATTERY_VOLTAGE_THRESHOLD_HIGH,
+    CX_BATTERY_VOLTAGE_DELTA_THRESHOLD,
+    VoltageBoundsSensitivityState::VOLTAGE_STATE_SENSITIVITY_MEDIUM);
+
 VoltageMonitoring motor_voltage_monitoring(
     "Motor",
     VMOTOR_MONITOR_ADC_PIN,
     VMOTOR_MONITOR_ADC_CHANNEL,
     VMOTOR_ADC_SCALING_FACTOR,
     CX_MOTOR_IDLE_VOLTAGE_THRESHOLD_LOW,
-    CX_MOTOR_IDLE_VOLTAGE_THRESHOLD_HIGH);
+    CX_MOTOR_IDLE_VOLTAGE_THRESHOLD_HIGH,
+    CX_BATTERY_VOLTAGE_DELTA_THRESHOLD,
+    VoltageBoundsSensitivityState::VOLTAGE_STATE_SENSITIVITY_LOW);
 
 /*
  * SETUP FUNCTIONS
@@ -342,21 +350,25 @@ void setup_voltage_monitoring()
                     {
                         LOG_DEBUG(
                             "Stall detected! Automatically reducing speed");
-                        // Don't trigger a typical info or warn message as we don't need 
-                        // to alert to the user that a max rpm has been reached as this
-                        // will likely happen very often
+                        // Don't trigger a typical info or warn message as we
+                        // don't need to alert to the user that a max rpm has
+                        // been reached as this will likely happen very often
                         trigger_led = false;
                         trigger_buzzer = false;
 
                         tmc_notify = ControllerNotification::NOTIFY_DATA;
 
                         enum LEDColourNames led_colour =
-                        LEDColourNames::LED_COLOUR_MAGENTA;
+                            LEDColourNames::LED_COLOUR_MAGENTA;
                         xQueueSendToBack(queue_led_colour_data, &led_colour, 0);
                     }
-                    if (tmc_data.diag.open_circuit)
+                    if (tmc_data.diag.open_circuit ||
+                        tmc_data.open_circuit_detected)
                     {
+                        // Open circuit detected, trigger a notification
+                        tmc_notify = ControllerNotification::NOTIFY_ERROR;
                         LOG_DEBUG("Open circuit detected!");
+                        tmc_control.enableFunctionality(false);
                     }
                     if (tmc_data.diag.overheating)
                     {
@@ -371,17 +383,17 @@ void setup_voltage_monitoring()
                         LOG_DEBUG("Short circuit detected!");
                     }
 
-                    if(trigger_led)
+                    if (trigger_led)
                     {
                         xQueueSendToBack(queue_led_notification_task,
-                                        &tmc_notify,
-                                        0);
+                                         &tmc_notify,
+                                         0);
                     }
-                    if(trigger_buzzer)
+                    if (trigger_buzzer)
                     {
                         xQueueSendToBack(queue_buzzer_notification_task,
-                                        &tmc_notify,
-                                        0);
+                                         &tmc_notify,
+                                         0);
                     }
                 }
                 break;
@@ -589,6 +601,19 @@ void setup_voltage_monitoring()
                     xQueueSendToBack(queue_buzzer_notification_task,
                                      &voltage_monitoring_notify,
                                      0);
+
+                    if (voltage_monitor_data.voltage <
+                        CX_BATTERY_VOLTAGE_THRESHOLD_LOW)
+                    {
+                        // Implement some power down mechanism based on
+                        // battery voltage being low, call
+                        // triggerPowerDownProcess() in the power_control
+                        // library
+                        LOG_WARN(
+                            "Battery voltage too low, triggering power down "
+                            "process!");
+                        power_control.triggerPowerDownProcess();
+                    }
                 }
                 else
                 {
@@ -603,11 +628,6 @@ void setup_voltage_monitoring()
                             CX_BATTERY_VOLTAGE_THRESHOLD_MID_LOW))
                     {
                         led_colour = LEDColourNames::LED_COLOUR_RED;
-
-                        // TODO: Implement some power down mechanism based on
-                        // battery voltage being low, call
-                        // triggerPowerDownProcess() in the power_control
-                        // library
                     }
                     else if (Utils::isNumberWithinBounds<float>(
                                  voltage_monitor_data.voltage,

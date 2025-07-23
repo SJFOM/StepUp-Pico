@@ -52,6 +52,7 @@ To use the code in this repo, your system must be set up for RP2040 C/C++ develo
 - C/C++: `ms-vscode.cpptools`
 - Cortex-Debug: `marus25.cortex-debug`
 - Python: `ms-python.python`
+- Bazel: `BazelBuild.vscode-bazel`
 
 
 ### Windows
@@ -139,7 +140,6 @@ The environment variable `PICO_SDK_VERSION` should represent what SDK is being u
 5. Optionally, manually build the app: `cmake --build build`.
 6. Connect your device so it’s ready for file transfer.
 7. Copy the `StepUp.uf2` file from the `build/App-StepUp` folder to the drive which represents the attached Pico device hardware.
-
 
 ## IDEs
 

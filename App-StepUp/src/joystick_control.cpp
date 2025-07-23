@@ -55,7 +55,7 @@ bool JoystickControl::init()
         gpio_set_input_enabled(JOYSTICK_BUTTON_PIN, true);
         gpio_pull_up(JOYSTICK_BUTTON_PIN);
 
-        if (!Utils::isADCInitialised())
+        if (!PicoUtils::isADCInitialised())
         {
             adc_init();
         }
@@ -63,9 +63,9 @@ bool JoystickControl::init()
         adc_gpio_init(JOYSTICK_ADC_PIN_X);
         adc_gpio_init(JOYSTICK_ADC_PIN_Y);
         m_joystick.position.x_offset =
-            Utils::getValidADCResultRaw(JOYSTICK_ADC_CHANNEL_X);
+            PicoUtils::getValidADCResultRaw(JOYSTICK_ADC_CHANNEL_X);
         m_joystick.position.y_offset =
-            Utils::getValidADCResultRaw(JOYSTICK_ADC_CHANNEL_Y);
+            PicoUtils::getValidADCResultRaw(JOYSTICK_ADC_CHANNEL_Y);
 
         LOG_DATA("X - Raw value: %d - voltage: %.2fV",
                  m_joystick.position.x_offset,
@@ -229,11 +229,11 @@ void JoystickControl::getLatestJoystickPosition()
                 cxs_adc_settling_default_time_between_reads_in_ms));
 
         m_joystick.position.x =
-            Utils::getValidADCResultRaw(JOYSTICK_ADC_CHANNEL_X) -
+            PicoUtils::getValidADCResultRaw(JOYSTICK_ADC_CHANNEL_X) -
             m_joystick.position.x_offset;
 
         m_joystick.position.y =
-            Utils::getValidADCResultRaw(JOYSTICK_ADC_CHANNEL_Y) -
+            PicoUtils::getValidADCResultRaw(JOYSTICK_ADC_CHANNEL_Y) -
             m_joystick.position.y_offset;
     }
 }

@@ -526,7 +526,7 @@ TMCDiagnostics TMCControl::readTMCDiagnostics()
     // motor between a disconnected motor with noise on the sense resistors
     // NOTE: In practice, these flags are not always the most reliable way of
     // detecting an open circuit event
-    if (m_open_circuit_detected ||
+    if (m_tmc.open_circuit_detected ||
         ((m_drv_status.ola || m_drv_status.olb) &&
          (abs(m_vactual.sr) <= VELOCITY_SLOW_SPEED_STEPS_PER_SECOND)))
     {
@@ -585,7 +585,7 @@ void TMCControl::resetOpenCircuitDetectionAlgorithm()
 {
     m_open_circuit_algo_data.sg_val_match_count = 0;
     m_open_circuit_algo_data.sg_val_previous = 0;
-    m_open_circuit_detected = false;
+    m_tmc.open_circuit_detected = false;
 }
 
 bool TMCControl::isOpenCircuitDetected()
@@ -638,14 +638,14 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
     /**************************/
     if (process_count++ > 10)
     {
-        m_open_circuit_detected = isOpenCircuitDetected();
+        m_tmc.open_circuit_detected = isOpenCircuitDetected();
 
         process_count = 0;
 
         // Stall detection, over temperature & short-circuit detection are
         // all mapped to the DIAG pin. However, open-circuit flags must be
         // polled and are not mapped to the DIAG pin flag.
-        if (s_diag_event || m_open_circuit_detected)
+        if (s_diag_event || m_tmc.open_circuit_detected)
         {
             s_diag_event = false;
             m_tmc.control_state = ControllerState::STATE_NEW_DATA;
@@ -700,8 +700,7 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
         // printf(">diag_pin: %d\n", gpio_get(TMC_PIN_DIAG));
         // printf(">stall: %d\n", stall);
         printf(">thresh: %d\n",
-               m_sgthrs.sr *
-                   2);  // 2x the value is the threshold for sg_live
+               m_sgthrs.sr * 2);  // 2x the value is the threshold for sg_live
         // to fall under to trigger a "stall" event
 
         printf(">sg_upper: %d\n",

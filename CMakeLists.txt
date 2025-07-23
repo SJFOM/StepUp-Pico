@@ -89,8 +89,12 @@ add_compile_definitions(APP_VERSION="${APP_VERSION_NUMBER}")
 add_compile_definitions(PCB_REVISION=${PCB_REVISION})
 add_compile_definitions(BUILD_NUM="${BUILD_NUMBER_OUTPUT}")
 
-# Set app-side debugging "ON" or "OFF"
-set(DO_DEBUG "ON")
+
+# Check if debugging is enabled in the CMake configuration
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(DO_DEBUG 1)
+    add_compile_definitions(DEBUG=1)
+endif()
 
 # Set env variable 'PICO_SDK_PATH' to the local Pico SDK
 # Comment out the set() if you have a global copy of the

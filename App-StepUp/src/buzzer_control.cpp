@@ -35,7 +35,7 @@ BuzzerControl::~BuzzerControl()
 bool BuzzerControl::init()
 {
     m_init_success = true;
-    m_pwm_slice_num = Utils::configurePWMPin(s_buzzer_pin);
+    m_pwm_slice_num = PicoUtils::configurePWMPin(s_buzzer_pin);
 
     // TODO: Ensure buzzer resets output DC signal to 0V once complete as a
     // permanent DC bias on the buzzer can damage the piezo hardware. If this
@@ -131,8 +131,9 @@ void playNextNoteInMelody()
     if (s_note_index_in_melody < MELODY_MAX_NOTE_COUNT &&
         s_active_melody != nullptr)
     {
-        Utils::setPWMFrequency(s_buzzer_pin,
-                               s_active_melody->note[s_note_index_in_melody]);
+        PicoUtils::setPWMFrequency(
+            s_buzzer_pin,
+            s_active_melody->note[s_note_index_in_melody]);
 
         // Schedule next timeout/note play duration
         // TODO: Experiment with the fire_if_past flag if experiencing

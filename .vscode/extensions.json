@@ -7,6 +7,7 @@
         "ms-vscode.cpptools-extension-pack",
         "ms-vscode.cmake-tools",
         "usernamehw.errorlens",
-        "ms-vscode.cpptools"
+        "ms-vscode.cpptools",
+        "bazelbuild.vscode-bazel"
     ]
 }

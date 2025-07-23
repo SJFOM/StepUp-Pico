@@ -417,6 +417,7 @@ struct TMCData
 {
     ControllerState control_state;
     TMCDiagnostics diag;
+    bool open_circuit_detected = false;
 };
 
 struct TMCOpenCircuitAlgoData
@@ -513,7 +514,7 @@ private:
     struct TMCData m_tmc;
     int32_t m_target_velocity, m_ramp_velocity;
     TMCOpenCircuitAlgoData m_open_circuit_algo_data;
-    bool m_open_circuit_detected, m_coolstep_enabled, m_peak_velocity_detected;
+    bool m_coolstep_enabled, m_peak_velocity_detected;
     float m_r_sense;
 
     static uint16_t convertIrunIHoldToRMSCurrentInMilliamps(uint8_t i_run_hold,
