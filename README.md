@@ -1,8 +1,5 @@
 ![Alt Text](./images/StepUp_text_header.svg)
-# *StepUp!* - A simple tool for instant stepper motor testing
 
-
-<a href="https://hits.dwyl.com/SJFOM/StepUp-Pico"><img src="https://hits.dwyl.com/SJFOM/StepUp-Pico.svg" alt="Hits Badge"/></a>
 <a href="https://github.com/SJFOM/StepUp-Pico/stargazers"><img src="https://img.shields.io/github/stars/SJFOM/StepUp-Pico" alt="Stars Badge"/></a>
 <a href="https://github.com/SJFOM/StepUp-Pico/network/members"><img src="https://img.shields.io/github/forks/SJFOM/StepUp-Pico" alt="Forks Badge"/></a>
 <a href="https://github.com/SJFOM/StepUp-Pico/pulls"><img src="https://img.shields.io/github/issues-pr/SJFOM/StepUp-Pico" alt="Pull Requests Badge"/></a>
@@ -11,8 +8,25 @@
 <a href="https://github.com/SJFOM/StepUp-Pico/blob/master/LICENSE"><img src="https://img.shields.io/github/license/SJFOM/StepUp-Pico?color=2b9348" alt="License Badge"/></a>
 
 
+# *StepUp!* - drive stepper motors ➡️ skip the setup steps 👍
 
-## Project Structure
+# Table of Contents
+- [*StepUp!* - drive stepper motors ➡️ skip the setup steps 👍](#stepup---drive-stepper-motors-️-skip-the-setup-steps-)
+- [Table of Contents](#table-of-contents)
+- [Project Structure](#project-structure)
+- [Repo setup](#repo-setup)
+    - [VS Code extensions](#vs-code-extensions)
+  - [Hardware](#hardware)
+    - [Debugging on MacOS](#debugging-on-macos)
+    - [Debugging in Linux](#debugging-in-linux)
+      - [1. Enable `arm-none-eabi-gdb`](#1-enable-arm-none-eabi-gdb)
+      - [2. Configure Linux to recognise device](#2-configure-linux-to-recognise-device)
+  - [IDEs](#ides)
+  - [Credits](#credits)
+  - [Copyright and Licences](#copyright-and-licences)
+
+# Project Structure
+
 
 ```
 /StepUp-Pico
@@ -41,11 +55,13 @@
 |___LICENSE.md
 ```
 
-## Prerequisites
+# Repo setup
 
 To use the code in this repo, your system must be set up for RP2040 C/C++ development. 
 
 ### VS Code extensions
+
+The 
 
 - CMake: `twxs.cmake`
 - CMake Tools: `ms-vscode.cmake-tools`
@@ -55,44 +71,7 @@ To use the code in this repo, your system must be set up for RP2040 C/C++ develo
 - Bazel: `BazelBuild.vscode-bazel`
 
 
-### Windows
-The Raspberry Pi foundation offer [a simple installer script](https://www.raspberrypi.com/documentation/microcontrollers/raspberry-pi-pico.html#software-development) for Windows users which downloads and configures the following:
-
-- [Arm GNU Toolchain](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads)
-- [CMake](https://cmake.org/download/)
-- [Ninja](https://github.com/ninja-build/ninja/releases)
-- [Python 3.9](https://www.python.org/downloads/windows/)
-- [Git for Windows](https://git-scm.com/download/win)
-- [Visual Studio Code](https://code.visualstudio.com/)
-- [OpenOCD](https://github.com/openocd-org/openocd/)
-
-
-Once installed, you will be presented with a version of VS Code pre-pended with the work "Pico" as shown in the image below. 
-
-![VS Code Pico IDE](images/pico_vscode_version.png)
-
-Use this version of the VSCode IDE from now on whenever developing for the Pico.
-
-Once selected and VS code opens, you will likely be prompted with a choice of "Kit" - you should choose the `arm-none-eabi`
-
-![VS Code Kit selection](images/vscode_select_kits.png)
-
-
-**NOTE:** If an existing `build` folder exists, it is recommended that you delete it before attempting to configure CMake to build your project.
-
-### Mac
-(TBD)...
-
-### Linux (WIP)
-Run `bin/setup_pico.sh` to configure a Linux machine for programming the Pico
-
-**NOTE:** This guide is a modified version of a setup guide for the Raspberry Pi as offered by the Pi foundation - exercise caution when using!
-
-#### Additional project setup info
-Additionally, [this blog post](https://blog.smittytone.net/2021/02/02/program-raspberry-pi-pico-c-mac/) offers additional details on how Pico project setup works and explains how to add new libraries and Pico functionality (e.g. I2C).
-
-
-### Hardware
+## Hardware
 This project makes use of the very handy [Raspberry Pi Debug Probe](https://www.raspberrypi.com/documentation/microcontrollers/debug-probe.html) although this is only one of several ways of uploading code to and debugging the Pico microcontroller found on the StepUp! circuit board.
 
 ![Alt Text](./images/pico_debug_probe.webp)
@@ -126,28 +105,13 @@ sudo udevadm control --reload
 sudo udevadm trigger
 ```
 
-## Note on debugging (all platforms)
-Ensure that both `cortex-debug.openocdPath` in `settings.json` and `configFiles` and `searchDir` key values in `launch.json` refer to the current `Pico SDK v1.5.X` version at time of install.
-
-The environment variable `PICO_SDK_VERSION` should represent what SDK is being used by the development environment - query this environment variable from within your preferred terminal in VS Code to get this value.
-
-## Usage
-
-1. Clone (recursively) the repo: `git clone --recursive https://github.com/SJFOM/StepUp-Pico.git`.
-2. Enter the repo: `StepUp-Pico`.
-3. Optionally, edit `CMakeLists.txt` and `/App-StepUp/CMakeLists.txt` to configure the project.
-4. Optionally, manually configure the build process: `cmake -S . -B build/`.
-5. Optionally, manually build the app: `cmake --build build`.
-6. Connect your device so it’s ready for file transfer.
-7. Copy the `StepUp.uf2` file from the `build/App-StepUp` folder to the drive which represents the attached Pico device hardware.
-
 ## IDEs
 
 Workspace files are included for [Visual Studio Code](https://code.visualstudio.com/).
 
 ## Credits
 
-This work makes heavy usage of Tony Smith's (a.k.a [smittytone](https://github.com/smittytone)) wonderful [RP2040-FreeRTOS Template](https://github.com/smittytone/RP2040-FreeRTOS) which forms the basic structure for most of this project. Kudos to his work on creating a simple platform to get started with FreeRTOS on the Pi Pico hardware.
+This work leans heavily on Tony Smith's (a.k.a [smittytone](https://github.com/smittytone)) wonderful [RP2040-FreeRTOS Template](https://github.com/smittytone/RP2040-FreeRTOS) which forms the basic structure for most of this project. Kudos to his work on creating a simple platform to get started with FreeRTOS on the Pi Pico hardware.
 
 ## Copyright and Licences
 

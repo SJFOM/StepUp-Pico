@@ -15,6 +15,19 @@ if(EXISTS ${picoVscode})
 endif()
 
 # ====================================================================================
+
+# ------ USER CONFIGURATION SECTION - START ------
+# Choose whether log messages are printed via UART or USB CDC
+set(USB_LOGGING 1) # Set to 1 for USB CDC, 0 for UART (debug port)
+
+set(SILENCE_BUZZER 0) # Set to 1 to silence the buzzer, 0 to enable it (handy for debugging)
+
+# Make project data accessible to compiler
+add_compile_definitions(USB_LOGGING=${USB_LOGGING})
+add_compile_definitions(SILENCE_BUZZER=${SILENCE_BUZZER})
+
+# ------ USER CONFIGURATION SECTION - END ------
+
 set(PICO_BOARD pico CACHE STRING "Board type")
 
 cmake_minimum_required(VERSION 3.14)
