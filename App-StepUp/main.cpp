@@ -8,6 +8,8 @@
  */
 #include "include/main.h"
 
+#include "device/usbd.h"
+
 using std::string;
 using std::stringstream;
 using std::vector;
@@ -31,6 +33,7 @@ const TickType_t buzzer_job_delay_ms = 100 / portTICK_PERIOD_MS;
 const TickType_t voltage_monitoring_job_delay = 1000 / portTICK_PERIOD_MS;
 const TickType_t watchdog_job_delay_ms =
     CX_WATCHDOG_CALLBACK_MS / portTICK_PERIOD_MS;
+const TickType_t usb_service_job_delay_ms = 10 / portTICK_PERIOD_MS;
 
 // FROM 1.0.1 Record references to the tasks
 TaskHandle_t power_control_task_handle = NULL;
@@ -39,6 +42,7 @@ TaskHandle_t tmc_task_handle = NULL;
 TaskHandle_t led_task_handle = NULL;
 TaskHandle_t buzzer_task_handle = NULL;
 TaskHandle_t voltage_monitoring_task_handle = NULL;
+TaskHandle_t usb_service_task_handle = NULL;
 
 // Task priorities (higher value = higher priority)
 UBaseType_t job_priority_power_control = 3U;
@@ -47,6 +51,7 @@ UBaseType_t job_priority_tmc_control = 2U;
 UBaseType_t job_priority_buzzer_control = 1U;
 UBaseType_t job_priority_led_control = 1U;
 UBaseType_t job_priority_voltage_monitoring = 1U;
+UBaseType_t job_priority_usb_servicing = 1U;
 
 // Create class instances of control interfaces
 TMCControl tmc_control(CX_R_SENSE, CX_COOLSTEP_ENABLED);
@@ -92,19 +97,24 @@ void setup()
     setup_led();
     setup_tmc2300();
     setup_boost_converter();
-    setup_voltage_monitoring();
+    // setup_voltage_monitoring();
     setup_joystick();
 }
 
 void setup_watchdog()
 {
     LOG_INFO("Watchdog setup...");
+
+    if (watchdog_enable_caused_reboot())
+    {
+        LOG_INFO("Watchdog hw enable caused reboot");
+    }
     if (watchdog_caused_reboot())
     {
         LOG_INFO("Watchdog caused reboot");
     }
     // Enable the watchdog timer
-    watchdog_enable(CX_WATCHDOG_TIMEOUT_MS, 1 /*pause_on_debug*/);
+    watchdog_enable(CX_WATCHDOG_TIMEOUT_MS, true /*pause_on_debug*/);
 
     // Set the watchdog timer to reset the system if it is not fed within the
     // specified timeout period
@@ -761,6 +771,15 @@ void setup_voltage_monitoring()
     }
 }
 
+[[noreturn]] void usb_service_job(void *unused_arg)
+{
+    while (true)
+    {
+        tud_task();  // Handle USB tasks
+        vTaskDelay(usb_service_job_delay_ms);
+    }
+}
+
 /*
  * RUNTIME START
  */
@@ -770,6 +789,7 @@ int main()
     stdio_init_all();
     // stdio_usb_init();
     sleep_ms(2000);
+    sleep_ms(10000);
     // Log app info
     Utils::log_device_info();
 
@@ -830,20 +850,28 @@ int main()
                                            job_priority_buzzer_control,
                                            &buzzer_task_handle);
 
-    BaseType_t voltage_monitoring_status =
-        xTaskCreate(voltage_monitoring_process_job,
-                    "VOLTAGE_MONITORING_JOB_TASK",
-                    256,
-                    NULL,
-                    job_priority_voltage_monitoring,
-                    &voltage_monitoring_task_handle);
+    BaseType_t voltage_monitoring_status = pdPASS;
+    // BaseType_t voltage_monitoring_status =
+    //     xTaskCreate(voltage_monitoring_process_job,
+    //                 "VOLTAGE_MONITORING_JOB_TASK",
+    //                 256,
+    //                 NULL,
+    //                 job_priority_voltage_monitoring,
+    //                 &voltage_monitoring_task_handle);
+    BaseType_t power_control_status = pdPASS;
+    // BaseType_t power_control_status = xTaskCreate(power_control_process_job,
+    //                                               "POWER_CONTROL_JOB_TASK",
+    //                                               256,
+    //                                               NULL,
+    //                                               job_priority_power_control,
+    //                                               &power_control_task_handle);
 
-    BaseType_t power_control_status = xTaskCreate(power_control_process_job,
-                                                  "POWER_CONTROL_JOB_TASK",
-                                                  256,
-                                                  NULL,
-                                                  job_priority_power_control,
-                                                  &power_control_task_handle);
+    BaseType_t usb_status = xTaskCreate(usb_service_job,
+                                        "USB_SERVICE_TASK",
+                                        256,
+                                        NULL,
+                                        job_priority_usb_servicing,
+                                        &usb_service_task_handle);
 
     // Set up the event queue
     queue_motor_control_data = xQueueCreate(2, sizeof(struct MotorControlData));
@@ -856,7 +884,7 @@ int main()
         xQueueCreate(1, sizeof(enum ControllerNotification));
 
     // Start the FreeRTOS scheduler if all tasks are created successfully
-    if (led_status == pdPASS && tmc_status == pdPASS &&
+    if (usb_status == pdPASS && led_status == pdPASS && tmc_status == pdPASS &&
         joystick_status == pdPASS && buzzer_status == pdPASS &&
         voltage_monitoring_status == pdPASS &&
         power_control_status == pdPASS)  // Add this condition
