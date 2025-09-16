@@ -1,5 +1,5 @@
 ![Alt Text](./images/StepUp_text_header.svg)
-# *StepUp!* - A simple tool for instant stepper motor testing
+# *StepUp!* - A no-code tool for instant stepper motor testing
 
 
 <a href="https://hits.dwyl.com/SJFOM/StepUp-Pico"><img src="https://hits.dwyl.com/SJFOM/StepUp-Pico.svg" alt="Hits Badge"/></a>
