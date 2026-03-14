@@ -44,12 +44,12 @@ TaskHandle_t buzzer_task_handle = NULL;
 TaskHandle_t voltage_monitoring_task_handle = NULL;
 
 // Task priorities (higher value = higher priority)
-UBaseType_t job_priority_power_control = 3U;
-UBaseType_t job_priority_joystick_control = 2U;
-UBaseType_t job_priority_tmc_control = 2U;
-UBaseType_t job_priority_buzzer_control = 1U;
-UBaseType_t job_priority_led_control = 1U;
-UBaseType_t job_priority_voltage_monitoring = 1U;
+UBaseType_t job_priority_power_control = (tskIDLE_PRIORITY + 3U);
+UBaseType_t job_priority_joystick_control = (tskIDLE_PRIORITY + 2U);
+UBaseType_t job_priority_tmc_control = (tskIDLE_PRIORITY + 2U);
+UBaseType_t job_priority_buzzer_control = (tskIDLE_PRIORITY + 1U);
+UBaseType_t job_priority_led_control = (tskIDLE_PRIORITY + 1U);
+UBaseType_t job_priority_voltage_monitoring = (tskIDLE_PRIORITY + 1U);
 
 // Create class instances of control interfaces
 TMCControl tmc_control(CX_R_SENSE, CX_COOLSTEP_ENABLED);
@@ -770,8 +770,8 @@ void setup_voltage_monitoring()
 int main()
 {
     // Enable either STDIO (UART) or USB (don't enable both)
-    // stdio_init_all();
-    stdio_usb_init();
+    stdio_init_all();
+    // stdio_usb_init();
     sleep_ms(2000);
     // Log app info
     Utils::log_device_info();

@@ -127,16 +127,17 @@ pico_sdk_init()
 #     ${FREERTOS_SRC_DIRECTORY}/tasks.c
 #     ${FREERTOS_SRC_DIRECTORY}/timers.c
 #     ${FREERTOS_SRC_DIRECTORY}/portable/MemMang/heap_3.c
-#     ${FREERTOS_SRC_DIRECTORY}/portable/GCC/ARM_CM0/port.c
+    # ${FREERTOS_SRC_DIRECTORY}/portable/GCC/ARM_CM0/port.c
 # )
 
-# # Build FreeRTOS
+# Build FreeRTOS
 # target_include_directories(FreeRTOS PUBLIC
 #     ${FREERTOS_CFG_DIRECTORY}/
 #     ${FREERTOS_SRC_DIRECTORY}/include
-#     # ${FREERTOS_SRC_DIRECTORY}/portable/GCC/ARM_CM0
-#     ${FREERTOS_SRC_DIRECTORY}/portable/ThirdParty/GCC/RP2040
+#     ${FREERTOS_SRC_DIRECTORY}/portable/GCC/ARM_CM0
 # )
+
+set(FREERTOS_KERNEL_PATH "${CMAKE_SOURCE_DIR}/FreeRTOS-Kernel")
 
 include(FreeRTOS_Kernel_import.cmake)
 
@@ -156,16 +157,15 @@ target_compile_definitions(freertos_config
 
 set( FREERTOS_HEAP "4" CACHE STRING "" FORCE)
 
-add_subdirectory(${FREERTOS_SRC_DIRECTORY})
-
 # # Select the native compile PORT
 # set( FREERTOS_PORT "GCC_POSIX" CACHE STRING "" FORCE)
 # # Select the cross-compile PORT
-# if (CMAKE_CROSSCOMPILING)
-  set(FREERTOS_PORT GCC_ARM_CM0 CACHE STRING "" FORCE)
-# endif()
+if (CMAKE_CROSSCOMPILING)
+  set(FREERTOS_PORT GCC_RP2040 CACHE STRING "" FORCE)
+endif()
 
-# FetchContent_MakeAvailable(freertos_kernel)
+add_subdirectory(${FREERTOS_SRC_DIRECTORY})
+
 
 # add_compile_options(-Wall
 #         -Wno-format          # int != int32_t as far as the compiler is concerned because gcc has int32_t as long int
