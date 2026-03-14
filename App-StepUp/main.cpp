@@ -12,6 +12,9 @@ using std::string;
 using std::stringstream;
 using std::vector;
 
+// FreeRTOS heap
+uint8_t ucHeap[configTOTAL_HEAP_SIZE];
+
 /*
  * GLOBALS
  */
@@ -767,8 +770,8 @@ void setup_voltage_monitoring()
 int main()
 {
     // Enable either STDIO (UART) or USB (don't enable both)
-    stdio_init_all();
-    // stdio_usb_init();
+    // stdio_init_all();
+    stdio_usb_init();
     sleep_ms(2000);
     // Log app info
     Utils::log_device_info();

@@ -26,14 +26,14 @@ target_link_libraries(${APP_NAME} LINK_PUBLIC
     pico_stdlib
     hardware_adc
     hardware_pwm
-    FreeRTOS
+    freertos_kernel
     ControlInterface
     PicoUtils
     Utils)
 
 # Enable/disable STDIO via USB and UART
-pico_enable_stdio_usb(${APP_NAME} 0)
-pico_enable_stdio_uart(${APP_NAME} 1)
+pico_enable_stdio_usb(${APP_NAME} 1)
+pico_enable_stdio_uart(${APP_NAME} 0)
 
 # Enable extra build products
 pico_add_extra_outputs(${APP_NAME})

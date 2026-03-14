@@ -54,7 +54,7 @@
 #define configENABLE_BACKWARD_COMPATIBILITY     0
 #define configNUM_THREAD_LOCAL_STORAGE_POINTERS 5
 
-#define configSTACK_DEPTH_TYPE uint16_t
+#define configSTACK_DEPTH_TYPE uint32_t
 #define configMESSAGE_BUFFER_LENGTH_TYPE \
     size_t  // Defaults to size_t for backward compatibility,
             // but can be changed if lengths will always be less
@@ -65,6 +65,7 @@
 #define configSUPPORT_DYNAMIC_ALLOCATION \
     1  // Get FreeRTOS to allocation task memory
 #define configAPPLICATION_ALLOCATED_HEAP 1
+#define configTOTAL_HEAP_SIZE            (1024 * 100)  // 100KB heap
 
 /* Hook function related definitions. */
 #define configUSE_IDLE_HOOK                0
@@ -87,6 +88,11 @@
 #define configTIMER_TASK_PRIORITY    3
 #define configTIMER_QUEUE_LENGTH     10
 #define configTIMER_TASK_STACK_DEPTH 256
+
+/* Config Memory Protection Unit and Trustzone */
+#define configENABLE_MPU               0
+#define configENABLE_TRUSTZONE         0
+#define configRUN_FREERTOS_SECURE_ONLY 1
 
 /* Define to trap errors during development. */
 #define configASSERT(x)
