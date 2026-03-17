@@ -37,7 +37,7 @@ pico_enable_stdio_uart(${APP_NAME} 1)
 
 # Enable/Disable buzzer output (useful to disable when debugging to avoid noise)
 set(ENABLE_BUZZER_OUTPUT 0)
-add_compile_definitions(ENABLE_BUZZER_OUTPUT)
+add_compile_definitions(ENABLE_BUZZER_OUTPUT=${ENABLE_BUZZER_OUTPUT})
 
 # Enable extra build products
 pico_add_extra_outputs(${APP_NAME})

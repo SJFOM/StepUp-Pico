@@ -109,7 +109,7 @@ void BuzzerControl::setBuzzerFunction(
 void BuzzerControl::enableBuzzer(bool enable)
 {
 #if (ENABLE_BUZZER_OUTPUT == 0)
-#    error \
+#    warning \
         "Buzzer output is disabled. To enable, set ENABLE_BUZZER_OUTPUT to 1 in CMakeLists.txt"
     enable = false;
 #endif
