@@ -1,3 +1,9 @@
+cmake_minimum_required(VERSION 3.14)
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # == DO NOT EDIT THE FOLLOWING LINES for the Raspberry Pi Pico VS Code Extension to work ==
 if(WIN32)
     set(USERHOME $ENV{USERPROFILE})
@@ -13,8 +19,6 @@ if (EXISTS ${picoVscode})
 endif()
 # ====================================================================================
 set(PICO_BOARD pico CACHE STRING "Board type")
-
-cmake_minimum_required(VERSION 3.14)
 
 # Pull in SDK (must be before project)
 include(pico_sdk_import.cmake)
@@ -110,18 +114,10 @@ project(${PROJECT_NAME}
     DESCRIPTION "FreeRTOS-based RP2040 Stepper motor driver application"
 )
 
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 17)
-
-
 # Initialise the Pico SDK
 pico_sdk_init()
 
-set(FREERTOS_KERNEL_PATH "${CMAKE_SOURCE_DIR}/FreeRTOS-Kernel")
-
 include(FreeRTOS_Kernel_import.cmake)
-
-include(FetchContent)
 
 add_library(freertos_config INTERFACE)
 
@@ -147,13 +143,13 @@ endif()
 add_subdirectory(${FREERTOS_SRC_DIRECTORY})
 
 # Add stricter compilation warnings and disable some that we don't care about (e.g. format warnings due to int vs int32_t)
-# add_compile_options(-Wall
-#         -Wno-format          # int != int32_t as far as the compiler is concerned because gcc has int32_t as long int
-#         -Wno-unused-function # we have some for the docs that aren't called
-#         )
-# if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
-#     add_compile_options(-Wno-maybe-uninitialized)
-# endif()
+add_compile_options(-Wall
+        -Wno-format          # int != int32_t as far as the compiler is concerned because gcc has int32_t as long int
+        -Wno-unused-function # we have some for the docs that aren't called
+        )
+if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
+    add_compile_options(-Wno-maybe-uninitialized)
+endif()
 
 # Include the apps' source code
 add_subdirectory(${APP_SRC_DIRECTORY}) # App-StepUp
