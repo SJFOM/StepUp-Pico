@@ -769,9 +769,21 @@ void setup_voltage_monitoring()
  */
 int main()
 {
-    // Enable either STDIO (UART) or USB (don't enable both)
+// Enable either STDIO (UART) or USB (don't enable both)
+#if (SERIAL_OVER_USB == 1)
+    sleep_ms(5000);
+    stdio_usb_init();
+
+    // uint16_t count = 0;
+    // while (1)
+    // {
+    //     sleep_ms(1000);
+    //     LOG_DATA("This is a data log message: count = %d", count++);
+    // }
+#else
     stdio_init_all();
-    // stdio_usb_init();
+
+#endif
     sleep_ms(2000);
     // Log app info
     Utils::log_device_info();
