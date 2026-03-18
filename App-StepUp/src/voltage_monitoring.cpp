@@ -80,7 +80,7 @@ bool VoltageMonitoring::init()
     adc_gpio_init(m_voltage_pin);
 
     // Give time for the voltage on the boost converter ADC pin to settle
-    sleep_ms(100);
+    sleep_ms(200);
 
     // Fill out the moving average with some initial values
     // This is to ensure the first read is not a "spike" from the ADC
