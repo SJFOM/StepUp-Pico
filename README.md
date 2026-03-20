@@ -131,6 +131,31 @@ Ensure that both `cortex-debug.openocdPath` in `settings.json` and `configFiles`
 
 The environment variable `PICO_SDK_VERSION` should represent what SDK is being used by the development environment - query this environment variable from within your preferred terminal in VS Code to get this value.
 
+## Debugging Setup
+
+To enable source-level debugging and breakpoints in VS Code, you need to configure `launch.json` with your workspace path:
+
+1. Copy the template file to create your local launch configuration:
+   ```bash
+   cp .vscode/launch.json.template .vscode/launch.json
+   ```
+
+2. Open `.vscode/launch.json` and find this line:
+   ```json
+   "set substitute-path %%WORKSPACE_FULL_PATH%% ${workspaceFolder}",
+   ```
+
+3. Replace `%%WORKSPACE_FULL_PATH%%` with your full workspace path. On Windows, this is typically:
+   ```json
+   "set substitute-path C:\\\\Users\\\\YOUR_USERNAME\\\\path\\\\to\\\\StepUp-Pico ${workspaceFolder}",
+   ```
+   
+   Replace forward slashes with double backslashes (`\\\\`) in JSON strings.
+
+4. Save the file. Your debugger is now configured for source-level breakpoints!
+
+**Note:** `launch.json` is listed in `.gitignore` because it contains machine-specific paths. Each developer should create their own copy from the template.
+
 ## Usage
 
 1. Clone (recursively) the repo: `git clone --recursive https://github.com/SJFOM/StepUp-Pico.git`.

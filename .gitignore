@@ -11,3 +11,6 @@ env
 
 # Mac specific
 .DS_Store
+
+# VS Code - machine-specific paths in launch.json
+.vscode/launch.json

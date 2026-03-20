@@ -20,10 +20,11 @@
             "runToEntryPoint": "main",
             "preLaunchCommands": [
                 "directory ${workspaceFolder}",
-                "set substitute-path C:\\\\Users\\\\samom\\\\OneDrive\\\\Documents\\\\code\\\\StepUp-Pico ${workspaceFolder}",
+                "set substitute-path %%WORKSPACE_FULL_PATH%% ${workspaceFolder}",
+                "monitor reset halt",
+                "monitor mww 0x40058000 0"
             ],
             "overrideLaunchCommands": [
-                "monitor reset init",
                 "load"
             ],
             "openOCDLaunchCommands": [
@@ -32,9 +33,9 @@
             "showDevDebugOutput": "raw",
             "rtos": "auto",
             "liveWatch": {
-                "enabled": false , // Set to true to enable live watch
+                "enabled": false,
                 "samplesPerSecond": 4
-            },
+            }
         },
         {
             "name": "Pico Debug (Cortex-Debug with external OpenOCD)",
@@ -48,8 +49,6 @@
             "device": "${command:raspberry-pi-pico.getChipUppercase}",
             "svdFile": "${userHome}/.pico-sdk/sdk/2.2.0/src/${command:raspberry-pi-pico.getChip}/hardware_regs/${command:raspberry-pi-pico.getChipUppercase}.svd",
             "runToEntryPoint": "main",
-            // Fix for no_flash binaries, where monitor reset halt doesn't do what is expected
-            // Also works fine for flash binaries
             "overrideLaunchCommands": [
                 "monitor reset init",
                 "load \"${command:raspberry-pi-pico.launchTargetPath}\""
@@ -74,6 +73,6 @@
             },
             "preLaunchTask": "Flash",
             "svdPath": "${userHome}/.pico-sdk/sdk/2.2.0/src/${command:raspberry-pi-pico.getChip}/hardware_regs/${command:raspberry-pi-pico.getChipUppercase}.svd"
-        },
+        }
     ]
 }
