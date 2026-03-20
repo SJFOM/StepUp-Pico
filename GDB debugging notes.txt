@@ -1,0 +1,22 @@
+1. Open powershell and run:
+"C:\Users\samom\.pico-sdk\openocd\0.12.0+dev\openocd.exe" `
+  -s "C:\Users\samom\.pico-sdk\openocd\0.12.0+dev\scripts" `
+  -f interface/cmsis-dap.cfg `
+  -f target/rp2040.cfg `
+  -c "adapter speed 5000"
+
+2. Open another powershell and run:
+cd C:\Users\samom\OneDrive\Documents\code\StepUp-Pico
+"C:\Users\samom\.pico-sdk\toolchain\14_2_Rel1\bin\arm-none-eabi-gdb" build/App-StepUp/StepUp.elf
+
+3. Step through the following in the second powershell instance
+target extended-remote localhost:3333
+load
+monitor reset halt
+monitor mww 0x40058000 0
+break _entry_point
+continue
+stepi
+stepi
+stepi
+where
