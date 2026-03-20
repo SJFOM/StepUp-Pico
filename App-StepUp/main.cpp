@@ -89,11 +89,11 @@ VoltageMonitoring motor_voltage_monitoring(
  */
 void setup()
 {
-    // setup_watchdog();
+    setup_watchdog();
     setup_power_control();
     setup_buzzer();
     setup_led();
-    // setup_tmc2300();
+    setup_tmc2300();
     setup_boost_converter();
     setup_voltage_monitoring();
     setup_joystick();
@@ -776,21 +776,11 @@ void setup_voltage_monitoring()
  */
 int main()
 {
-    __nop();
 // Enable either STDIO (UART) or USB (don't enable both)
 #if (SERIAL_OVER_USB == 1)
-    // sleep_ms(5000);
     stdio_usb_init();
-
-    // uint16_t count = 0;
-    // while (1)
-    // {
-    //     sleep_ms(1000);
-    //     LOG_DATA("This is a data log message: count = %d", count++);
-    // }
 #else
     stdio_init_all();
-
 #endif
     sleep_ms(2000);
     // Log app info
@@ -833,12 +823,12 @@ int main()
                                         NULL,
                                         job_priority_led_control,
                                         &led_task_handle);
-    // BaseType_t tmc_status = xTaskCreate(tmc_process_job,
-    //                                     "TMC_JOB_TASK",
-    //                                     256,
-    //                                     NULL,
-    //                                     job_priority_tmc_control,
-    //                                     &tmc_task_handle);
+    BaseType_t tmc_status = xTaskCreate(tmc_process_job,
+                                        "TMC_JOB_TASK",
+                                        256,
+                                        NULL,
+                                        job_priority_tmc_control,
+                                        &tmc_task_handle);
     BaseType_t joystick_status = xTaskCreate(joystick_process_job,
                                              "JOYSTICK_JOB_TASK",
                                              512,
@@ -879,7 +869,7 @@ int main()
         xQueueCreate(1, sizeof(enum ControllerNotification));
 
     // Start the FreeRTOS scheduler if all tasks are created successfully
-    if (led_status == pdPASS && /*tmc_status == pdPASS &&*/
+    if (led_status == pdPASS && tmc_status == pdPASS &&
         joystick_status == pdPASS && buzzer_status == pdPASS &&
         voltage_monitoring_status == pdPASS &&
         power_control_status == pdPASS)  // Add this condition
@@ -888,20 +878,10 @@ int main()
     }
 
     // We should never get here, but just in case...
-    uint16_t count = 0;
     while (true)
     {
         // NOP
-        sleep_ms(1000);
-        LOG_DATA("This is a data log message: count = %d", count++);
     }
-
-    // uint16_t count = 0;
-    // while (1)
-    // {
-    //     sleep_ms(1000);
-    //     LOG_DATA("This is a data log message: count = %d", count++);
-    // }
 }
 
 // Callback function for the repeating timer
