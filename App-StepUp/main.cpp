@@ -772,12 +772,73 @@ void setup_voltage_monitoring()
 }
 
 /*
+ * FREERTOS STACK OVERFLOW HOOK
+ */
+extern "C" void vApplicationStackOverflowHook(TaskHandle_t xTask,
+                                              char *pcTaskName)
+{
+    /* The stack overflow hook function will only be called if
+    configCHECK_FOR_STACK_OVERFLOW is set to 1 or 2. The handle and name of the
+    offending task will be passed into the hook function via its parameters.
+    However, when a stack has overflowed, it is possible that the call stack
+    has also been corrupted, in which case the parameters could be
+    meaningless. This is a crude but effective method of detecting a stack
+    overflow. */
+
+    (void)xTask;
+    (void)pcTaskName;
+
+    LOG_ERROR("Stack overflow detected in task!");
+    if (pcTaskName != NULL)
+    {
+        LOG_DATA("Task name: %s", pcTaskName);
+    }
+
+    /* Break into the debugger, if a debugger is connected */
+    __breakpoint();
+
+    /* Disable interrupts and enter an infinite loop */
+    taskDISABLE_INTERRUPTS();
+    for (;;)
+    {
+        ; /* Hang in infinite loop */
+    }
+}
+
+/*
+ * FREERTOS MALLOC FAILED HOOK
+ */
+extern "C" void vApplicationMallocFailedHook(void)
+{
+    /* vApplicationMallocFailedHook() will only be called if
+    configUSE_MALLOC_FAILED_HOOK is set to 1 in FreeRTOSConfig.h.  It is a hook
+    function that will be called if pvPortMalloc() returns NULL.  pvPortMalloc()
+    is called internally by the kernel whenever a task, queue, timer or
+    semaphore is created.  It is also called by various parts of the demo
+    application.  If heap memory is exhausted, malloc() will eventually be
+    called, and NULL will be returned. */
+
+    LOG_ERROR("Memory allocation failed!");
+
+    /* Break into the debugger, if a debugger is connected */
+    __breakpoint();
+
+    /* Disable interrupts and enter an infinite loop */
+    taskDISABLE_INTERRUPTS();
+    for (;;)
+    {
+        ; /* Hang in infinite loop */
+    }
+}
+
+/*
  * RUNTIME START
  */
 int main()
 {
 // Enable either STDIO (UART) or USB (don't enable both)
 #if (SERIAL_OVER_USB == 1)
+    sleep_ms(6000);
     stdio_usb_init();
 #else
     stdio_init_all();
