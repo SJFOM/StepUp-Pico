@@ -40,5 +40,30 @@
         "freertosconfig.h": "c",
         "type_traits": "cpp",
         "variant": "cpp"
+    },
+    "terminal.integrated.profiles.windows": {
+        "PowerShell": {
+            "source": "PowerShell",
+            "icon": "terminal-powershell",
+            "color": "terminal.ansiCyan"
+        },
+        "Git Bash": {
+            "path": "C:\\Program Files\\Git\\bin\\bash.exe",
+            "icon": "gist-fork",
+            "color": "terminal.ansiYellow"
+        },
+        "Command Prompt": {
+            "path": [
+                "${env:windir}\\Sysnative\\cmd.exe",
+                "${env:windir}\\System32\\cmd.exe"
+            ],
+            "icon": "terminal-cmd",
+            "color": "terminal.ansiGreen"
+        },
+        "WSL": {
+            "path": "wsl.exe",
+            "icon": "terminal-bash",
+            "color": "terminal.ansiRed"
+        },
     }
 }
