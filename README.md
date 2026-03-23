@@ -126,11 +126,6 @@ sudo udevadm control --reload
 sudo udevadm trigger
 ```
 
-## Note on debugging (all platforms)
-Ensure that both `cortex-debug.openocdPath` in `settings.json` and `configFiles` and `searchDir` key values in `launch.json` refer to the current `Pico SDK v1.5.X` version at time of install.
-
-The environment variable `PICO_SDK_VERSION` should represent what SDK is being used by the development environment - query this environment variable from within your preferred terminal in VS Code to get this value.
-
 ## Usage
 
 1. Clone (recursively) the repo: `git clone --recursive https://github.com/SJFOM/StepUp-Pico.git`.

@@ -8,9 +8,19 @@
  */
 #include "include/main.h"
 
+#include "pico/async_context_freertos.h"
+#include "pico/multicore.h"
+#include "task.h"
+#if (SERIAL_OVER_USB == 1)
+#    include "tusb.h"
+#endif
+
 using std::string;
 using std::stringstream;
 using std::vector;
+
+// FreeRTOS heap
+uint8_t ucHeap[configTOTAL_HEAP_SIZE];
 
 /*
  * GLOBALS
@@ -41,12 +51,12 @@ TaskHandle_t buzzer_task_handle = NULL;
 TaskHandle_t voltage_monitoring_task_handle = NULL;
 
 // Task priorities (higher value = higher priority)
-UBaseType_t job_priority_power_control = 3U;
-UBaseType_t job_priority_joystick_control = 2U;
-UBaseType_t job_priority_tmc_control = 2U;
-UBaseType_t job_priority_buzzer_control = 1U;
-UBaseType_t job_priority_led_control = 1U;
-UBaseType_t job_priority_voltage_monitoring = 1U;
+UBaseType_t job_priority_power_control = (tskIDLE_PRIORITY + 3U);
+UBaseType_t job_priority_joystick_control = (tskIDLE_PRIORITY + 2U);
+UBaseType_t job_priority_tmc_control = (tskIDLE_PRIORITY + 2U);
+UBaseType_t job_priority_buzzer_control = (tskIDLE_PRIORITY + 1U);
+UBaseType_t job_priority_led_control = (tskIDLE_PRIORITY + 1U);
+UBaseType_t job_priority_voltage_monitoring = (tskIDLE_PRIORITY + 1U);
 
 // Create class instances of control interfaces
 TMCControl tmc_control(CX_R_SENSE, CX_COOLSTEP_ENABLED);
@@ -87,7 +97,6 @@ VoltageMonitoring motor_voltage_monitoring(
 void setup()
 {
     setup_watchdog();
-    setup_power_control();
     setup_buzzer();
     setup_led();
     setup_tmc2300();
@@ -155,6 +164,12 @@ void setup_tmc2300()
         LOG_WARN("TMC version: UNSUPPORTED!");
         tmc_setup_success = false;
     }
+
+    // Send configuration to TMC2300 - this is needed to set up the UART and put
+    // the IC into a known state.
+    LOG_INFO("Configure TMC2300 default values...");
+    tmc_control.defaultConfiguration();
+    LOG_INFO("Configure TMC2300 default values - OK!");
 
     if (tmc_setup_success)
     {
@@ -269,6 +284,31 @@ void setup_voltage_monitoring()
 }
 
 /*
+ * CORE 1 USB SERVICE
+ */
+
+/**
+ * @brief USB service function - runs on core 1 to service TinyUSB events
+ * @details This function runs on core 1 to keep USB responsive while
+ * core 0 (running FreeRTOS) executes application tasks with blocking I/O (e.g.
+ * TMC UART setup) Launched via multicore_launch_core1() before scheduler
+ * starts.
+ */
+#if (SERIAL_OVER_USB == 1)
+void core1_usb_service()
+{
+    tusb_init();
+    while (true)
+    {
+        // Service TinyUSB device task on core 1
+        // NOTE: Both core0 (async context) and core1 may call this, but
+        // tud_task() handles concurrent calls gracefully through its internal
+        // state management
+        tud_task();
+    }
+}
+#endif
+/*
  * TASK FUNCTIONS
  */
 
@@ -281,10 +321,6 @@ void setup_voltage_monitoring()
         ControllerNotification::NOTIFY_BOOT;
     ControllerState tmc_state = ControllerState::STATE_IDLE;
     TMCData tmc_data = {};
-
-    unsigned long count = 0;
-
-    bool default_config_sent = false;
 
     while (true)
     {
@@ -302,13 +338,6 @@ void setup_voltage_monitoring()
             case ControllerState::STATE_READY:
             {
                 static MotorControlData motor_data = {};
-                if (!default_config_sent)
-                {
-                    LOG_INFO("Configure TMC2300 default values...");
-                    tmc_control.defaultConfiguration();
-                    default_config_sent = true;
-                    LOG_INFO("Configure TMC2300 default values - OK!");
-                }
                 // Check for an item in the FreeRTOS xQueue
                 if (xQueueReceive(queue_motor_control_data, &motor_data, 0) ==
                     pdPASS)
@@ -408,7 +437,6 @@ void setup_voltage_monitoring()
 
 [[noreturn]] void joystick_process_job(void *unused_arg)
 {
-    unsigned long count = 0;
     enum ControllerNotification joystick_notify =
         ControllerNotification::NOTIFY_BOOT;
     ControllerState joystick_controller_state = ControllerState::STATE_IDLE;
@@ -480,7 +508,6 @@ void setup_voltage_monitoring()
 
 [[noreturn]] void buzzer_process_job(void *unused_arg)
 {
-    unsigned long count = 0;
     enum ControllerNotification buzzer_notify =
         ControllerNotification::NOTIFY_BOOT;
     ControllerState buzzer_controller_state = ControllerState::STATE_IDLE;
@@ -762,14 +789,89 @@ void setup_voltage_monitoring()
 }
 
 /*
+ * FREERTOS STACK OVERFLOW HOOK
+ */
+extern "C" void vApplicationStackOverflowHook(TaskHandle_t xTask,
+                                              char *pcTaskName)
+{
+    /* The stack overflow hook function will only be called if
+    configCHECK_FOR_STACK_OVERFLOW is set to 1 or 2. The handle and name of the
+    offending task will be passed into the hook function via its parameters.
+    However, when a stack has overflowed, it is possible that the call stack
+    has also been corrupted, in which case the parameters could be
+    meaningless. This is a crude but effective method of detecting a stack
+    overflow. */
+
+    (void)xTask;
+    (void)pcTaskName;
+
+    LOG_ERROR("Stack overflow detected in task!");
+    if (pcTaskName != NULL)
+    {
+        LOG_DATA("Task name: %s", pcTaskName);
+    }
+
+    /* Break into the debugger, if a debugger is connected */
+    __breakpoint();
+
+    /* Disable interrupts and enter an infinite loop */
+    taskDISABLE_INTERRUPTS();
+    for (;;)
+    {
+        ; /* Hang in infinite loop */
+    }
+}
+
+/*
+ * FREERTOS MALLOC FAILED HOOK
+ */
+extern "C" void vApplicationMallocFailedHook(void)
+{
+    /* vApplicationMallocFailedHook() will only be called if
+    configUSE_MALLOC_FAILED_HOOK is set to 1 in FreeRTOSConfig.h.  It is a hook
+    function that will be called if pvPortMalloc() returns NULL.  pvPortMalloc()
+    is called internally by the kernel whenever a task, queue, timer or
+    semaphore is created.  It is also called by various parts of the demo
+    application.  If heap memory is exhausted, malloc() will eventually be
+    called, and NULL will be returned. */
+
+    LOG_ERROR("Memory allocation failed!");
+
+    /* Break into the debugger, if a debugger is connected */
+    __breakpoint();
+
+    /* Disable interrupts and enter an infinite loop */
+    taskDISABLE_INTERRUPTS();
+    for (;;)
+    {
+        ; /* Hang in infinite loop */
+    }
+}
+
+/*
  * RUNTIME START
  */
 int main()
 {
-    // Enable either STDIO (UART) or USB (don't enable both)
+    // First set up the hardware so power control can keep PCB powered ON
+    setup_power_control();
+
+// Enable either STDIO (UART) or USB (don't enable both)
+// Note: USB is initialized on core 1 in core1_usb_service()
+#if (SERIAL_OVER_USB == 1)
+    stdio_usb_init();
+    // Launch USB service on core 1 before scheduler starts
+    // This keeps USB responsive while core 0 (FreeRTOS) runs application tasks
+    // NOTE: The async context (pico/async_context_freertos.h) may also call
+    // tud_task() so we use a spinlock to protect against concurrent access from
+    // both core0 and core1
+    multicore_launch_core1(core1_usb_service);
+#else
     stdio_init_all();
-    // stdio_usb_init();
+#endif
+
     sleep_ms(2000);
+
     // Log app info
     Utils::log_device_info();
 
@@ -858,8 +960,7 @@ int main()
     // Start the FreeRTOS scheduler if all tasks are created successfully
     if (led_status == pdPASS && tmc_status == pdPASS &&
         joystick_status == pdPASS && buzzer_status == pdPASS &&
-        voltage_monitoring_status == pdPASS &&
-        power_control_status == pdPASS)  // Add this condition
+        voltage_monitoring_status == pdPASS && power_control_status == pdPASS)
     {
         vTaskStartScheduler();
     }

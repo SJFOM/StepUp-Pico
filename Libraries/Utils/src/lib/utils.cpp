@@ -33,7 +33,7 @@ namespace Utils
         vector<string> result;
         while (ml_str.length())
         {
-            const int index = ml_str.find(separator);
+            const size_t index = ml_str.find(separator);
             if (index != string::npos)
             {
                 result.push_back(ml_str.substr(0, index));

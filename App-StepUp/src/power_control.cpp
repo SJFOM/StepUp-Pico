@@ -15,7 +15,9 @@
 
 PowerControl::PowerControl(uint32_t power_button_hold_timeout_ms,
                            uint32_t power_down_inactive_timeout_ms)
-    : m_power_button_hold_timeout_ms(power_button_hold_timeout_ms),
+    : m_power_pin_event_manager(MCU_PWR_BTN_PIN,
+                                GPIO_IRQ_EDGE_FALL,
+                                power_button_hold_timeout_ms),
       m_power_down_inactive_timeout_ms(power_down_inactive_timeout_ms)
 {
 }
@@ -38,23 +40,14 @@ bool PowerControl::init()
     gpio_pull_up(MCU_PWR_BTN_PIN);
 
     // Set up usb monitoring pin
-    gpio_set_input_enabled(VUSB_MONITOR_PIN, true);
+    gpio_init(VUSB_MONITOR_PIN);
+    gpio_set_dir(VUSB_MONITOR_PIN, GPIO_IN);
     gpio_disable_pulls(VUSB_MONITOR_PIN);
 
     // Assert power control pin HIGH to keep circuit powered
     gpio_put(MCU_PWR_CTRL_PIN, 1);
 
-    // TODO: Implement detection of both falling and rising edges
-    m_usb_pin_event_manager =
-        new PinEventManager(VUSB_MONITOR_PIN, GPIO_IRQ_EDGE_FALL);
-
-    m_power_pin_event_manager =
-        new PinEventManager(MCU_PWR_BTN_PIN,
-                            GPIO_IRQ_EDGE_FALL,
-                            m_power_button_hold_timeout_ms);
-
-    m_init_success |= m_usb_pin_event_manager->init();
-    m_init_success |= m_power_pin_event_manager->init();
+    m_init_success |= m_power_pin_event_manager.init();
 
     m_power_down_triggered = false;
 
@@ -63,13 +56,19 @@ bool PowerControl::init()
 
 void PowerControl::deinit()
 {
-    m_usb_pin_event_manager->deinit();
-    m_power_pin_event_manager->deinit();
-    delete m_usb_pin_event_manager, m_power_pin_event_manager;
+    m_power_pin_event_manager.deinit();
 }
 
 bool PowerControl::isUSBInserted()
 {
+    if (gpio_get(VUSB_MONITOR_PIN))
+    {
+        m_is_usb_inserted = true;
+    }
+    else
+    {
+        m_is_usb_inserted = false;
+    }
     return m_is_usb_inserted;
 }
 
@@ -125,19 +124,12 @@ enum ControllerState PowerControl::processJob(uint32_t tick_count)
         PicoUtils::getCurrentTimestampMs() - last_activate_timestamp >
         m_power_down_inactive_timeout_ms;
 
-    if (m_usb_pin_event_manager->hasEventOccurred())
-    {
-        m_is_usb_inserted = true;
-        LOG_INFO("USB cable removed");
-        m_usb_pin_event_manager->clearPinEventCount();
-        power_state = ControllerState::STATE_NEW_DATA;
-    }
-    else if (m_power_pin_event_manager->hasEventOccurred() ||
-             power_down_timestamp_elapsed)
+    if (m_power_pin_event_manager.hasEventOccurred() ||
+        power_down_timestamp_elapsed)
     {
         LOG_INFO("Power down event triggered");
 
-        m_power_pin_event_manager->clearPinEventCount();
+        m_power_pin_event_manager.clearPinEventCount();
         power_state = ControllerState::STATE_NEW_DATA;
 
         triggerPowerDownProcess();
