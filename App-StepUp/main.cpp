@@ -11,7 +11,9 @@
 #include "pico/async_context_freertos.h"
 #include "pico/multicore.h"
 #include "task.h"
-#include "tusb.h"
+#if (SERIAL_OVER_USB == 1)
+#    include "tusb.h"
+#endif
 
 using std::string;
 using std::stringstream;
@@ -95,7 +97,6 @@ VoltageMonitoring motor_voltage_monitoring(
 void setup()
 {
     setup_watchdog();
-    setup_power_control();
     setup_buzzer();
     setup_led();
     setup_tmc2300();
@@ -154,17 +155,21 @@ void setup_tmc2300()
     // If this fails on a call to writing to TMC then it will be blocking!
     tmc_setup_success &= tmc_control.init();
 
-    // FIXME: This is blocking (due to call to tmc2300_readWriteArray()) and
-    // will block USB ISR routines
-    // if (tmc_control.getChipID() == TMC2300_VERSION_COMPATIBLE)
-    // {
-    //     LOG_INFO("TMC2300 silicon version: 0x40");
-    // }
-    // else
-    // {
-    //     LOG_WARN("TMC version: UNSUPPORTED!");
-    //     tmc_setup_success = false;
-    // }
+    if (tmc_control.getChipID() == TMC2300_VERSION_COMPATIBLE)
+    {
+        LOG_INFO("TMC2300 silicon version: 0x40");
+    }
+    else
+    {
+        LOG_WARN("TMC version: UNSUPPORTED!");
+        tmc_setup_success = false;
+    }
+
+    // Send configuration to TMC2300 - this is needed to set up the UART and put
+    // the IC into a known state.
+    LOG_INFO("Configure TMC2300 default values...");
+    tmc_control.defaultConfiguration();
+    LOG_INFO("Configure TMC2300 default values - OK!");
 
     if (tmc_setup_success)
     {
@@ -289,6 +294,7 @@ void setup_voltage_monitoring()
  * TMC UART setup) Launched via multicore_launch_core1() before scheduler
  * starts.
  */
+#if (SERIAL_OVER_USB == 1)
 void core1_usb_service()
 {
     tusb_init();
@@ -301,7 +307,7 @@ void core1_usb_service()
         tud_task();
     }
 }
-
+#endif
 /*
  * TASK FUNCTIONS
  */
@@ -315,8 +321,6 @@ void core1_usb_service()
         ControllerNotification::NOTIFY_BOOT;
     ControllerState tmc_state = ControllerState::STATE_IDLE;
     TMCData tmc_data = {};
-
-    bool default_config_sent = false;
 
     while (true)
     {
@@ -334,13 +338,6 @@ void core1_usb_service()
             case ControllerState::STATE_READY:
             {
                 static MotorControlData motor_data = {};
-                if (!default_config_sent)
-                {
-                    LOG_INFO("Configure TMC2300 default values...");
-                    // tmc_control.defaultConfiguration();
-                    default_config_sent = true;
-                    LOG_INFO("Configure TMC2300 default values - OK!");
-                }
                 // Check for an item in the FreeRTOS xQueue
                 if (xQueueReceive(queue_motor_control_data, &motor_data, 0) ==
                     pdPASS)
@@ -440,7 +437,6 @@ void core1_usb_service()
 
 [[noreturn]] void joystick_process_job(void *unused_arg)
 {
-    unsigned long count = 0;
     enum ControllerNotification joystick_notify =
         ControllerNotification::NOTIFY_BOOT;
     ControllerState joystick_controller_state = ControllerState::STATE_IDLE;
@@ -512,7 +508,6 @@ void core1_usb_service()
 
 [[noreturn]] void buzzer_process_job(void *unused_arg)
 {
-    unsigned long count = 0;
     enum ControllerNotification buzzer_notify =
         ControllerNotification::NOTIFY_BOOT;
     ControllerState buzzer_controller_state = ControllerState::STATE_IDLE;
@@ -605,16 +600,11 @@ void core1_usb_service()
     enum ControllerNotification voltage_monitoring_notify =
         ControllerNotification::NOTIFY_BOOT;
 
-    uint16_t count = 0;
-
     // TODO: Lots of duplication here, can we refactor this?
     while (true)
     {
         battery_voltage_monitoring_state =
             battery_voltage_monitoring.processJob(xTaskGetTickCount());
-
-        LOG_DATA("This is a voltage thread data log message: count = %d",
-                 count++);
 
         switch (battery_voltage_monitoring_state)
         {
@@ -863,12 +853,13 @@ extern "C" void vApplicationMallocFailedHook(void)
  */
 int main()
 {
+    // First set up the hardware so power control can keep PCB powered ON
+    setup_power_control();
+
 // Enable either STDIO (UART) or USB (don't enable both)
 // Note: USB is initialized on core 1 in core1_usb_service()
 #if (SERIAL_OVER_USB == 1)
-
     stdio_usb_init();
-    sleep_ms(5000);
     // Launch USB service on core 1 before scheduler starts
     // This keeps USB responsive while core 0 (FreeRTOS) runs application tasks
     // NOTE: The async context (pico/async_context_freertos.h) may also call
@@ -877,8 +868,9 @@ int main()
     multicore_launch_core1(core1_usb_service);
 #else
     stdio_init_all();
-    sleep_ms(2000);
 #endif
+
+    sleep_ms(2000);
 
     // Log app info
     Utils::log_device_info();

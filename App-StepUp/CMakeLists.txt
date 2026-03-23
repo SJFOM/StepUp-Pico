@@ -54,3 +54,7 @@ add_compile_definitions(ENABLE_BUZZER_OUTPUT=${ENABLE_BUZZER_OUTPUT})
 pico_add_extra_outputs(${APP_NAME})
 
 message(STATUS "Build revision ${BUILD_NUMBER_OUTPUT}")
+
+# Increase the amount of available shared IRQ handlers to support more peripherals (e.g. ADC, USB, TMC UART)
+# Default is 4 which is not enough when we enable USB interrupts alongside the existing program IRQ handlers.
+add_compile_definitions(PICO_MAX_SHARED_IRQ_HANDLERS=8)

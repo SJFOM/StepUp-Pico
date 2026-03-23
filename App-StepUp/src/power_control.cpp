@@ -15,10 +15,10 @@
 
 PowerControl::PowerControl(uint32_t power_button_hold_timeout_ms,
                            uint32_t power_down_inactive_timeout_ms)
-    : m_power_down_inactive_timeout_ms(power_down_inactive_timeout_ms),
-      m_power_pin_event_manager(MCU_PWR_BTN_PIN,
+    : m_power_pin_event_manager(MCU_PWR_BTN_PIN,
                                 GPIO_IRQ_EDGE_FALL,
-                                power_button_hold_timeout_ms)
+                                power_button_hold_timeout_ms),
+      m_power_down_inactive_timeout_ms(power_down_inactive_timeout_ms)
 {
 }
 
