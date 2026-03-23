@@ -1,5 +1,5 @@
 ![Alt Text](./images/StepUp_text_header.svg)
-# *StepUp!* - A simple tool for instant stepper motor testing
+# *StepUp!* - A no-code tool for instant stepper motor testing
 
 
 <a href="https://hits.dwyl.com/SJFOM/StepUp-Pico"><img src="https://hits.dwyl.com/SJFOM/StepUp-Pico.svg" alt="Hits Badge"/></a>
@@ -125,11 +125,6 @@ SUBSYSTEM=="usb", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="000c", MODE="666",
 sudo udevadm control --reload
 sudo udevadm trigger
 ```
-
-## Note on debugging (all platforms)
-Ensure that both `cortex-debug.openocdPath` in `settings.json` and `configFiles` and `searchDir` key values in `launch.json` refer to the current `Pico SDK v1.5.X` version at time of install.
-
-The environment variable `PICO_SDK_VERSION` should represent what SDK is being used by the development environment - query this environment variable from within your preferred terminal in VS Code to get this value.
 
 ## Usage
 

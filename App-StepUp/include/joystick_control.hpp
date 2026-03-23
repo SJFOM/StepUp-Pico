@@ -75,7 +75,7 @@ private:
     struct JoystickData m_joystick;
     uint32_t m_next_joystick_read_deadline_in_ms;
 
-    PinEventManager *m_pin_event_manager = nullptr;
+    PinEventManager m_joystick_pin_event_manager;
 
     void getLatestJoystickPosition();
 };

@@ -24,18 +24,37 @@ add_executable(${APP_NAME}
 # Link to built libraries
 target_link_libraries(${APP_NAME} LINK_PUBLIC
     pico_stdlib
+    pico_multicore
     hardware_adc
     hardware_pwm
-    FreeRTOS
+    freertos_kernel
+    pico_async_context_freertos
     ControlInterface
     PicoUtils
     Utils)
 
 # Enable/disable STDIO via USB and UART
-pico_enable_stdio_usb(${APP_NAME} 0)
-pico_enable_stdio_uart(${APP_NAME} 1)
+set(SERIAL_OVER_USB 1)
+
+if(SERIAL_OVER_USB)
+    pico_enable_stdio_usb(${APP_NAME} 1)
+    pico_enable_stdio_uart(${APP_NAME} 0)
+else()
+    pico_enable_stdio_usb(${APP_NAME} 0)
+    pico_enable_stdio_uart(${APP_NAME} 1)
+endif()
+
+add_compile_definitions(SERIAL_OVER_USB=${SERIAL_OVER_USB})
+
+# Enable/Disable buzzer output (useful to disable when debugging to avoid noise)
+set(ENABLE_BUZZER_OUTPUT 0)
+add_compile_definitions(ENABLE_BUZZER_OUTPUT=${ENABLE_BUZZER_OUTPUT})
 
 # Enable extra build products
 pico_add_extra_outputs(${APP_NAME})
 
 message(STATUS "Build revision ${BUILD_NUMBER_OUTPUT}")
+
+# Increase the amount of available shared IRQ handlers to support more peripherals (e.g. ADC, USB, TMC UART)
+# Default is 4 which is not enough when we enable USB interrupts alongside the existing program IRQ handlers.
+add_compile_definitions(PICO_MAX_SHARED_IRQ_HANDLERS=8)

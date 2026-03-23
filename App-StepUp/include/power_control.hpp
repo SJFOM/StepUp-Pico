@@ -46,9 +46,9 @@ public:
 
 protected:
 private:
-    PinEventManager *m_usb_pin_event_manager, *m_power_pin_event_manager;
+    PinEventManager m_power_pin_event_manager;
 
-    uint32_t m_power_button_hold_timeout_ms, m_power_down_inactive_timeout_ms;
+    uint32_t m_power_down_inactive_timeout_ms;
     bool m_is_usb_inserted, m_power_down_triggered;
 
     enum ControllerNotification m_power_control_notify;

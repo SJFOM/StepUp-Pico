@@ -34,6 +34,7 @@ static void enableJoystickButtonInterrupt(bool enable_interrupt)
 /*********************************/
 
 JoystickControl::JoystickControl()
+    : m_joystick_pin_event_manager(JOYSTICK_BUTTON_PIN, GPIO_IRQ_EDGE_FALL)
 {
     m_joystick.state_x = JOYSTICK_STATE_IDLE;
     m_joystick.state_y = JOYSTICK_STATE_IDLE;
@@ -110,18 +111,7 @@ bool JoystickControl::init()
     if (m_init_success)
     {
         m_joystick.control_state = ControllerState::STATE_READY;
-        if (m_pin_event_manager == nullptr)
-        {
-            m_pin_event_manager =
-                new PinEventManager(JOYSTICK_BUTTON_PIN, GPIO_IRQ_EDGE_FALL);
-            m_pin_event_manager->init();
-        }
-        // TODO: Have the ADC's constantly sample using DMA to fill a buffer
-        // which we can read the averaged value from when the processJob comes
-        // around to do its job
-        // adc_set_round_robin(JOYSTICK_ADC_ROUND_ROBIN_MASK);
-        // Set channel 0 to be first
-        // adc_select_input(JOYSTICK_ADC_CHANNEL_X);
+        m_joystick_pin_event_manager.init();
     }
 
     return m_init_success;
@@ -165,10 +155,11 @@ enum ControllerState JoystickControl::processJob(uint32_t tick_count)
         return ControllerState::STATE_IDLE;
     }
 
-    if (m_pin_event_manager->hasEventOccurred())
+    if (m_joystick_pin_event_manager.hasEventOccurred())
     {
+        LOG_DATA("Joystick button press event detected");
         s_button_press_event = true;
-        m_pin_event_manager->clearPinEventCount();
+        m_joystick_pin_event_manager.clearPinEventCount();
     }
 
     if (s_button_press_event)
@@ -210,8 +201,8 @@ enum ControllerState JoystickControl::processJob(uint32_t tick_count)
         (_joystick_state_y != m_joystick.state_y) ||
         m_joystick.button_is_pressed)
     {
-        // If there has been a change in state we want to return that new data
-        // is available
+        // If there has been a change in state we want to return that new
+        // data is available
         m_joystick.control_state = ControllerState::STATE_NEW_DATA;
     }
 

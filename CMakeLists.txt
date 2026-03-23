@@ -1,23 +1,24 @@
+cmake_minimum_required(VERSION 3.14)
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # == DO NOT EDIT THE FOLLOWING LINES for the Raspberry Pi Pico VS Code Extension to work ==
 if(WIN32)
     set(USERHOME $ENV{USERPROFILE})
 else()
     set(USERHOME $ENV{HOME})
 endif()
-
-set(sdkVersion 2.1.1)
+set(sdkVersion 2.2.0)
 set(toolchainVersion 14_2_Rel1)
-set(picotoolVersion 2.1.1)
+set(picotoolVersion 2.2.0-a4)
 set(picoVscode ${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
-
-if(EXISTS ${picoVscode})
+if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
-
 # ====================================================================================
 set(PICO_BOARD pico CACHE STRING "Board type")
-
-cmake_minimum_required(VERSION 3.14)
 
 # Pull in SDK (must be before project)
 include(pico_sdk_import.cmake)
@@ -39,6 +40,8 @@ set(APP_SRC_DIRECTORY "${CMAKE_SOURCE_DIR}/App-StepUp")
 set(TMC_API_CODE_DIRECTORY "${CMAKE_SOURCE_DIR}/Libraries/TMC_API")
 set(INTERFACE_CODE_DIRECTORY "${CMAKE_SOURCE_DIR}/Interfaces")
 set(LIBRARIES_CODE_DIRECTORY "${CMAKE_SOURCE_DIR}/Libraries")
+
+set(PICO_CXX_ENABLE_EXCEPTIONS 1)
 
 # This section of code creates a build version of the format "GIT_COMMIT_HASH:BUILD_NUMBER"
 # where GIT_COMMIT_HASH is the short hash of the current git commit and BUILD_NUMBER is
@@ -94,6 +97,9 @@ add_compile_definitions(BUILD_NUM="${BUILD_NUMBER_OUTPUT}")
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(DO_DEBUG 1)
     add_compile_definitions(DEBUG=1)
+    # Disable optimizations for debugging to preserve function boundaries and enable proper stepping
+    set(CMAKE_C_FLAGS_DEBUG "-O0 -g ${CMAKE_C_FLAGS_DEBUG}")
+    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g ${CMAKE_CXX_FLAGS_DEBUG}")
 endif()
 
 # Set env variable 'PICO_SDK_PATH' to the local Pico SDK
@@ -113,30 +119,42 @@ project(${PROJECT_NAME}
     DESCRIPTION "FreeRTOS-based RP2040 Stepper motor driver application"
 )
 
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 17)
-
 # Initialise the Pico SDK
 pico_sdk_init()
 
-# Add FreeRTOS as a library
-add_library(FreeRTOS STATIC
-    ${FREERTOS_SRC_DIRECTORY}/event_groups.c
-    ${FREERTOS_SRC_DIRECTORY}/list.c
-    ${FREERTOS_SRC_DIRECTORY}/queue.c
-    ${FREERTOS_SRC_DIRECTORY}/stream_buffer.c
-    ${FREERTOS_SRC_DIRECTORY}/tasks.c
-    ${FREERTOS_SRC_DIRECTORY}/timers.c
-    ${FREERTOS_SRC_DIRECTORY}/portable/MemMang/heap_3.c
-    ${FREERTOS_SRC_DIRECTORY}/portable/GCC/ARM_CM0/port.c
+include(FreeRTOS_Kernel_import.cmake)
+
+add_library(freertos_config INTERFACE)
+
+target_include_directories(freertos_config SYSTEM
+INTERFACE
+    Config
 )
 
-# Build FreeRTOS
-target_include_directories(FreeRTOS PUBLIC
-    ${FREERTOS_CFG_DIRECTORY}/
-    ${FREERTOS_SRC_DIRECTORY}/include
-    ${FREERTOS_SRC_DIRECTORY}/portable/GCC/ARM_CM0
+target_compile_definitions(freertos_config
+  INTERFACE
+    projCOVERAGE_TEST=0
 )
+
+set( FREERTOS_HEAP "4" CACHE STRING "" FORCE)
+
+# # Select the native compile PORT
+# set( FREERTOS_PORT "GCC_POSIX" CACHE STRING "" FORCE)
+# # Select the cross-compile PORT
+if (CMAKE_CROSSCOMPILING)
+  set(FREERTOS_PORT GCC_RP2040 CACHE STRING "" FORCE)
+endif()
+
+add_subdirectory(${FREERTOS_SRC_DIRECTORY})
+
+# Add stricter compilation warnings and disable some that we don't care about (e.g. format warnings due to int vs int32_t)
+add_compile_options(-Wall
+        -Wno-format          # int != int32_t as far as the compiler is concerned because gcc has int32_t as long int
+        -Wno-unused-function # we have some for the docs that aren't called
+        )
+if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
+    add_compile_options(-Wno-maybe-uninitialized)
+endif()
 
 # Include the apps' source code
 add_subdirectory(${APP_SRC_DIRECTORY}) # App-StepUp
