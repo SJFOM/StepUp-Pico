@@ -34,7 +34,13 @@
 
             "openOCDLaunchCommands": [
                 "adapter speed 5000",
-            ]
+            ],
+            // These options can come in handy when debugging RTOS-based applications, but may cause issues with some OpenOCD versions, so are left commented out by default
+            // "rtos": "auto",
+            // "liveWatch": {
+            //     "enabled": false , // Set to true to enable live watch
+            //     "samplesPerSecond": 4
+            // },
         },
         {
             "name": "Pico Debug (Cortex-Debug with external OpenOCD)",
