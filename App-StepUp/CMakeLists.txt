@@ -24,9 +24,11 @@ add_executable(${APP_NAME}
 # Link to built libraries
 target_link_libraries(${APP_NAME} LINK_PUBLIC
     pico_stdlib
+    pico_multicore
     hardware_adc
     hardware_pwm
     freertos_kernel
+    pico_async_context_freertos
     ControlInterface
     PicoUtils
     Utils)

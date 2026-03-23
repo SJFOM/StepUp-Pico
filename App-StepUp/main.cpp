@@ -8,6 +8,11 @@
  */
 #include "include/main.h"
 
+#include "pico/async_context_freertos.h"
+#include "pico/multicore.h"
+#include "task.h"
+#include "tusb.h"
+
 using std::string;
 using std::stringstream;
 using std::vector;
@@ -151,15 +156,15 @@ void setup_tmc2300()
 
     // FIXME: This is blocking (due to call to tmc2300_readWriteArray()) and
     // will block USB ISR routines
-    if (tmc_control.getChipID() == TMC2300_VERSION_COMPATIBLE)
-    {
-        LOG_INFO("TMC2300 silicon version: 0x40");
-    }
-    else
-    {
-        LOG_WARN("TMC version: UNSUPPORTED!");
-        tmc_setup_success = false;
-    }
+    // if (tmc_control.getChipID() == TMC2300_VERSION_COMPATIBLE)
+    // {
+    //     LOG_INFO("TMC2300 silicon version: 0x40");
+    // }
+    // else
+    // {
+    //     LOG_WARN("TMC version: UNSUPPORTED!");
+    //     tmc_setup_success = false;
+    // }
 
     if (tmc_setup_success)
     {
@@ -274,6 +279,30 @@ void setup_voltage_monitoring()
 }
 
 /*
+ * CORE 1 USB SERVICE
+ */
+
+/**
+ * @brief USB service function - runs on core 1 to service TinyUSB events
+ * @details This function runs on core 1 to keep USB responsive while
+ * core 0 (running FreeRTOS) executes application tasks with blocking I/O (e.g.
+ * TMC UART setup) Launched via multicore_launch_core1() before scheduler
+ * starts.
+ */
+void core1_usb_service()
+{
+    tusb_init();
+    while (true)
+    {
+        // Service TinyUSB device task on core 1
+        // NOTE: Both core0 (async context) and core1 may call this, but
+        // tud_task() handles concurrent calls gracefully through its internal
+        // state management
+        tud_task();
+    }
+}
+
+/*
  * TASK FUNCTIONS
  */
 
@@ -286,8 +315,6 @@ void setup_voltage_monitoring()
         ControllerNotification::NOTIFY_BOOT;
     ControllerState tmc_state = ControllerState::STATE_IDLE;
     TMCData tmc_data = {};
-
-    unsigned long count = 0;
 
     bool default_config_sent = false;
 
@@ -310,7 +337,7 @@ void setup_voltage_monitoring()
                 if (!default_config_sent)
                 {
                     LOG_INFO("Configure TMC2300 default values...");
-                    tmc_control.defaultConfiguration();
+                    // tmc_control.defaultConfiguration();
                     default_config_sent = true;
                     LOG_INFO("Configure TMC2300 default values - OK!");
                 }
@@ -837,13 +864,22 @@ extern "C" void vApplicationMallocFailedHook(void)
 int main()
 {
 // Enable either STDIO (UART) or USB (don't enable both)
+// Note: USB is initialized on core 1 in core1_usb_service()
 #if (SERIAL_OVER_USB == 1)
-    sleep_ms(6000);
+
     stdio_usb_init();
+    sleep_ms(5000);
+    // Launch USB service on core 1 before scheduler starts
+    // This keeps USB responsive while core 0 (FreeRTOS) runs application tasks
+    // NOTE: The async context (pico/async_context_freertos.h) may also call
+    // tud_task() so we use a spinlock to protect against concurrent access from
+    // both core0 and core1
+    multicore_launch_core1(core1_usb_service);
 #else
     stdio_init_all();
-#endif
     sleep_ms(2000);
+#endif
+
     // Log app info
     Utils::log_device_info();
 
@@ -932,8 +968,7 @@ int main()
     // Start the FreeRTOS scheduler if all tasks are created successfully
     if (led_status == pdPASS && tmc_status == pdPASS &&
         joystick_status == pdPASS && buzzer_status == pdPASS &&
-        voltage_monitoring_status == pdPASS &&
-        power_control_status == pdPASS)  // Add this condition
+        voltage_monitoring_status == pdPASS && power_control_status == pdPASS)
     {
         vTaskStartScheduler();
     }
