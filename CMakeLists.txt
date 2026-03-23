@@ -41,6 +41,8 @@ set(TMC_API_CODE_DIRECTORY "${CMAKE_SOURCE_DIR}/Libraries/TMC_API")
 set(INTERFACE_CODE_DIRECTORY "${CMAKE_SOURCE_DIR}/Interfaces")
 set(LIBRARIES_CODE_DIRECTORY "${CMAKE_SOURCE_DIR}/Libraries")
 
+set(PICO_CXX_ENABLE_EXCEPTIONS 1)
+
 # This section of code creates a build version of the format "GIT_COMMIT_HASH:BUILD_NUMBER"
 # where GIT_COMMIT_HASH is the short hash of the current git commit and BUILD_NUMBER is
 # incremented for every build. This is useful for tracking the version of the firmware
@@ -95,6 +97,9 @@ add_compile_definitions(BUILD_NUM="${BUILD_NUMBER_OUTPUT}")
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(DO_DEBUG 1)
     add_compile_definitions(DEBUG=1)
+    # Disable optimizations for debugging to preserve function boundaries and enable proper stepping
+    set(CMAKE_C_FLAGS_DEBUG "-O0 -g ${CMAKE_C_FLAGS_DEBUG}")
+    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g ${CMAKE_CXX_FLAGS_DEBUG}")
 endif()
 
 # Set env variable 'PICO_SDK_PATH' to the local Pico SDK
