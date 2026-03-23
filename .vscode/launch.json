@@ -18,23 +18,23 @@
             ],
             "svdFile": "${userHome}/.pico-sdk/sdk/2.2.0/src/${command:raspberry-pi-pico.getChip}/hardware_regs/${command:raspberry-pi-pico.getChipUppercase}.svd",
             "runToEntryPoint": "main",
-            "preLaunchCommands": [
-                "directory ${workspaceFolder}",
-                "set substitute-path C:\\\\Users\\\\samom\\\\OneDrive\\\\Documents\\\\code\\\\StepUp-Pico ${workspaceFolder}",
-            ],
+            // Fix for no_flash binaries, where monitor reset halt doesn't do what is expected
+            // Also works fine for flash binaries
             "overrideLaunchCommands": [
                 "monitor reset init",
-                "load"
+                "load \"${command:raspberry-pi-pico.launchTargetPath}\""
             ],
+            // Taken from discussion in https://github.com/raspberrypi/pico-sdk/issues/1952#issuecomment-3759509737 related to intermittent debugger issues
+            "postLaunchCommands": [
+                "interrupt",
+                "start",
+                "load",
+                "starti"
+            ],
+
             "openOCDLaunchCommands": [
-                "adapter speed 5000"
-            ],
-            "showDevDebugOutput": "raw",
-            "rtos": "auto",
-            "liveWatch": {
-                "enabled": false , // Set to true to enable live watch
-                "samplesPerSecond": 4
-            },
+                "adapter speed 5000",
+            ]
         },
         {
             "name": "Pico Debug (Cortex-Debug with external OpenOCD)",
@@ -45,6 +45,7 @@
             "servertype": "external",
             "gdbTarget": "localhost:3333",
             "gdbPath": "${command:raspberry-pi-pico.getGDBPath}",
+            "debuggerArgs": ["-ex", "set debug-file-directory /debug"],
             "device": "${command:raspberry-pi-pico.getChipUppercase}",
             "svdFile": "${userHome}/.pico-sdk/sdk/2.2.0/src/${command:raspberry-pi-pico.getChip}/hardware_regs/${command:raspberry-pi-pico.getChipUppercase}.svd",
             "runToEntryPoint": "main",
@@ -54,26 +55,6 @@
                 "monitor reset init",
                 "load \"${command:raspberry-pi-pico.launchTargetPath}\""
             ]
-        },
-        {
-            "name": "Pico Debug (C++ Debugger)",
-            "type": "cppdbg",
-            "request": "launch",
-            "cwd": "${workspaceRoot}",
-            "program": "${command:raspberry-pi-pico.launchTargetPath}",
-            "MIMode": "gdb",
-            "miDebuggerPath": "${command:raspberry-pi-pico.getGDBPath}",
-            "miDebuggerServerAddress": "localhost:3333",
-            "debugServerPath": "${userHome}/.pico-sdk/openocd/0.12.0+dev/openocd.exe",
-            "debugServerArgs": "-f interface/cmsis-dap.cfg -f target/${command:raspberry-pi-pico.getTarget}.cfg -c \"adapter speed 5000\"",
-            "serverStarted": "Listening on port .* for gdb connections",
-            "filterStderr": true,
-            "hardwareBreakpoints": {
-                "require": true,
-                "limit": 4
-            },
-            "preLaunchTask": "Flash",
-            "svdPath": "${userHome}/.pico-sdk/sdk/2.2.0/src/${command:raspberry-pi-pico.getChip}/hardware_regs/${command:raspberry-pi-pico.getChipUppercase}.svd"
         },
     ]
 }
