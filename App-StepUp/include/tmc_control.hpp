@@ -33,6 +33,9 @@ extern "C"
 #include "../../../Libraries/TMC_API/ic/TMC2300.h"
 }
 
+// PinManager
+#include "pin_event_manager.hpp"
+
 // printf can default to using uart0 so use uart1 instead
 #define TMC_UART_ID   uart1
 #define TMC_BAUD_RATE ((unsigned)460800)
@@ -510,12 +513,14 @@ protected:
 
 private:
     MotorMoveState m_motor_move_state;
-    bool m_init_success, m_uart_pins_enabled;
+    float m_r_sense;
+    bool m_init_success, m_uart_pins_enabled, m_coolstep_enabled,
+        m_peak_velocity_detected;
     struct TMCData m_tmc;
     int32_t m_target_velocity, m_ramp_velocity;
     TMCOpenCircuitAlgoData m_open_circuit_algo_data;
-    bool m_coolstep_enabled, m_peak_velocity_detected;
-    float m_r_sense;
+
+    PinEventManager m_tmc_diag_pin_event_manager;
 
     static uint16_t convertIrunIHoldToRMSCurrentInMilliamps(uint8_t i_run_hold,
                                                             float r_sense);

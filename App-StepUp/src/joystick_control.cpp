@@ -20,15 +20,6 @@ static volatile bool s_button_press_event = false;
 // Button debounce control
 static volatile uint32_t s_time_of_last_button_press;
 
-static void joystick_button_callback();
-
-static void enableJoystickButtonInterrupt(bool enable_interrupt)
-{
-    gpio_set_irq_enabled(JOYSTICK_BUTTON_PIN,
-                         GPIO_IRQ_EDGE_FALL,
-                         enable_interrupt);  // monitor pin 1 connected to pin 0
-}
-
 /*********************************/
 /* Joystick button control - END */
 /*********************************/
@@ -53,6 +44,7 @@ bool JoystickControl::init()
     if (false == m_init_success)
     {
         // Set up joystick button as interrupt: HIGH -> LOW transition
+        gpio_init(JOYSTICK_BUTTON_PIN);
         gpio_set_input_enabled(JOYSTICK_BUTTON_PIN, true);
         gpio_pull_up(JOYSTICK_BUTTON_PIN);
 
@@ -103,9 +95,6 @@ bool JoystickControl::init()
             LOG_WARN((string) "y stage offset: " +
                      std::to_string(m_joystick.position.y_offset));
         }
-
-        // Mimick first button press event against which to compare later events
-        s_time_of_last_button_press = to_ms_since_boot(get_absolute_time());
     }
 
     if (m_init_success)
