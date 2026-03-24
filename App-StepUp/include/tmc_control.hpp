@@ -45,7 +45,7 @@ extern "C"
 #define TMC_UART_CHANNEL (0)  // Not as relevant for single IC use case
 
 // Default motion profile ramp configurations
-#define VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND (1000U)
+#define VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND (500U)
 #define VELOCITY_STARTING_STEPS_PER_SECOND       (10000U)
 
 // Rate at which we decrement the velocity if we reach Stallgaurd threshold
@@ -58,7 +58,7 @@ extern "C"
 #define VELOCITY_SLOW_SPEED_STEPS_PER_SECOND \
     (2 * VELOCITY_STARTING_STEPS_PER_SECOND)
 
-#define VELOCITY_MAX_STEPS_PER_SECOND (100000U)
+#define VELOCITY_MAX_STEPS_PER_SECOND (50000U)
 
 // Run and hold current values (0..31U) scaled to 1.2A RMS
 #define DEFAULT_IRUN_VALUE  (13U)

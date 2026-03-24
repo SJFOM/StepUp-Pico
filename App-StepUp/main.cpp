@@ -377,8 +377,7 @@ void core1_usb_service()
 
                     if (tmc_data.diag.stall_detected)
                     {
-                        LOG_DEBUG(
-                            "Stall detected! Automatically reducing speed");
+                        LOG_DEBUG("Stall detected!");
                         // Don't trigger a typical info or warn message as we
                         // don't need to alert to the user that a max rpm has
                         // been reached as this will likely happen very often

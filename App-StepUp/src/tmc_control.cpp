@@ -15,7 +15,7 @@ static TMC2300TypeDef tmc2300;
 static ConfigurationTypeDef tmc2300_config;
 
 // Static non-class-member debug variables
-static uint16_t s_plot_diagnostics_counter = 0;
+static bool s_high_speed_reduction_enabled = false;
 
 // Static non-class-member callback variables
 static volatile bool s_is_tmc_comms_callback_complete = false;
@@ -557,15 +557,18 @@ TMCDiagnostics TMCControl::readTMCDiagnostics()
         tmc_diag.normal_operation = false;
         tmc_diag.stall_detected = true;
         m_peak_velocity_detected = true;
-        if (m_target_velocity > 0)
+        if (s_high_speed_reduction_enabled)
         {
-            m_target_velocity -=
-                VELOCITY_RAMP_SG_LIMIT_DECREMENT_STEPS_PER_SECOND;
-        }
-        else
-        {
-            m_target_velocity +=
-                VELOCITY_RAMP_SG_LIMIT_DECREMENT_STEPS_PER_SECOND;
+            if (m_target_velocity > 0)
+            {
+                m_target_velocity -=
+                    VELOCITY_RAMP_SG_LIMIT_DECREMENT_STEPS_PER_SECOND;
+            }
+            else
+            {
+                m_target_velocity +=
+                    VELOCITY_RAMP_SG_LIMIT_DECREMENT_STEPS_PER_SECOND;
+            }
         }
     }
 
