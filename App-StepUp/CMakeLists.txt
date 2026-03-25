@@ -34,7 +34,7 @@ target_link_libraries(${APP_NAME} LINK_PUBLIC
     Utils)
 
 # Enable/disable STDIO via USB and UART
-set(SERIAL_OVER_USB 1)
+set(SERIAL_OVER_USB 0)
 
 if(SERIAL_OVER_USB)
     pico_enable_stdio_usb(${APP_NAME} 1)
@@ -47,7 +47,7 @@ endif()
 add_compile_definitions(SERIAL_OVER_USB=${SERIAL_OVER_USB})
 
 # Enable/Disable buzzer output (useful to disable when debugging to avoid noise)
-set(ENABLE_BUZZER_OUTPUT 0)
+set(ENABLE_BUZZER_OUTPUT 1)
 add_compile_definitions(ENABLE_BUZZER_OUTPUT=${ENABLE_BUZZER_OUTPUT})
 
 # Enable extra build products

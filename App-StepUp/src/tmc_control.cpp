@@ -14,9 +14,6 @@
 static TMC2300TypeDef tmc2300;
 static ConfigurationTypeDef tmc2300_config;
 
-// Static non-class-member debug variables
-static bool s_high_speed_reduction_enabled = false;
-
 // Static non-class-member callback variables
 static volatile bool s_is_tmc_comms_callback_complete = false;
 
@@ -270,7 +267,7 @@ void TMCControl::defaultConfiguration()
     // SEDN: Sets the number of StallGuard2 readings above the upper threshold
     // necessary for each current decrement of the motor current.
     // Values are 0..3 corresponding to 32,8,2,1 sg readings respectively
-    m_coolconf.sedn = 2;  // SG measurements per decrement: 0 = 32
+    m_coolconf.sedn = 1;  // SG measurements per decrement: 0 = 32
 
     // SEMIN: Sets the minimum threshold against which the CoolStep driver will
     // increase the current (see CS_ACTUAL). When SG_RESULT < SEMIN*32, the
@@ -291,6 +288,7 @@ void TMCControl::defaultConfiguration()
     }
     else
     {
+        // Turn off CoolStep by setting SEMIN to 0
         m_coolconf.semin = 0;  // SG measurements per decrement: 0
         m_coolconf.semax = 0;
     }
@@ -298,7 +296,14 @@ void TMCControl::defaultConfiguration()
     // SEIMIN: Sets the lower motor current limit for CoolStep
     // operation by scaling the IRUN current setting.
     // Values are 0 for 1/2 of I_RUN, 1 for 1/4 of I_RUN (ensure min IRUN of 16)
-    m_coolconf.seimin = CoolStepCurrentReduction::COOLSTEP_REDUCTION_1_4;
+    if (m_ihold_irun.irun >= 16)
+    {
+        m_coolconf.seimin = CoolStepCurrentReduction::COOLSTEP_REDUCTION_1_4;
+    }
+    else
+    {
+        m_coolconf.seimin = CoolStepCurrentReduction::COOLSTEP_REDUCTION_1_2;
+    }
 
     tmc2300_writeInt(&tmc2300, m_coolconf.address, m_coolconf.sr);
     m_coolconf.sr = tmc2300_readInt(&tmc2300, TMC2300_COOLCONF);
@@ -316,8 +321,10 @@ void TMCControl::defaultConfiguration()
     m_chopconf.mres = MRES_FULL_STEP;  // Microstep setting (0=256 μsteps)
     m_chopconf.intpol = true;          // Interpolation to 256 μsteps
     m_chopconf.dedge = false;          // Enable double edge step pulses
-    m_chopconf.diss2g = false;         // Disable short to GND protection
-    m_chopconf.diss2vs = false;        // Disable low side short protection
+    m_chopconf.diss2g =
+        false;  // Disable short to GND protection (false = "don't disable")
+    m_chopconf.diss2vs =
+        false;  // Disable low side short protection (false = "don't disable")
     tmc2300_writeInt(&tmc2300, m_chopconf.address, m_chopconf.sr);
 
     /* Register: DRV_STATUS
@@ -436,7 +443,7 @@ void TMCControl::move(int32_t velocity)
         return;
     }
 
-    if (abs(velocity) > VELOCITY_MAX_STEPS_PER_SECOND)
+    if ((uint32_t)abs(velocity) > VELOCITY_MAX_STEPS_PER_SECOND)
     {
         LOG_WARN("Max motor velocity reached!");
 
@@ -500,18 +507,8 @@ TMCDiagnostics TMCControl::readTMCDiagnostics()
 {
     // Start with a blank TMCDiagnostics with all flags set to false
     TMCDiagnostics tmc_diag;
+    tmc_diag.normal_operation = true;
     m_drv_status.sr = tmc2300_readInt(&tmc2300, m_drv_status.address);
-
-    // printf(">s2ga_b:%d\n", (uint8_t)(m_drv_status.s2ga | m_drv_status.s2gb));
-    // printf(">s2vsa_b: %d\n", m_drv_status.s2vsa | m_drv_status.s2vsb);
-    // printf(">s2ga: %d\n", (uint8_t)(m_drv_status.s2ga));
-    // printf(">s2gb: %d\n", (uint8_t)(m_drv_status.s2gb));
-    // printf(">s2vsa: %d\n", m_drv_status.s2vsa);
-    // printf(">s2vsb: %d\n", m_drv_status.s2vsb);
-    // printf(">ola: %d\n", (uint8_t)(m_drv_status.ola));
-    // printf(">olb: %d\n", (uint8_t)(m_drv_status.olb));
-    // printf(">ot_pw: %d\n", m_drv_status.ot | m_drv_status.otpw);
-    // printf(">drv_status:%d\n", m_drv_status.sr);
 
     if (m_drv_status.otpw || m_drv_status.ot || m_drv_status.t120 ||
         m_drv_status.t150)
@@ -528,7 +525,7 @@ TMCDiagnostics TMCControl::readTMCDiagnostics()
     // detecting an open circuit event
     if (m_tmc.open_circuit_detected ||
         ((m_drv_status.ola || m_drv_status.olb) &&
-         (abs(m_vactual.sr) <= VELOCITY_SLOW_SPEED_STEPS_PER_SECOND)))
+         ((uint32_t)abs(m_vactual.sr) <= VELOCITY_SLOW_SPEED_STEPS_PER_SECOND)))
     {
         resetOpenCircuitDetectionAlgorithm();
         tmc_diag.open_circuit = true;
@@ -557,7 +554,7 @@ TMCDiagnostics TMCControl::readTMCDiagnostics()
         tmc_diag.normal_operation = false;
         tmc_diag.stall_detected = true;
         m_peak_velocity_detected = true;
-        if (s_high_speed_reduction_enabled)
+        if (CX_HIGH_SPEED_AUTO_REDUCTION_ENABLED)
         {
             if (m_target_velocity > 0)
             {
@@ -675,7 +672,8 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
         case (MOTOR_MOVING):
         {
             if (m_vactual.sr != m_target_velocity &&
-                abs(m_target_velocity) <= VELOCITY_MAX_STEPS_PER_SECOND)
+                (uint32_t)abs(m_target_velocity) <=
+                    VELOCITY_MAX_STEPS_PER_SECOND)
             {
                 if (abs(m_vactual.sr) >= abs(m_target_velocity))
                 {
@@ -726,7 +724,7 @@ extern "C" void tmc2300_readWriteArray(uint8_t channel,
     // This is needed to wait for the TMC2300 to be ready to receive and/or
     // reply with data, otherwise the Pico's UART peripheral has a hard time
     // finding the data...
-    // FIXME: This can eventually become interrupt driven
+    // TODO: This should eventually become interrupt driven
     sleep_ms(1);
 
     // Write data buffer

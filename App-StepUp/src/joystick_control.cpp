@@ -146,7 +146,6 @@ enum ControllerState JoystickControl::processJob(uint32_t tick_count)
 
     if (m_joystick_pin_event_manager.hasEventOccurred())
     {
-        LOG_DATA("Joystick button press event detected");
         s_button_press_event = true;
         m_joystick_pin_event_manager.clearPinEventCount();
     }
