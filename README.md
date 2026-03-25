@@ -24,22 +24,23 @@
 |   |___FreeRTOSConfig.h    // FreeRTOS project config file
 |
 |___/FreeRTOS-Kernel        // FreeRTOS kernel files, included as a submodule
-|___/pico-sdk               // Raspberry Pi Pico SDK, included as a submodule
+|
+|___/images                 // Image files used in the README.md
+|
+|___/Interfaces             // Thin layers for global control - used as parent class
+|
+|___/Libraries              // Non-HW specific code, commonly used function calls
 |
 |___CMakeLists.txt          // Top-level project CMake config file
 |___pico_sdk_import.cmake   // Raspberry Pi Pico SDK CMake import script
-|
-|___deploy.sh               // Build-and-deploy shell script (Windows)
-|___deploy.py               // Build-and-deploy shell script (OS Agnostic - WIP)
-|___program.sh              // Program Pico using a connected debugger tool
-|___program_and_monitor.sh  // Program and monitor the Pico using a connected debugger tool
-|___build_and_program.sh    // Build and then program the Pico using a connected debugger tool
 |
 |___rp2040.code-workspace   // Visual Studio Code workspace
 |
 |___README.md
 |___LICENSE.md
 ```
+
+
 
 ## Prerequisites
 
