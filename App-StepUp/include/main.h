@@ -49,7 +49,7 @@
 #include "voltage_monitoring.hpp"
 
 // Global defines
-constexpr uint32_t CX_WATCHDOG_TIMEOUT_MS = 5000U;  // Max allowed is 8.3s
+constexpr uint32_t CX_WATCHDOG_TIMEOUT_MS = 6000U;  // Max allowed is 8.3s
 constexpr uint32_t CX_WATCHDOG_CALLBACK_MS = 4000U;
 
 #ifdef __cplusplus

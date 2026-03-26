@@ -106,7 +106,7 @@ By default, the StepUp! device drives the supplied stepper motor with `~500mA` o
 | Status | Color: Pattern | Buzzer Pattern | Meaning |
 |--------|:----------------:|:---------:|---------|
 | Power ON | Green: Fade, low to high | Sweep, low to high | Device is booting - boot complete once tone completes |
-| Power ON | Green: Fade, low to high -> Solid Red for 5 seconds | Sweep, low to high | Device is booting - fails during boot |
+| Power ON | Green: Fade, low to high -> Slow blinking Red for 5 seconds | Sweep, low to high -> Continuous beep tone for 5 seconds | Device is booting - fails during boot |
 | Ready | Green: Solid | None | Device is ready, LED colour indicates battery HIGH|
 | Ready | Orange: Solid | None | Device is ready, LED colour indicates battery MEDIUM|
 | Ready | Red: Solid | None | Device is ready, LED colour indicates battery LOW|
