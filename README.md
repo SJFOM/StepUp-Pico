@@ -12,9 +12,14 @@
 
 
 # Hardware
+<img src="./images/StepUp_PCB_v0_3.png" alt="PCB" width="800" />
 
+## PCB Assembly
+<img src="./images/StepUp_PCBA_assembly_drawing.png" alt="PCBA Drawing" width="800" />
 
+## 3D printed housing assembly
 
+<img src="./images/StepUp_assembly_drawing.png" alt="StepUp exploded assembly view" width="800" />
 
 ## Project Structure
 
