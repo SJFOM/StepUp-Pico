@@ -7,10 +7,10 @@ cmake_minimum_required(VERSION 3.14)
 # EDIT THESE VARIABLES TO CUSTOMIZE YOUR BUILD
 
 # Enable Serial comms over USB (1) or UART (0)
-set(SERIAL_OVER_USB 1)
+set(SERIAL_OVER_USB 0)
 
 # Enable/Disable buzzer output (useful to disable when debugging to avoid noise)
-set(ENABLE_BUZZER_OUTPUT 0)
+set(ENABLE_BUZZER_OUTPUT 1)
 
 ####################################
 # USER CONFIGURATION SECTION - END #

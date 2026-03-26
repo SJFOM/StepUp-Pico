@@ -154,6 +154,8 @@ void LEDControl::enableLED(bool enable)
     pwm_set_enabled(s_rgb_led.led_red_pwm_slice, enable);
     pwm_set_enabled(s_rgb_led.led_green_pwm_slice, enable);
     pwm_set_enabled(s_rgb_led.led_blue_pwm_slice, enable);
+
+    enableFunctionality(enable);
 }
 
 enum ControllerState LEDControl::processJob(uint32_t tick_count)

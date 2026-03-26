@@ -606,6 +606,10 @@ void core1_usb_service()
         battery_voltage_monitoring_state =
             battery_voltage_monitoring.processJob(xTaskGetTickCount());
 
+        float batt_volts = battery_voltage_monitoring.getVoltageData().voltage;
+
+        LOG_DATA("Battery voltage: %.2fV", batt_volts);
+
         switch (battery_voltage_monitoring_state)
         {
             case ControllerState::STATE_IDLE:
@@ -976,4 +980,22 @@ int main()
 void watchdog_timer_callback(__unused TimerHandle_t xTimer)
 {
     watchdog_update();  // Feed the watchdog timer
+}
+
+extern "C" void on_error_handler(const char *msg)
+{
+    // Your custom error handling
+    printf("[ERROR]Custom error handler: %s\n", msg);
+    if (led_control.processJob(xTaskGetTickCount()) ==
+        ControllerState::STATE_READY)
+    {
+        led_control.setLEDFunction(ControllerNotification::NOTIFY_ERROR);
+    }
+    if (buzzer_control.processJob(xTaskGetTickCount()) ==
+        ControllerState::STATE_READY)
+    {
+        buzzer_control.setBuzzerFunction(ControllerNotification::NOTIFY_ERROR);
+    }
+    sleep_ms(5000);  // Allow time for the notification to be processed
+    __breakpoint();
 }
