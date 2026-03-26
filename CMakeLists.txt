@@ -136,11 +136,11 @@ target_compile_definitions(freertos_config
     projCOVERAGE_TEST=0
 )
 
-set( FREERTOS_HEAP "4" CACHE STRING "" FORCE)
+set(FREERTOS_HEAP "4" CACHE STRING "" FORCE)
 
-# # Select the native compile PORT
-# set( FREERTOS_PORT "GCC_POSIX" CACHE STRING "" FORCE)
-# # Select the cross-compile PORT
+# Select the native compile PORT
+set(FREERTOS_PORT "GCC_POSIX" CACHE STRING "" FORCE)
+# Select the cross-compile PORT
 if (CMAKE_CROSSCOMPILING)
   set(FREERTOS_PORT GCC_RP2040 CACHE STRING "" FORCE)
 endif()

@@ -11,6 +11,10 @@
 <a href="https://github.com/SJFOM/StepUp-Pico/blob/master/LICENSE"><img src="https://img.shields.io/github/license/SJFOM/StepUp-Pico?color=2b9348" alt="License Badge"/></a>
 
 
+# Hardware
+
+
+
 
 ## Project Structure
 
@@ -41,93 +45,14 @@
 ```
 
 
+# Prerequisites
 
-## Prerequisites
+## IDEs
 
-To use the code in this repo, your system must be set up for RP2040 C/C++ development. 
-
-### VS Code extensions
-
-- CMake: `twxs.cmake`
-- CMake Tools: `ms-vscode.cmake-tools`
-- C/C++: `ms-vscode.cpptools`
-- Cortex-Debug: `marus25.cortex-debug`
-- Python: `ms-python.python`
-- Bazel: `BazelBuild.vscode-bazel`
+This project was developed using Microsoft Visual Studio Code](https://code.visualstudio.com/) and all instructions which follow mention use of its code extensions for working with the StepUp! project. Workspace files are included herein - see [rp2040.code-workspace](./rp2040.code-workspace).
 
 
-### Windows
-The Raspberry Pi foundation offer [a simple installer script](https://www.raspberrypi.com/documentation/microcontrollers/raspberry-pi-pico.html#software-development) for Windows users which downloads and configures the following:
-
-- [Arm GNU Toolchain](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads)
-- [CMake](https://cmake.org/download/)
-- [Ninja](https://github.com/ninja-build/ninja/releases)
-- [Python 3.9](https://www.python.org/downloads/windows/)
-- [Git for Windows](https://git-scm.com/download/win)
-- [Visual Studio Code](https://code.visualstudio.com/)
-- [OpenOCD](https://github.com/openocd-org/openocd/)
-
-
-Once installed, you will be presented with a version of VS Code pre-pended with the work "Pico" as shown in the image below. 
-
-![VS Code Pico IDE](images/pico_vscode_version.png)
-
-Use this version of the VSCode IDE from now on whenever developing for the Pico.
-
-Once selected and VS code opens, you will likely be prompted with a choice of "Kit" - you should choose the `arm-none-eabi`
-
-![VS Code Kit selection](images/vscode_select_kits.png)
-
-
-**NOTE:** If an existing `build` folder exists, it is recommended that you delete it before attempting to configure CMake to build your project.
-
-### Mac
-(TBD)...
-
-### Linux (WIP)
-Run `bin/setup_pico.sh` to configure a Linux machine for programming the Pico
-
-**NOTE:** This guide is a modified version of a setup guide for the Raspberry Pi as offered by the Pi foundation - exercise caution when using!
-
-#### Additional project setup info
-Additionally, [this blog post](https://blog.smittytone.net/2021/02/02/program-raspberry-pi-pico-c-mac/) offers additional details on how Pico project setup works and explains how to add new libraries and Pico functionality (e.g. I2C).
-
-
-### Hardware
-This project makes use of the very handy [Raspberry Pi Debug Probe](https://www.raspberrypi.com/documentation/microcontrollers/debug-probe.html) although this is only one of several ways of uploading code to and debugging the Pico microcontroller found on the StepUp! circuit board.
-
-![Alt Text](./images/pico_debug_probe.webp)
-
-### Debugging on MacOS
-To get openocd to play ball, you must install the following libraries as described in the `openocd/README.macOS` file:
-```
-brew install libtool automake libusb libusb-compat hidapi libftdi
-```
-
-### Debugging in Linux
-
-#### 1. Enable `arm-none-eabi-gdb`
-To debug in Linux, you need to ensure you have `arm-none-eabi-gdb` installed. If you can build firmware for the Pico, odds are this is already installed on your PC but not symlinked correctly. To link this, run the following with elevated priveleges (`sudo`)
-```shell
-ln -s /usr/bin/gdb-multiarch /usr/bin/arm-none-eabi-gdb
-```
-You should now see that running `arm-none-eabi-gdb` works as expected.
-
-#### 2. Configure Linux to recognise device
-By following the very useful steps outlined [here](https://forums.raspberrypi.com/viewtopic.php?t=364698), you can configure your udev rules to recognise the Pico plugged in as a CMSIS-DAP interface.
-
-The relevant steps in the linked guide are as follows:
-1. Create a file `10-my-usb.rules` in `/etc/udev/rules.d` containing
-```
-SUBSYSTEM=="usb", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="000c", MODE="666", GROUP="plugdev"
-```
-2. Now, restart the udev service using
-```shell
-sudo udevadm control --reload
-sudo udevadm trigger
-```
-
-## Usage
+## Getting a copy of this repo
 
 1. Clone (recursively) the repo: `git clone --recursive https://github.com/SJFOM/StepUp-Pico.git`.
 2. Enter the repo: `StepUp-Pico`.
@@ -137,9 +62,55 @@ sudo udevadm trigger
 6. Connect your device so it’s ready for file transfer.
 7. Copy the `StepUp.uf2` file from the `build/App-StepUp` folder to the drive which represents the attached Pico device hardware.
 
-## IDEs
 
-Workspace files are included for [Visual Studio Code](https://code.visualstudio.com/).
+## VS Code extensions
+
+### Required
+Raspberry Pi's own [VSCode extension](https://github.com/raspberrypi/pico-vscode) simplifies the installation process for any OS. It includes other necessary VS Code extensions such as [CMake](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools) and [Cortex-Debug](https://github.com/marus/cortex-debug) for both CMake file compilation and debugging using OpenOCD via a SWD capable debugger probe respectively.
+
+### Optional
+While the Raspberry Pi Pico extension is the only one _required_ to compile code for this project, an ancilliary list of recommended extensions can be found in the included [`extensions.json`](./.vscode/extensions.json) file and will be prompted for install by the VS Code IDE.
+
+
+# Debugging
+While any debug probe offering SWD debugging will work, this project makes use of the very handy [Raspberry Pi Debug Probe](https://www.raspberrypi.com/documentation/microcontrollers/debug-probe.html) and the [`launch.json`](./.vscode/launch.json) file in this repository is configured as such for use with this probe.
+
+<img src="./images/pico_debug_probe.webp" alt="Pico Debug Probe" width="400" />
+
+A debugging session can be started either through the Raspberry Pi Pico extension or by using the `Run and Debug` extension in the VS Code sidebar. In either case, use the `Pico Debug (Cortex-Debug)` prompt when asked how you want to initalise the session.
+
+<img src="./images/Cortex_Debug_menu.png" alt="Debug menu" width="400" />
+
+## Debugging on MacOS
+To get openocd to play ball, you must install the following libraries as described in the (`openocd/README.macOS` file)[https://openocd.org/doc-release/README.macOS]:
+```bash
+brew install libtool automake libusb libusb-compat hidapi libftdi
+```
+
+## Debugging in Linux
+
+### Enable `arm-none-eabi-gdb`
+To debug in Linux, you need to ensure you have `arm-none-eabi-gdb` installed. If you can build firmware for the Pico, odds are this is already installed on your PC but not symlinked correctly. To link this, run the following with elevated priveleges (`sudo`)
+```shell
+ln -s /usr/bin/gdb-multiarch /usr/bin/arm-none-eabi-gdb
+```
+You should now see that running `arm-none-eabi-gdb` works as expected.
+
+## Note on use Linux for debugging 
+
+To help Linux to recognise the debug probe, you may need to update your `udev` rules 
+By following the very useful steps outlined [here](https://forums.raspberrypi.com/viewtopic.php?t=364698). This will configure your udev rules to recognise the Pico plugged in as a CMSIS-DAP interface.
+
+The relevant steps in the linked guide are as follows:
+1. Create a file `10-my-usb.rules` in `/etc/udev/rules.d` containing
+    ```
+    SUBSYSTEM=="usb", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="000c", MODE="666", GROUP="plugdev"
+    ```
+2. Now, restart the udev service using
+    ```shell
+    sudo udevadm control --reload
+    sudo udevadm trigger
+    ```
 
 ## Credits
 
