@@ -14,8 +14,6 @@
 # Hardware
 <img src="./images/StepUp_PCB_v0_3.png" alt="PCB" width="800" />
 
-## PCB Assembly
-<img src="./images/StepUp_PCBA_assembly_drawing.png" alt="PCBA Drawing" width="800" />
 
 ## 3D printed housing assembly
 
@@ -34,7 +32,11 @@
 |
 |___/FreeRTOS-Kernel        // FreeRTOS kernel files, included as a submodule
 |
-|___/images                 // Image files used in the README.md
+|___/images                 // Image files used in the README.md guides
+|
+|___/Hardware               // Thin layers for global control - used as parent class
+|   |___3D print files      // STL files to be 3D printed for StepUp housing
+|   |___PCBA files          // Zip file containing Gerbers, Drill files & BoM 
 |
 |___/Interfaces             // Thin layers for global control - used as parent class
 |
@@ -57,7 +59,7 @@
 This project was developed using Microsoft Visual Studio Code](https://code.visualstudio.com/) and all instructions which follow mention use of its code extensions for working with the StepUp! project. Workspace files are included herein - see [rp2040.code-workspace](./rp2040.code-workspace).
 
 
-## Getting a copy of this repo
+## Quick-start - cloning the repo and uploading code
 
 1. Clone (recursively) the repo: `git clone --recursive https://github.com/SJFOM/StepUp-Pico.git`.
 2. Enter the repo: `StepUp-Pico`.
@@ -77,7 +79,62 @@ Raspberry Pi's own [VSCode extension](https://github.com/raspberrypi/pico-vscode
 While the Raspberry Pi Pico extension is the only one _required_ to compile code for this project, an ancilliary list of recommended extensions can be found in the included [`extensions.json`](./.vscode/extensions.json) file and will be prompted for install by the VS Code IDE.
 
 
+# Uploading code
+
+
+# Using the device
+
+## Inserting a battery
+Only 18650 Li-Ion cells are supported by this device. The 18650 cell can either include battery protection circuitry or not - there is a battery protection circuit on-board the StepUp! device which is configured specifically for the device.
+
+<div style="background-color: #e7f3ff; border-left: 4px solid #0066cc; padding: 10px; margin: 10px 0;">
+NOTE: When first inserting the battery, you must also plug in a USB C cable to power up the device. This is a known quirk of the battery protection circuit which prohibits using the battery until external power is first applied.
+</div>
+
+
+## Powering ON
+Press and hold the **POWER** button on the side of the device until a the LED flashes GREEN several times and an audible tone of increasing frequencies plays (like a step-up sequence).
+
+## Controlling the Motor
+Connect the stepper motor using the connector labelled with `A1, A2, B1, B2` to match the coils of the given motor. The Joystick is used to control the motor direction and speed with the joystick button (click while centered) resetting the motor speed to its default configuration.
+
+<img src="./images/StepUp_fully_assembled_top_view_lines.png" alt="Motor joystick control diagram" width="400" />
+
+By default, the StepUp! device drives the supplied stepper motor with `~500mA` of current. While this _can_ be increased by modifying the firmware (see `DEFAULT_IRUN_VALUE` in [`tmc_control.hpp`](./App-StepUp/include/tmc_control.hpp)) it is not recommended given the limited power available from the provided 18650 battery.
+
+## Status Codes
+
+### `STANDBY` - When not controlling a stepper motor
+| Status | Color: Pattern | Buzzer Pattern | Meaning |
+|--------|----------------|---------|---------|
+| Power ON | Green: Fade, low to high | Sweep, low to high | Device is booting - boot complete once tone completes |
+| Ready | Green: Solid | None | Device is ready, LED colour indicates battery HIGH|
+| Ready | Orange: Solid | None | Device is ready, LED colour indicates battery MEDIUM|
+| Ready | Red: Solid | None | Device is ready, LED colour indicates battery LOW|
+| Ready | Red: Blinking | Long sequential beeps | Battery critically LOW - Device auto-powers OFF|
+
+### `ACTIVE` - When controlling a stepper motor
+| Status | Color: Pattern | Buzzer Pattern | Meaning |
+|--------|----------------|---------|---------|
+| Power ON | Green: Fade, low to high | Sweep, low to high | Device is booting - boot complete once tone completes |
+| Ready | Green|Yellow|Red: Solid | None | Device is ready, LED colour indicates battery High|Medium|Low |
+| Operating | Blue: Blinking | None |Device is operating |
+
+## Powering OFF
+Press and hold the **POWER** button on the side of the device until a the LED flashes RED several times and an audible tone of decreasing frequencies plays (like a step-down sequence).
+
+<div style="background-color: #e7f3ff; border-left: 4px solid #0066cc; padding: 10px; margin: 10px 0;">
+NOTE: The device will automatically power OFF after 10 minutes of inactivity
+</div>
+
+## Charging
+
 # Debugging
+
+<div style="background-color: #e7f3ff; border-left: 4px solid #0066cc; padding: 10px; margin: 10px 0;">
+NOTE: The device must first be powered ON for debugging to be enabled.
+</div>
+
 While any debug probe offering SWD debugging will work, this project makes use of the very handy [Raspberry Pi Debug Probe](https://www.raspberrypi.com/documentation/microcontrollers/debug-probe.html) and the [`launch.json`](./.vscode/launch.json) file in this repository is configured as such for use with this probe.
 
 <img src="./images/pico_debug_probe.webp" alt="Pico Debug Probe" width="400" />
@@ -85,6 +142,7 @@ While any debug probe offering SWD debugging will work, this project makes use o
 A debugging session can be started either through the Raspberry Pi Pico extension or by using the `Run and Debug` extension in the VS Code sidebar. In either case, use the `Pico Debug (Cortex-Debug)` prompt when asked how you want to initalise the session.
 
 <img src="./images/Cortex_Debug_menu.png" alt="Debug menu" width="400" />
+
 
 ## Debugging on MacOS
 To get openocd to play ball, you must install the following libraries as described in the (`openocd/README.macOS` file)[https://openocd.org/doc-release/README.macOS]:

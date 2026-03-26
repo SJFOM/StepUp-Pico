@@ -181,8 +181,6 @@ namespace Utils
     void log_error(const string msg)
     {
         printf("[ERROR] %s\n", msg.c_str());
-        // printf("[POWER] Powering down...\n");
-        // PowerControl::powerDown();
         while (true)
         {
             ;
