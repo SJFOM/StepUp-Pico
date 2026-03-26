@@ -56,7 +56,7 @@
 
 ## IDEs
 
-This project was developed using Microsoft Visual Studio Code](https://code.visualstudio.com/) and all instructions which follow mention use of its code extensions for working with the StepUp! project. Workspace files are included herein - see [rp2040.code-workspace](./rp2040.code-workspace).
+This project was developed using [Microsoft Visual Studio Code](https://code.visualstudio.com/) and all instructions which follow mention use of its code extensions for working with the StepUp! project. Workspace files are included herein - see [rp2040.code-workspace](./rp2040.code-workspace).
 
 
 ## Quick-start - cloning the repo and uploading code
@@ -87,9 +87,7 @@ While the Raspberry Pi Pico extension is the only one _required_ to compile code
 ## Inserting a battery
 Only 18650 Li-Ion cells are supported by this device. The 18650 cell can either include battery protection circuitry or not - there is a battery protection circuit on-board the StepUp! device which is configured specifically for the device.
 
-<div style="background-color: #e7f3ff; border-left: 4px solid #0066cc; padding: 10px; margin: 10px 0;">
-NOTE: When first inserting the battery, you must also plug in a USB C cable to power up the device. This is a known quirk of the battery protection circuit which prohibits using the battery until external power is first applied.
-</div>
+>**NOTE:** When first inserting the battery, you must also plug in a USB C cable to power up the device. This is a known quirk of the battery protection circuit which prohibits using the battery until external power is first applied.
 
 
 ## Powering ON
@@ -106,8 +104,9 @@ By default, the StepUp! device drives the supplied stepper motor with `~500mA` o
 
 ### `STANDBY` - When not controlling a stepper motor
 | Status | Color: Pattern | Buzzer Pattern | Meaning |
-|--------|----------------|---------|---------|
+|--------|:----------------:|:---------:|---------|
 | Power ON | Green: Fade, low to high | Sweep, low to high | Device is booting - boot complete once tone completes |
+| Power ON | Green: Fade, low to high -> Solid Red for 5 seconds | Sweep, low to high | Device is booting - fails during boot |
 | Ready | Green: Solid | None | Device is ready, LED colour indicates battery HIGH|
 | Ready | Orange: Solid | None | Device is ready, LED colour indicates battery MEDIUM|
 | Ready | Red: Solid | None | Device is ready, LED colour indicates battery LOW|
@@ -115,7 +114,7 @@ By default, the StepUp! device drives the supplied stepper motor with `~500mA` o
 
 ### `ACTIVE` - When controlling a stepper motor
 | Status | Color: Pattern | Buzzer Pattern | Meaning |
-|--------|----------------|---------|---------|
+|--------|:----------------:|:---------:|---------|
 | Power ON | Green: Fade, low to high | Sweep, low to high | Device is booting - boot complete once tone completes |
 | Ready | Green|Yellow|Red: Solid | None | Device is ready, LED colour indicates battery High|Medium|Low |
 | Operating | Blue: Blinking | None |Device is operating |
@@ -123,17 +122,15 @@ By default, the StepUp! device drives the supplied stepper motor with `~500mA` o
 ## Powering OFF
 Press and hold the **POWER** button on the side of the device until a the LED flashes RED several times and an audible tone of decreasing frequencies plays (like a step-down sequence).
 
-<div style="background-color: #e7f3ff; border-left: 4px solid #0066cc; padding: 10px; margin: 10px 0;">
-NOTE: The device will automatically power OFF after 10 minutes of inactivity
-</div>
+>**NOTE:** The device will automatically power OFF after 10 minutes of inactivity
+
 
 ## Charging
 
 # Debugging
 
-<div style="background-color: #e7f3ff; border-left: 4px solid #0066cc; padding: 10px; margin: 10px 0;">
-NOTE: The device must first be powered ON for debugging to be enabled.
-</div>
+
+>**NOTE:** The device must first be powered **ON** for debugging to be enabled.
 
 While any debug probe offering SWD debugging will work, this project makes use of the very handy [Raspberry Pi Debug Probe](https://www.raspberrypi.com/documentation/microcontrollers/debug-probe.html) and the [`launch.json`](./.vscode/launch.json) file in this repository is configured as such for use with this probe.
 
@@ -145,7 +142,7 @@ A debugging session can be started either through the Raspberry Pi Pico extensio
 
 
 ## Debugging on MacOS
-To get openocd to play ball, you must install the following libraries as described in the (`openocd/README.macOS` file)[https://openocd.org/doc-release/README.macOS]:
+To get openocd to play ball, you must install the following libraries as described in the [`openocd/README.macOS` file](https://openocd.org/doc-release/README.macOS):
 ```bash
 brew install libtool automake libusb libusb-compat hidapi libftdi
 ```
@@ -162,11 +159,11 @@ You should now see that running `arm-none-eabi-gdb` works as expected.
 ## Note on use Linux for debugging 
 
 To help Linux to recognise the debug probe, you may need to update your `udev` rules 
-By following the very useful steps outlined [here](https://forums.raspberrypi.com/viewtopic.php?t=364698). This will configure your udev rules to recognise the Pico plugged in as a CMSIS-DAP interface.
+by following the very useful steps outlined [here](https://forums.raspberrypi.com/viewtopic.php?t=364698). This will configure your udev rules to recognise the Pico plugged in as a CMSIS-DAP interface.
 
 The relevant steps in the linked guide are as follows:
 1. Create a file `10-my-usb.rules` in `/etc/udev/rules.d` containing
-    ```
+    ```shell
     SUBSYSTEM=="usb", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="000c", MODE="666", GROUP="plugdev"
     ```
 2. Now, restart the udev service using
