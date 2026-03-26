@@ -103,7 +103,7 @@ constexpr bool CX_COOLSTEP_ENABLED = true;
 /* Voltage threshold definitions - START */
 /*****************************************/
 
-constexpr float CX_BATTERY_VOLTAGE_THRESHOLD_LOW = 3.3f;
+constexpr float CX_BATTERY_VOLTAGE_THRESHOLD_LOW = 3.4f;
 constexpr float CX_BATTERY_VOLTAGE_THRESHOLD_MID_LOW = 3.6f;
 constexpr float CX_BATTERY_VOLTAGE_THRESHOLD_MID_HIGH = 3.8f;
 constexpr float CX_BATTERY_VOLTAGE_THRESHOLD_HIGH = 4.3f;
