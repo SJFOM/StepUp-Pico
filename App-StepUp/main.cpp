@@ -988,59 +988,45 @@ extern "C" void on_error_handler(const char *msg)
 {
     // Your custom error handling
     printf("[ERROR] Custom error handler: %s\n", msg);
+    printf("[WARN] Disabling Watchdog to avoid boot-looping\n");
 
-    if (s_init_complete)
+    watchdog_disable();
+
+    // Critical failure, just turn on red LED if we can and halt
+    printf(
+        "[ERROR] Critical failure %s init, halting with buzzer and red "
+        "LED ON for 5 seconds -> then solid red LED ON.\n",
+        s_init_complete ? "post" : "during");
+
+    // Disable other LED pins, just want RED
+    gpio_deinit(LED_PIN_BLUE);
+    gpio_deinit(LED_PIN_GREEN);
+
+    // Set up red LED pin and turn it on
+    gpio_init(LED_PIN_RED);
+    gpio_set_dir(LED_PIN_RED, GPIO_OUT);
+
+    gpio_init(BUZZER_PIN);
+    gpio_set_dir(BUZZER_PIN, GPIO_OUT);
+
+    // Manual approach to both sounding the buzzer and blinking the LED for
+    // ~5 seconds (400us * 12500 iterations = 5s) before halting in an
+    // infinite loop.
+    for (int i = 0; i < 12500; i++)
     {
-        if (led_control.processJob(xTaskGetTickCount()) ==
-            ControllerState::STATE_READY)
-            led_control.setLEDFunction(ControllerNotification::NOTIFY_ERROR);
+        if (i % 1000 == 0)
         {
+            gpio_put(LED_PIN_RED, !gpio_get(LED_PIN_RED));
         }
-        if (buzzer_control.processJob(xTaskGetTickCount()) ==
-            ControllerState::STATE_READY)
-        {
-            buzzer_control.setBuzzerFunction(
-                ControllerNotification::NOTIFY_ERROR);
-        }
+        gpio_put(BUZZER_PIN, 1);
+        sleep_us(200);
+        gpio_put(BUZZER_PIN, 0);
+        sleep_us(200);
     }
-    else
+    while (true)
     {
-        // Critical failure during init, just turn on red LED if we can and halt
-        printf(
-            "[ERROR] Critical failure during init, halting with buzzer and red "
-            "LED ON for 5 seconds\n");
-
-        // Disable other LED pins, just want RED
-        gpio_deinit(LED_PIN_BLUE);
-        gpio_deinit(LED_PIN_GREEN);
-
-        // Set up red LED pin and turn it on
-        gpio_init(LED_PIN_RED);
-        gpio_set_dir(LED_PIN_RED, GPIO_OUT);
-        gpio_put(LED_PIN_RED, 1);
-
-        gpio_init(BUZZER_PIN);
-        gpio_set_dir(BUZZER_PIN, GPIO_OUT);
-
-        // Manual approach to both sounding the buzzer and blinking the LED for
-        // ~5 seconds (400us * 12500 iterations = 5s) before halting in an
-        // infinite loop.
-        for (int i = 0; i < 12500; i++)
-        {
-            if (i % 1000 == 0)
-            {
-                gpio_put(LED_PIN_RED, !gpio_get(LED_PIN_RED));
-            }
-            gpio_put(BUZZER_PIN, 1);
-            sleep_us(200);
-            gpio_put(BUZZER_PIN, 0);
-            sleep_us(200);
-        }
-        while (true)
-        {
-            /* Hang in infinite loop - land here if debugging and debugger
-                 connected*/
-            __breakpoint();
-        }
+        /* Hang in infinite loop - land here if debugging and debugger
+             connected*/
+        __breakpoint();
     }
 }
