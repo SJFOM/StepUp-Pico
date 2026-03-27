@@ -15,12 +15,15 @@
 |___README.md
 ```
 
-## Top
+## **NOTE:** All measurements below are in millimetres
+
+## Top - print in PLA or PETG
+
 <img src="../../images/3D print/Top_projected_views.png" alt="PCBA Drawing" width="800" />
 
-## Bottom
+## Bottom - print in PLA or PETG
 <img src="../../images/3D print/Bottom_projected_views.png" alt="PCBA Drawing" width="800" />
 
-## LED Box
+## LED Box - print in translucent PLA or PETG
 <img src="../../images/3D print/LED_BOX_projected_views.png" alt="PCBA Drawing" width="800" />
 

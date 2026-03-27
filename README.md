@@ -10,14 +10,77 @@
 <a href="https://github.com/SJFOM/StepUp-Pico/graphs/contributors"><img alt="GitHub contributors" src="https://img.shields.io/github/contributors/SJFOM/StepUp-Pico?color=2b9348"></a>
 <a href="https://github.com/SJFOM/StepUp-Pico/blob/master/LICENSE"><img src="https://img.shields.io/github/license/SJFOM/StepUp-Pico?color=2b9348" alt="License Badge"/></a>
 
-
-# Hardware
 <img src="./images/StepUp_PCB_v0_3.png" alt="PCB" width="800" />
 
 
-## 3D printed housing assembly
+## What is it?
+StepUp! is a low-cost, battery powered handheld device for quick testing and development work with stepper motors - all you need is:
 
-<img src="./images/StepUp_assembly_drawing.png" alt="StepUp exploded assembly view" width="800" />
+- A stepper motor
+- A motor cable
+
+## Why did you make it?
+
+Working a lot with stepper motors, I often find myself wanting to test a single motor at a time to understand if its performing as it should - often with questions like:
+
+- Is there an issue with my driving circuit or the motor itself?
+- Is the cabling damaged or do the coils contain open or short circuits?
+- Is it pulling too much/little current?
+- Does it have a hold current or is it jammed?
+
+I found that, to really answer these questions required power supplies and oscilloscopes with expensive current probes attached to really get useful measurements. While this would give me the results I was looking for, the setup was a pain and the measurements were generic and required at least some knowledge of how steppers worked to be interpreted.
+
+I came to the realisation that this problem was two-fold:
+
+1. I don’t have an easy & repeatable way of driving stepper motors
+2. I don’t always have all of my lab equipment set up to make the kind of measurements I care about.
+
+>I set out to tackle problem number 1 - creating an easy way to repeatably test a stepper motor
+
+
+## What makes it special?
+
+There are *plenty* of boards and solutions out there that can drive a stepper motor. However, what I have *yet to see* is a solution that is completely self-contained, requiring no external power supply and driving a stepper motor using input controls from an operator.
+
+My aim is for this to be an item in your toolbox, one that can be called upon whenever you need to test a motor - without all the setup cost.
+
+It is inherently low power - giving just enough juice to get a motor going but with enough power to test out some motor features.
+
+## How much does it cost to build?
+### Short answer
+Around **50 (or $60)** per unit
+
+### *Longer answer...*
+A core goal from the outset was to make this _as_ cheap as I possibly could. Totting up my most recent order for 5 PCB's with 3 assembled PCBA's and including the additional through-hole components I hand solder to the PCBA's (to reduce cost) works out to around $50 per PCB as per my last order in March 2025.
+
+# Prerequisites
+
+## Assembling a StepUp! device
+All documentation for creating your own StepUp! PCB and enclosure can be found in the [Hardware README file](./Hardware/README.md).
+
+## IDEs
+
+This project was developed using [Microsoft Visual Studio Code](https://code.visualstudio.com/) and all instructions which follow mention use of its code extensions for working with the StepUp! project. Workspace files are included herein - see [rp2040.code-workspace](./rp2040.code-workspace).
+
+
+## Quick-start - cloning the repo and uploading code
+
+1. Clone (recursively) the repo: `git clone --recursive https://github.com/SJFOM/StepUp-Pico.git`.
+2. Enter the repo: `StepUp-Pico`.
+3. Optionally, edit `CMakeLists.txt` and `/App-StepUp/CMakeLists.txt` to configure the project.
+4. Optionally, manually configure the build process: `cmake -S . -B build/`.
+5. Optionally, manually build the app: `cmake --build build`.
+6. Connect your device so it’s ready for file transfer.
+7. Copy the `StepUp.uf2` file from the `build/App-StepUp` folder to the drive which represents the attached Pico device hardware.
+
+
+## VS Code extensions
+
+### Required
+Raspberry Pi's own [VSCode extension](https://github.com/raspberrypi/pico-vscode) simplifies the installation process for any OS. It includes other necessary VS Code extensions such as [CMake](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools) and [Cortex-Debug](https://github.com/marus/cortex-debug) for both CMake file compilation and debugging using OpenOCD via a SWD capable debugger probe respectively.
+
+### Optional
+While the Raspberry Pi Pico extension is the only one _required_ to compile code for this project, an ancilliary list of recommended extensions can be found in the included [`extensions.json`](./.vscode/extensions.json) file and will be prompted for install by the VS Code IDE.
 
 ## Project Structure
 
@@ -51,81 +114,67 @@
 |___LICENSE.md
 ```
 
-
-# Prerequisites
-
-## IDEs
-
-This project was developed using [Microsoft Visual Studio Code](https://code.visualstudio.com/) and all instructions which follow mention use of its code extensions for working with the StepUp! project. Workspace files are included herein - see [rp2040.code-workspace](./rp2040.code-workspace).
-
-
-## Quick-start - cloning the repo and uploading code
-
-1. Clone (recursively) the repo: `git clone --recursive https://github.com/SJFOM/StepUp-Pico.git`.
-2. Enter the repo: `StepUp-Pico`.
-3. Optionally, edit `CMakeLists.txt` and `/App-StepUp/CMakeLists.txt` to configure the project.
-4. Optionally, manually configure the build process: `cmake -S . -B build/`.
-5. Optionally, manually build the app: `cmake --build build`.
-6. Connect your device so it’s ready for file transfer.
-7. Copy the `StepUp.uf2` file from the `build/App-StepUp` folder to the drive which represents the attached Pico device hardware.
-
-
-## VS Code extensions
-
-### Required
-Raspberry Pi's own [VSCode extension](https://github.com/raspberrypi/pico-vscode) simplifies the installation process for any OS. It includes other necessary VS Code extensions such as [CMake](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools) and [Cortex-Debug](https://github.com/marus/cortex-debug) for both CMake file compilation and debugging using OpenOCD via a SWD capable debugger probe respectively.
-
-### Optional
-While the Raspberry Pi Pico extension is the only one _required_ to compile code for this project, an ancilliary list of recommended extensions can be found in the included [`extensions.json`](./.vscode/extensions.json) file and will be prompted for install by the VS Code IDE.
-
-
-# Uploading code
-
-
 # Using the device
 
-## Inserting a battery
+Steps `1` -> `3` below should be followed in the order provided to give best chances of uploading code first time!
+
+## 1. Inserting a battery
 Only 18650 Li-Ion cells are supported by this device. The 18650 cell can either include battery protection circuitry or not - there is a battery protection circuit on-board the StepUp! device which is configured specifically for the device.
 
 >**NOTE:** When first inserting the battery, you must also plug in a USB C cable to power up the device. This is a known quirk of the battery protection circuit which prohibits using the battery until external power is first applied.
 
+## 2. Uploading code to the device
+Once a battery has been inserted, plug the device into your PC using a USB C data cable. Follow these steps to upload code
+1. The `POWER` button on the side of the PCB (or Enclosure box) and
+2. The `PROGRAM` button on the bottom of the PCB (or Enclosure box)
+3. Press once the `RESET` button to reboot the device into program mode.
+4. You can now release the `PROGRAM` button but keep the `POWER` button held down
 
-## Powering ON
-Press and hold the **POWER** button on the side of the device until a the LED flashes GREEN several times and an audible tone of increasing frequencies plays (like a step-up sequence).
+The device should evaluate as a USB drive mounted to your PC. From here, you can copy the `StepUp.uf2` file to the mounted device either:
+- By grabbing the latest copy of [Release firmware](https://github.com/SJFOM/StepUp-Pico/releases) available in the GitHub repo
+- OR - locating it in the `build/App-StepUp` directory once you have compiled this repository
 
-## Controlling the Motor
+## 3. Powering ON
+Once firmware has been loaded successfully - press and hold the **POWER** button on the side of the device until a the LED flashes GREEN several times and an audible tone of increasing frequencies plays (like a step-up sequence).
+
+## 4. Controlling the Motor
 Connect the stepper motor using the connector labelled with `A1, A2, B1, B2` to match the coils of the given motor. The Joystick is used to control the motor direction and speed with the joystick button (click while centered) resetting the motor speed to its default configuration.
 
 <img src="./images/StepUp_fully_assembled_top_view_lines.png" alt="Motor joystick control diagram" width="400" />
 
 By default, the StepUp! device drives the supplied stepper motor with `~500mA` of current. While this _can_ be increased by modifying the firmware (see `DEFAULT_IRUN_VALUE` in [`tmc_control.hpp`](./App-StepUp/include/tmc_control.hpp)) it is not recommended given the limited power available from the provided 18650 battery.
 
-## Status Codes
+## 5. Status Codes
 
 ### `STANDBY` - When not controlling a stepper motor
 | Status | Color: Pattern | Buzzer Pattern | Meaning |
 |--------|:----------------:|:---------:|---------|
-| Power ON | Green: Fade, low to high | Sweep, low to high | Device is booting - boot complete once tone completes |
+| Power ON | Green: Fade, low to high | Sequence, low to high | Device is booting - boot complete once tone completes |
 | Power ON | Green: Fade, low to high -> Slow blinking Red for 5 seconds -> Solid Red LED | Sweep, low to high -> Continuous beep tone for 5 seconds | Device is booting - fails during boot |
-| Ready | Green: Solid | None | Device is ready, LED colour indicates battery HIGH|
-| Ready | Orange: Solid | None | Device is ready, LED colour indicates battery MEDIUM|
-| Ready | Red: Solid | None | Device is ready, LED colour indicates battery LOW|
-| Ready | Red: Blinking | Long sequential beeps | Battery critically LOW - Device auto-powers OFF|
+| Ready | Green: Solid | None | Device is ready, LED colour indicates battery HIGH |
+| Ready | Orange: Solid | None | Device is ready, LED colour indicates battery MEDIUM |
+| Ready | Red: Solid | None | Device is ready, LED colour indicates battery LOW |
+| Power OFF | Red: Fast Blinking | Long continuous | Battery critically LOW - Device auto-powers OFF|
+| Power OFF | Red: Fast Blinking | Sequence, high to low | User has triggered a power OFF sequence |
 
 ### `ACTIVE` - When controlling a stepper motor
 | Status | Color: Pattern | Buzzer Pattern | Meaning |
 |--------|:----------------:|:---------:|---------|
-| Power ON | Green: Fade, low to high | Sweep, low to high | Device is booting - boot complete once tone completes |
-| Ready | Green|Yellow|Red: Solid | None | Device is ready, LED colour indicates battery High|Medium|Low |
-| Operating | Blue: Blinking | None |Device is operating |
+| Joystick button press | Blue: Fast blinking | Two quick beeps | Reset motor speed to initial starting value |
+| Motor moving | Red: Rapid Blinking | Three long beeps | Error detected - issue could be any of the following: Short circuit in motor coils, Open circuit, TMC Overheating, battery voltage out of bounds, motor voltage out of bounds |
+| Motor moving | Magenta: Solid for ~1 second | None | **Note:** Stall detection is an experimental feature, not enabled by default. When enabled: Device detected a motor stall event, unable to provide full power due to excessive motor speed. |
 
-## Powering OFF
+## 6. Powering OFF
 Press and hold the **POWER** button on the side of the device until a the LED flashes RED several times and an audible tone of decreasing frequencies plays (like a step-down sequence).
 
 >**NOTE:** The device will automatically power OFF after 10 minutes of inactivity
 
 
 ## Charging
+
+When the USB cable is inserted, a small orange LED near the USB port will illuminate indicating the battery is being charged. The battery is fully charged once the LED extinguishes.
+
+>**NOTE:** The StepUp! PCB charges at a modest 300mA. While not the fastest charging speed out there, it is safe and keeps the temperature of the onboard charging IC down.
 
 # Debugging
 
