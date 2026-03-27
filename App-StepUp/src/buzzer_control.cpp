@@ -95,7 +95,7 @@ void BuzzerControl::setBuzzerFunction(
                 break;
             }
         }
-
+#if (ENABLE_BUZZER_OUTPUT == 1)
         if (m_control_state == ControllerState::STATE_BUSY)
         {
             // Enable the buzzer
@@ -103,6 +103,7 @@ void BuzzerControl::setBuzzerFunction(
 
             playNextNoteInMelody();
         }
+#endif
     }
 }
 

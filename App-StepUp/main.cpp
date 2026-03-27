@@ -607,10 +607,6 @@ void core1_usb_service()
         battery_voltage_monitoring_state =
             battery_voltage_monitoring.processJob(xTaskGetTickCount());
 
-        float batt_volts = battery_voltage_monitoring.getVoltageData().voltage;
-
-        LOG_DATA("Battery voltage: %.2fV", batt_volts);
-
         switch (battery_voltage_monitoring_state)
         {
             case ControllerState::STATE_IDLE:
