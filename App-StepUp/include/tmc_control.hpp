@@ -515,7 +515,7 @@ private:
     MotorMoveState m_motor_move_state;
     float m_r_sense;
     bool m_init_success, m_uart_pins_enabled, m_coolstep_enabled,
-        m_peak_velocity_detected;
+        m_auto_peak_velocity_detected;
     struct TMCData m_tmc;
     int32_t m_target_velocity, m_ramp_velocity;
     TMCOpenCircuitAlgoData m_open_circuit_algo_data;

@@ -19,6 +19,12 @@
 // Sense resistor value in Ohms - used for current calculations
 constexpr float CX_R_SENSE = (0.15f);
 
+// When we have changed the motor velocity up or down and then stopped the
+// motor, the device will remember what speed it got to and ramp its velocity
+// towards that previous target speed. Setting this flag to true enables that
+// functionality (default = true).
+constexpr bool CX_RESUME_PREVIOUS_VELOCITY_ENABLED = true;
+
 // CoolStep automatically reduces the motor current when it detects that the
 // motor is not under load, which can help to reduce power consumption and heat
 // generation. However, it can also lead to reduced performance in some cases,

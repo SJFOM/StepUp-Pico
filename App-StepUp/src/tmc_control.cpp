@@ -390,18 +390,23 @@ void TMCControl::updateMovementDynamics(int32_t velocity_delta,
     if (direction == 0)
     {
         enableFunctionality(false);
-        m_peak_velocity_detected = false;
+        if (!CX_RESUME_PREVIOUS_VELOCITY_ENABLED)
+        {
+            resetMovementDynamics();
+        }
+        m_auto_peak_velocity_detected = false;
     }
     else
     {
         int32_t cached_velocity;
-        if (m_peak_velocity_detected)
+        if (m_auto_peak_velocity_detected)
         {
             cached_velocity = m_vactual.sr;
         }
         else
         {
             cached_velocity = abs(m_vactual.sr);
+
             cached_velocity *= direction;
 
             // We do not wish to allow a velocity update to make the motor stop,
@@ -441,13 +446,6 @@ void TMCControl::move(int32_t velocity)
     if (!isFunctionalityEnabled())
     {
         return;
-    }
-
-    if ((uint32_t)abs(velocity) > VELOCITY_MAX_STEPS_PER_SECOND)
-    {
-        LOG_WARN("Max motor velocity reached!");
-
-        velocity = VELOCITY_MAX_STEPS_PER_SECOND;
     }
 
     enableFunctionality(velocity == 0 ? false : true);
@@ -553,7 +551,7 @@ TMCDiagnostics TMCControl::readTMCDiagnostics()
         // state
         tmc_diag.normal_operation = false;
         tmc_diag.stall_detected = true;
-        m_peak_velocity_detected = true;
+        m_auto_peak_velocity_detected = true;
         if (CX_HIGH_SPEED_AUTO_REDUCTION_ENABLED)
         {
             if (m_target_velocity > 0)
