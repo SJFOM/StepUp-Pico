@@ -48,15 +48,24 @@ It is inherently low power - giving just enough juice to get a motor going but w
 
 ## How much does it cost to build?
 ### Short answer
-Around **50 (or $60)** per unit
+Around **€50 (or $60)** per unit
 
 ### *Longer answer...*
 A core goal from the outset was to make this _as_ cheap as I possibly could. Totting up my most recent order for 5 PCB's with 3 assembled PCBA's and including the additional through-hole components I hand solder to the PCBA's (to reduce cost) works out to around $50 per PCB as per my last order in March 2025.
 
-# Prerequisites
+## Tech specs
+- **CPU:** Dual-core Arm Cortex-M0+ processor, flexible clock running up to 133 MHz
+- **RAM:** 264kB on-chip SRAM
+- **Flash:** 2MB on-board QSPI flash
+- **Battery:** 18650 Li-Ion, single cell
+- **Charge current:** 300mA
+- **Motor control current:** 500mA (default)
+- **Battery life:** ~3 hours 
+
+# Pre-requisites
 
 ## Assembling a StepUp! device
-All documentation for creating your own StepUp! PCB and enclosure can be found in the [Hardware README file](./Hardware/README.md).
+All documentation and pre-requisites for creating your own StepUp! PCB and enclosure can be found in the [Hardware README file](./Hardware/README.md).
 
 ## IDEs
 
@@ -118,13 +127,18 @@ While the Raspberry Pi Pico extension is the only one _required_ to compile code
 
 Steps `1` -> `3` below should be followed in the order provided to give best chances of uploading code first time!
 
+If helpful, all PCB schematics for this project can be found in the [Releases section of my KiCad repository](https://github.com/SJFOM/KiCad/releases).
+
 ## 1. Inserting a battery
 Only 18650 Li-Ion cells are supported by this device. The 18650 cell can either include battery protection circuitry or not - there is a battery protection circuit on-board the StepUp! device which is configured specifically for the device.
 
 >**NOTE:** When first inserting the battery, you must also plug in a USB C cable to power up the device. This is a known quirk of the battery protection circuit which prohibits using the battery until external power is first applied.
 
 ## 2. Uploading code to the device
-Once a battery has been inserted, plug the device into your PC using a USB C data cable. Follow these steps to upload code
+
+Once a battery has been inserted, plug the device into your PC using a USB C data cable. 
+
+Due to a small hardware quirk, you need to ensure that the `POWER` button (on the side) is held down for the duration of the programming process. Follow these steps to upload code:
 1. The `POWER` button on the side of the PCB (or Enclosure box) and
 2. The `PROGRAM` button on the bottom of the PCB (or Enclosure box)
 3. Press once the `RESET` button to reboot the device into program mode.
@@ -206,10 +220,10 @@ The StepUp! device emits a stream of serial messages over USB which can be read 
 |--------|:----------------:|:---------:|---------|
 | Joystick button press | Blue: Fast blinking | Two quick beeps | Reset motor speed to initial starting value |
 | Motor moving | Red: Rapid Blinking | Three long beeps | Error detected - issue could be any of the following: Short circuit in motor coils, Open circuit, TMC Overheating, battery voltage out of bounds, motor voltage out of bounds |
-| Motor moving | Magenta: Solid for ~1 second | None | **Note:** Stall detection is an experimental feature, not enabled by default. When enabled: Device detected a motor stall event, unable to provide full power due to excessive motor speed. |
+| Motor moving | White: Solid for ~1 second | None | **Note:** Stall detection is an experimental feature, not enabled by default. When enabled: Device detected a motor stall event, unable to provide full power due to excessive motor speed. |
 
 ## 6. Powering OFF
-Press and hold the **POWER** button on the side of the device until a the LED flashes RED several times and an audible tone of decreasing frequencies plays (like a step-down sequence).
+Press and hold the **POWER** button on the side of the device for 5 seconds until the LED flashes RED several times and an audible tone of decreasing frequencies plays (like a step-down sequence).
 
 >**NOTE:** The device will automatically power OFF after 10 minutes of inactivity
 

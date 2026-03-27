@@ -364,11 +364,7 @@ void core1_usb_service()
                 // tmc_control get State
                 tmc_data = tmc_control.getTMCData();
 
-                if (tmc_data.diag.normal_operation)
-                {
-                    LOG_DEBUG("Normal operation\n");
-                }
-                else
+                if (false == tmc_data.diag.normal_operation)
                 {
                     // Most likely case is to emit a WARN signal if we enter
                     // this state
@@ -378,18 +374,18 @@ void core1_usb_service()
 
                     if (tmc_data.diag.stall_detected)
                     {
-                        LOG_DEBUG(
-                            "Stall detected! Automatically reducing speed");
-                        // Don't trigger a typical info or warn message as we
-                        // don't need to alert to the user that a max rpm has
-                        // been reached as this will likely happen very often
+                        LOG_DEBUG("Stall detected!");
+                        // Don't trigger a typical info or warn message as
+                        // we don't need to alert to the user that a max rpm
+                        // has been reached as this will likely happen very
+                        // often
                         trigger_led = false;
                         trigger_buzzer = false;
 
                         tmc_notify = ControllerNotification::NOTIFY_DATA;
 
                         enum LEDColourNames led_colour =
-                            LEDColourNames::LED_COLOUR_MAGENTA;
+                            LEDColourNames::LED_COLOUR_WHITE;
                         xQueueSendToBack(queue_led_colour_data, &led_colour, 0);
                     }
                     if (tmc_data.diag.open_circuit ||
@@ -402,8 +398,8 @@ void core1_usb_service()
                     }
                     if (tmc_data.diag.overheating)
                     {
-                        // Overheat event warrants a more assertive notification
-                        // to the user
+                        // Overheat event warrants a more assertive
+                        // notification to the user
                         tmc_notify = ControllerNotification::NOTIFY_ERROR;
                         LOG_DEBUG("Overheating!");
                         tmc_control.enableFunctionality(false);
@@ -577,6 +573,7 @@ void core1_usb_service()
                     }
                     else
                     {
+                        LOG_INFO("LED notification!");
                         led_control.setLEDFunction(led_notify);
                     }
                 }

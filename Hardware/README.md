@@ -11,7 +11,7 @@
 |___README.md
 ```
 
-## Prerequisites
+## Pre-requisites
 To fully assembly 1 x StepUp! device - you will need the following
 - 1 x StepUp! PCBA
 - 1 x 3D printer
@@ -26,27 +26,55 @@ To fully assembly 1 x StepUp! device - you will need the following
 ## PCBA Assembly
 The PCBA comes with one side populated with SMD components but still requires some assembly by hand - this is in an effort to reduce overall build costs by doing some of the through-hole assembly in person. The diagram below shows where the through-hole components are located on the PCB.
 
-<img src="..//images/StepUp_PCBA_assembly_drawing.png" alt="PCBA Drawing" width="800" />
+<img src="..//images/Assembly/StepUp_PCBA_assembly_drawing.png" alt="PCBA Drawing" width="800" />
 
 ## LED Box assembly
 With the aid of a small drop of cyanacrolyte (a.k.a super-glue), slide the translucent LED Box onto the Top section of the enclosure housing so that the LED Box is flush to the part.
 
-<img src="..//images/3D print/3D_Top_with_LED_Box.png" alt="LED Box assembly" width="800" />
-
+<div style="display: flex; gap: 20px; justify-content: center;">
+  <div>
+    <img src="../images/3D print/3D_Top_with_LED_Box.png" alt="LED Box assembly" width="700" />
+  </div>
+  <div>
+    <img src="../images/Assembly/Gluing the LED Box.jpg" alt="LED Box gluing" width="400" />
+  </div>
+</div>
 
 ## Threaded inserts
 
-<img src="..//images/StepUp_btm_enclosure_top_view.png" alt="Threaded insert locations" width="800" />
+<div style="display: flex; gap: 20px; justify-content: center;">
+  <div>
+    <img src="..//images/Assembly/StepUp_btm_enclosure_top_view.png" alt="Threaded insert locations" width="400" />
+  </div>
+  <div>
+    <img src="..//images/Assembly/Enclosure bottom piece - without inserts.jpg" alt="Threaded inserts - before assembly" width="400" />
+  </div>
+  <div>
+    <img src="..//images/Assembly/Enclosure bottom piece - with inserts.jpg" alt="Threaded inserts - assembled" width="400" />
+  </div>
+</div>
+
+### Important - ensure the inserts are set flush
+<div style="display: flex; gap: 20px; justify-content: center;">
+  <div>
+    <img src="../images/Assembly/Threaded inserts - not flush.jpg" alt="Threaded inserts - incorrect" width="400" />
+  </div>
+  <div>
+    <img src="../images/Assembly/Threaded inserts - flush.jpg" alt="Threaded inserts - correct" width="400" />
+  </div>
+</div>
+
 
 ## Attaching PCB to Bottom enclosure
 Using 4 x M3x5 screws, attach the PCB to the bottom housing assembly as shown in the image below.
 
-<img src="..//images/StepUp_PCBA_bolt_locations.png" alt="PCBA Drawing" width="800" />
+<img src="..//images/Assembly/StepUp_PCBA_bolt_locations.png" alt="Enclosure bolt locations" width="800" />
+
 
 
 ## 3D printed housing assembly
 
 Once the PCBA is attached to the bottom assembly, the top piece should just click into place.
 
-<img src="..//images/StepUp_assembly_drawing.png" alt="StepUp exploded assembly view" width="800" />
+<img src="..//images/Assembly/StepUp_assembly_drawing.png" alt="StepUp exploded assembly view" width="800" />
 

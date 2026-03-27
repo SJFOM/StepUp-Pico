@@ -33,6 +33,9 @@ extern "C"
 #include "../../../Libraries/TMC_API/ic/TMC2300.h"
 }
 
+// PinManager
+#include "pin_event_manager.hpp"
+
 // printf can default to using uart0 so use uart1 instead
 #define TMC_UART_ID   uart1
 #define TMC_BAUD_RATE ((unsigned)460800)
@@ -42,7 +45,7 @@ extern "C"
 #define TMC_UART_CHANNEL (0)  // Not as relevant for single IC use case
 
 // Default motion profile ramp configurations
-#define VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND (1000U)
+#define VELOCITY_RAMP_INCREMENT_STEPS_PER_SECOND (500U)
 #define VELOCITY_STARTING_STEPS_PER_SECOND       (10000U)
 
 // Rate at which we decrement the velocity if we reach Stallgaurd threshold
@@ -55,15 +58,15 @@ extern "C"
 #define VELOCITY_SLOW_SPEED_STEPS_PER_SECOND \
     (2 * VELOCITY_STARTING_STEPS_PER_SECOND)
 
-#define VELOCITY_MAX_STEPS_PER_SECOND (100000U)
+#define VELOCITY_MAX_STEPS_PER_SECOND (30000U)
 
 // Run and hold current values (0..31U) scaled to 1.2A RMS
-#define DEFAULT_IRUN_VALUE  (13U)
+#define DEFAULT_IRUN_VALUE  (11U)
 #define DEFAULT_IHOLD_VALUE (0U)
 
 // If SG_VALUE falls below 2x SGTHRS_VALUE then a stall detection is triggered
 // SG_VALUE = 0..510 (higher number, lighter loading)
-// 90% loading = 510 - 0.9*510 = 0.1*510 - 51
+// 90% loading = 510 - 0.9*510 = 0.1*510 = 51
 // SGTHRS = 51/2 ~= 25
 constexpr uint16_t CX_DEFAULT_SGTHRS_VALUE = 25U;
 
@@ -510,12 +513,14 @@ protected:
 
 private:
     MotorMoveState m_motor_move_state;
-    bool m_init_success, m_uart_pins_enabled;
+    float m_r_sense;
+    bool m_init_success, m_uart_pins_enabled, m_coolstep_enabled,
+        m_auto_peak_velocity_detected;
     struct TMCData m_tmc;
     int32_t m_target_velocity, m_ramp_velocity;
     TMCOpenCircuitAlgoData m_open_circuit_algo_data;
-    bool m_coolstep_enabled, m_peak_velocity_detected;
-    float m_r_sense;
+
+    PinEventManager m_tmc_diag_pin_event_manager;
 
     static uint16_t convertIrunIHoldToRMSCurrentInMilliamps(uint8_t i_run_hold,
                                                             float r_sense);

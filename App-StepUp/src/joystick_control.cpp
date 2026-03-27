@@ -41,6 +41,7 @@ bool JoystickControl::init()
     if (false == m_init_success)
     {
         // Set up joystick button as interrupt: HIGH -> LOW transition
+        gpio_init(JOYSTICK_BUTTON_PIN);
         gpio_set_input_enabled(JOYSTICK_BUTTON_PIN, true);
         gpio_pull_up(JOYSTICK_BUTTON_PIN);
 
@@ -146,7 +147,6 @@ enum ControllerState JoystickControl::processJob(uint32_t tick_count)
 
     if (m_joystick_pin_event_manager.hasEventOccurred())
     {
-        LOG_DATA("Joystick button press event detected");
         s_button_press_event = true;
         m_joystick_pin_event_manager.clearPinEventCount();
     }

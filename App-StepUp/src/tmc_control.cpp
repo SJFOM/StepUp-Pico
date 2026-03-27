@@ -14,14 +14,8 @@
 static TMC2300TypeDef tmc2300;
 static ConfigurationTypeDef tmc2300_config;
 
-// Static non-class-member debug variables
-// FIXME: Remove this, just for testing
-static bool s_plot_diagnostics = false;
-static uint16_t s_plot_diagnostics_counter = 0;
-
 // Static non-class-member callback variables
 static volatile bool s_is_tmc_comms_callback_complete = false;
-static volatile bool s_diag_event = false;
 
 // Static non-class-member variables
 static bool driver_can_be_enabled = false;
@@ -39,9 +33,10 @@ void callback(TMC2300TypeDef *tmc2300, ConfigState cfg_state)
         // Change hardware preset registers here
 
         // TODO: Update register values also to reflect state
-        // m_ihold_irun.ihold = 1;
-        // m_ihold_irun.irun = 4;
-        // m_ihold_irun.iholddelay = 2;
+        // Raw register value = 0x00010402
+        // -> m_ihold_irun.ihold = 1;
+        // -> m_ihold_irun.irun = 4;
+        // -> m_ihold_irun.iholddelay = 2;
         // Lower the default run and standstill currents
         tmc2300_writeInt(tmc2300, TMC2300_IHOLD_IRUN, 0x00010402);
     }
@@ -57,7 +52,8 @@ void callback(TMC2300TypeDef *tmc2300, ConfigState cfg_state)
 
 TMCControl::TMCControl(float r_sense, bool coolstep_enabled)
     : m_r_sense(r_sense),
-      m_coolstep_enabled(coolstep_enabled)
+      m_coolstep_enabled(coolstep_enabled),
+      m_tmc_diag_pin_event_manager(TMC_PIN_DIAG, GPIO_IRQ_EDGE_FALL)
 {
     m_motor_move_state = MotorMoveState::MOTOR_IDLE;
     m_init_success = false;
@@ -127,6 +123,11 @@ bool TMCControl::init()
 
         // Complete checks and store init routine success value
         m_init_success = _init_routine_success;
+
+        if (m_init_success)
+        {
+            m_tmc_diag_pin_event_manager.init();
+        }
     }
 
     return m_init_success;
@@ -135,7 +136,7 @@ bool TMCControl::init()
 void TMCControl::deinit()
 {
     // Disable DIAG pin interrupt function
-    enableTMCDiagInterrupt(false);
+    m_tmc_diag_pin_event_manager.deinit();
     // Reset the tmc2300 to its default values and state
     tmc2300_reset(&tmc2300);
 
@@ -240,9 +241,10 @@ void TMCControl::defaultConfiguration()
      * What: Lower threshold velocity for switching on CoolStep and Stallgaurd.
      * Use: Velocity in steps/second at which to switch on this feature
      */
-    // NOTE: If using, update with sane velocity at which to switch mode.
     if (m_coolstep_enabled)
     {
+        // Value in 1/steps per second, so convert from steps per second to the
+        // register value
         m_tcoolthrs.sr = 150U;  // Experimental value
     }
     else
@@ -266,7 +268,7 @@ void TMCControl::defaultConfiguration()
     // SEDN: Sets the number of StallGuard2 readings above the upper threshold
     // necessary for each current decrement of the motor current.
     // Values are 0..3 corresponding to 32,8,2,1 sg readings respectively
-    m_coolconf.sedn = 2;  // SG measurements per decrement: 0 = 32
+    m_coolconf.sedn = 1;  // SG measurements per decrement: 0 = 32
 
     // SEMIN: Sets the minimum threshold against which the CoolStep driver will
     // increase the current (see CS_ACTUAL). When SG_RESULT < SEMIN*32, the
@@ -287,6 +289,7 @@ void TMCControl::defaultConfiguration()
     }
     else
     {
+        // Turn off CoolStep by setting SEMIN to 0
         m_coolconf.semin = 0;  // SG measurements per decrement: 0
         m_coolconf.semax = 0;
     }
@@ -294,7 +297,14 @@ void TMCControl::defaultConfiguration()
     // SEIMIN: Sets the lower motor current limit for CoolStep
     // operation by scaling the IRUN current setting.
     // Values are 0 for 1/2 of I_RUN, 1 for 1/4 of I_RUN (ensure min IRUN of 16)
-    m_coolconf.seimin = CoolStepCurrentReduction::COOLSTEP_REDUCTION_1_4;
+    if (m_ihold_irun.irun >= 16)
+    {
+        m_coolconf.seimin = CoolStepCurrentReduction::COOLSTEP_REDUCTION_1_4;
+    }
+    else
+    {
+        m_coolconf.seimin = CoolStepCurrentReduction::COOLSTEP_REDUCTION_1_2;
+    }
 
     tmc2300_writeInt(&tmc2300, m_coolconf.address, m_coolconf.sr);
     m_coolconf.sr = tmc2300_readInt(&tmc2300, TMC2300_COOLCONF);
@@ -312,8 +322,10 @@ void TMCControl::defaultConfiguration()
     m_chopconf.mres = MRES_FULL_STEP;  // Microstep setting (0=256 μsteps)
     m_chopconf.intpol = true;          // Interpolation to 256 μsteps
     m_chopconf.dedge = false;          // Enable double edge step pulses
-    m_chopconf.diss2g = false;         // Disable short to GND protection
-    m_chopconf.diss2vs = false;        // Disable low side short protection
+    m_chopconf.diss2g =
+        false;  // Disable short to GND protection (false = "don't disable")
+    m_chopconf.diss2vs =
+        false;  // Disable low side short protection (false = "don't disable")
     tmc2300_writeInt(&tmc2300, m_chopconf.address, m_chopconf.sr);
 
     /* Register: DRV_STATUS
@@ -346,11 +358,6 @@ void TMCControl::defaultConfiguration()
      * Use: These values can be used to monitor automatic PWM amplitude scaling
      */
     m_pwm_scale.sr = tmc2300_readInt(&tmc2300, m_pwm_scale.address);
-
-    // Enable the TMC interrupt and associated callback function
-    enableTMCDiagInterrupt(true);
-    gpio_add_raw_irq_handler(TMC_PIN_DIAG, &tmc_diag_callback);
-    irq_set_enabled(IO_IRQ_BANK0, true);
 }
 
 void TMCControl::setCurrent(uint8_t i_run, uint8_t i_hold)
@@ -384,18 +391,23 @@ void TMCControl::updateMovementDynamics(int32_t velocity_delta,
     if (direction == 0)
     {
         enableFunctionality(false);
-        m_peak_velocity_detected = false;
+        if (false == CX_RESUME_PREVIOUS_VELOCITY_ENABLED)
+        {
+            resetMovementDynamics();
+        }
+        m_auto_peak_velocity_detected = false;
     }
     else
     {
         int32_t cached_velocity;
-        if (m_peak_velocity_detected)
+        if (m_auto_peak_velocity_detected)
         {
             cached_velocity = m_vactual.sr;
         }
         else
         {
             cached_velocity = abs(m_vactual.sr);
+
             cached_velocity *= direction;
 
             // We do not wish to allow a velocity update to make the motor stop,
@@ -435,13 +447,6 @@ void TMCControl::move(int32_t velocity)
     if (!isFunctionalityEnabled())
     {
         return;
-    }
-
-    if (abs(velocity) > VELOCITY_MAX_STEPS_PER_SECOND)
-    {
-        LOG_WARN("Max motor velocity reached!");
-
-        velocity = VELOCITY_MAX_STEPS_PER_SECOND;
     }
 
     enableFunctionality(velocity == 0 ? false : true);
@@ -492,7 +497,8 @@ void TMCControl::enableUartPins(bool enable_pins)
         m_uart_pins_enabled = false;
     }
 
-    // TODO: Figure out if actually needed...
+    // Needed to ensure the pin state is updated before any attempted UART
+    // communication
     sleep_ms(5);
 }
 
@@ -500,18 +506,8 @@ TMCDiagnostics TMCControl::readTMCDiagnostics()
 {
     // Start with a blank TMCDiagnostics with all flags set to false
     TMCDiagnostics tmc_diag;
+    tmc_diag.normal_operation = true;
     m_drv_status.sr = tmc2300_readInt(&tmc2300, m_drv_status.address);
-
-    // printf(">s2ga_b:%d\n", (uint8_t)(m_drv_status.s2ga | m_drv_status.s2gb));
-    // printf(">s2vsa_b: %d\n", m_drv_status.s2vsa | m_drv_status.s2vsb);
-    // printf(">s2ga: %d\n", (uint8_t)(m_drv_status.s2ga));
-    // printf(">s2gb: %d\n", (uint8_t)(m_drv_status.s2gb));
-    // printf(">s2vsa: %d\n", m_drv_status.s2vsa);
-    // printf(">s2vsb: %d\n", m_drv_status.s2vsb);
-    // printf(">ola: %d\n", (uint8_t)(m_drv_status.ola));
-    // printf(">olb: %d\n", (uint8_t)(m_drv_status.olb));
-    // printf(">ot_pw: %d\n", m_drv_status.ot | m_drv_status.otpw);
-    // printf(">drv_status:%d\n", m_drv_status.sr);
 
     if (m_drv_status.otpw || m_drv_status.ot || m_drv_status.t120 ||
         m_drv_status.t150)
@@ -528,7 +524,7 @@ TMCDiagnostics TMCControl::readTMCDiagnostics()
     // detecting an open circuit event
     if (m_tmc.open_circuit_detected ||
         ((m_drv_status.ola || m_drv_status.olb) &&
-         (abs(m_vactual.sr) <= VELOCITY_SLOW_SPEED_STEPS_PER_SECOND)))
+         ((uint32_t)abs(m_vactual.sr) <= VELOCITY_SLOW_SPEED_STEPS_PER_SECOND)))
     {
         resetOpenCircuitDetectionAlgorithm();
         tmc_diag.open_circuit = true;
@@ -556,16 +552,19 @@ TMCDiagnostics TMCControl::readTMCDiagnostics()
         // state
         tmc_diag.normal_operation = false;
         tmc_diag.stall_detected = true;
-        m_peak_velocity_detected = true;
-        if (m_target_velocity > 0)
+        if (CX_HIGH_SPEED_AUTO_REDUCTION_ENABLED)
         {
-            m_target_velocity -=
-                VELOCITY_RAMP_SG_LIMIT_DECREMENT_STEPS_PER_SECOND;
-        }
-        else
-        {
-            m_target_velocity +=
-                VELOCITY_RAMP_SG_LIMIT_DECREMENT_STEPS_PER_SECOND;
+            m_auto_peak_velocity_detected = true;
+            if (m_target_velocity > 0)
+            {
+                m_target_velocity -=
+                    VELOCITY_RAMP_SG_LIMIT_DECREMENT_STEPS_PER_SECOND;
+            }
+            else
+            {
+                m_target_velocity +=
+                    VELOCITY_RAMP_SG_LIMIT_DECREMENT_STEPS_PER_SECOND;
+            }
         }
     }
 
@@ -645,90 +644,12 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
         // Stall detection, over temperature & short-circuit detection are
         // all mapped to the DIAG pin. However, open-circuit flags must be
         // polled and are not mapped to the DIAG pin flag.
-        if (s_diag_event || m_tmc.open_circuit_detected)
+        if (m_tmc_diag_pin_event_manager.hasEventOccurred() ||
+            m_tmc.open_circuit_detected)
         {
-            s_diag_event = false;
+            m_tmc_diag_pin_event_manager.clearPinEventCount();
             m_tmc.control_state = ControllerState::STATE_NEW_DATA;
         }
-    }
-
-    /********************/
-    /* Live plot values */
-    /********************/
-    // TODO: Remove, just for diagnostics
-    if (s_plot_diagnostics && (s_plot_diagnostics_counter++ > 10))
-    {
-        s_plot_diagnostics_counter = 0;
-        uint32_t sg_value = tmc2300_readInt(&tmc2300, m_sgval.address);
-        // IHOLD_IRUN_t irun_ihold;
-        // irun_ihold.sr = tmc2300_readInt(&tmc2300,
-        // TMC2300_IHOLD_IRUN); uint8_t motor_effort_percent = ((100
-        // * (510 - sg_value)) / 510); m_ioin.sr =
-        // tmc2300_readInt(&tmc2300, m_ioin.address);
-        m_drv_status.sr = tmc2300_readInt(&tmc2300, TMC2300_DRVSTATUS);
-        m_ihold_irun.sr = tmc2300_readInt(&tmc2300, TMC2300_IHOLD_IRUN);
-        m_tstep.sr = tmc2300_readInt(&tmc2300, TMC2300_TSTEP);
-        uint8_t stall = 0;
-        uint8_t diag = 0;
-        // if (m_ioin.diag)
-        // {
-        //     diag = 1;
-        //     if (m_drv_status.stst)
-        //     {
-        //         stall = 1;
-        //     }
-        // }
-        // printf("SG: %d\n", sg_value);
-        // if (sg_value < 30U)
-        // {
-        // printf("High motor load: %d - %d %%\n", sg_value,
-        // motor_effort_percent);
-        // }
-        printf(">sg_live: %d\n", sg_value);
-        printf(">vel:%d\n", m_vactual.sr);
-        printf(">tcoolthrs:%d\n", m_tcoolthrs.sr);
-        printf(">tstep: %lu\n", m_tstep.sr);
-        printf(">s_diag_event: %d\n", s_diag_event);
-        // printf(">sg_match: %d\n",
-        //        (uint8_t)((m_open_circuit_algo_data.sg_val_previous
-        //        ==
-        //                   m_sgval.sr) *
-        //                  UINT8_MAX));
-        // printf(">pwm_scale_sum: %d\n",
-        //        (uint8_t)(m_pwm_scale.pwm_scale_sum));
-        // printf(">diag: %d\n", diag);
-        // printf(">diag_pin: %d\n", gpio_get(TMC_PIN_DIAG));
-        // printf(">stall: %d\n", stall);
-        printf(">thresh: %d\n",
-               m_sgthrs.sr * 2);  // 2x the value is the threshold for sg_live
-        // to fall under to trigger a "stall" event
-
-        printf(">sg_upper: %d\n",
-               (m_coolconf.semax + m_coolconf.semin + 1) * 32);
-        printf(">sg_lower: %d\n", m_coolconf.semin * 32);
-        // printf(">drv_status: %d\n",
-        //    m_drv_status.sr & m_drv_status.error_bit_mask);
-
-        /* DRV_STATUS bits */
-        // bool otpw : 1, ot : 1, s2ga : 1, s2gb : 1, s2vsa : 1,
-        // s2vsb : 1,ola : 1, olb : 1, t120 : 1, t150 : 1; uint8_t :
-        // 6; uint8_t cs_actual : 5; uint16_t : 10; bool stst : 1;
-        // printf(">s2ga_b: %d\n",
-        //    (uint8_t)(m_drv_status.s2ga | m_drv_status.s2gb));
-        // printf(">s2vsa_b: %d\n", m_drv_status.s2vsa |
-        // m_drv_status.s2vsb);
-        // printf(">s2ga: %d\n", (uint8_t)(m_drv_status.s2ga));
-        // printf(">s2gb: %d\n", (uint8_t)(m_drv_status.s2gb));
-        // printf(">s2vsa: %d\n", m_drv_status.s2vsa);
-        // printf(">s2vsb: %d\n", m_drv_status.s2vsb);
-        // printf(">ola: %d\n", (uint8_t)(m_drv_status.ola));
-        // printf(">olb: %d\n", (uint8_t)(m_drv_status.olb));
-        // printf(">ot_pw: %d\n", m_drv_status.ot |
-        // m_drv_status.otpw);
-        //    printf(">drv_status:
-        // %d\n", m_drv_status.sr);
-        printf(">irun: %d\n", m_ihold_irun.irun);
-        printf(">cs_actual: %d\n", m_drv_status.cs_actual);
     }
 
     // Ramp profile using internal TMC step generator
@@ -750,7 +671,8 @@ enum ControllerState TMCControl::processJob(uint32_t tick_count)
         case (MOTOR_MOVING):
         {
             if (m_vactual.sr != m_target_velocity &&
-                abs(m_target_velocity) <= VELOCITY_MAX_STEPS_PER_SECOND)
+                (uint32_t)abs(m_target_velocity) <=
+                    VELOCITY_MAX_STEPS_PER_SECOND)
             {
                 if (abs(m_vactual.sr) >= abs(m_target_velocity))
                 {
@@ -801,7 +723,7 @@ extern "C" void tmc2300_readWriteArray(uint8_t channel,
     // This is needed to wait for the TMC2300 to be ready to receive and/or
     // reply with data, otherwise the Pico's UART peripheral has a hard time
     // finding the data...
-    // FIXME: This can eventually become interrupt driven
+    // TODO: This should eventually become interrupt driven
     sleep_ms(1);
 
     // Write data buffer
@@ -848,15 +770,6 @@ bool TMCControl::isDriverEnabled()
     return gpio_get(TMC_PIN_ENABLE);
 }
 
-void TMCControl::enableTMCDiagInterrupt(bool enable_interrupt)
-{
-    // Set up and enable the TMC DIAG pin interrupt when we have finished
-    // initialising the TMC
-    gpio_set_irq_enabled(TMC_PIN_DIAG,
-                         GPIO_IRQ_EDGE_RISE,
-                         enable_interrupt);  // monitor pin 1 connected to pin 0
-}
-
 void TMCControl::enablePeripheralDriver(bool enable_driver)
 {
     bool _enable_driver = (bool)(driver_can_be_enabled && enable_driver);
@@ -888,22 +801,3 @@ uint16_t TMCControl::convertIrunIHoldToRMSCurrentInMilliamps(uint8_t i_run_hold,
 /*************************/
 /* Private methods - END */
 /*************************/
-
-/******************************/
-/* Interrupt routines - START */
-/******************************/
-
-void tmc_diag_callback()
-{
-    if (gpio_get_irq_event_mask(TMC_PIN_DIAG) & GPIO_IRQ_EDGE_RISE)
-    {
-        gpio_acknowledge_irq(TMC_PIN_DIAG, GPIO_IRQ_EDGE_RISE);
-        // TODO: Check if this needs de-bouncing. If so, consider migrating
-        // to the PinEventManager library
-        s_diag_event = true;
-    }
-}
-
-/****************************/
-/* Interrupt routines - END */
-/****************************/
