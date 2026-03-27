@@ -127,6 +127,8 @@ While the Raspberry Pi Pico extension is the only one _required_ to compile code
 
 Steps `1` -> `3` below should be followed in the order provided to give best chances of uploading code first time!
 
+If helpful, all PCB schematics for this project can be found in the [Releases section of my KiCad repository](https://github.com/SJFOM/KiCad/releases).
+
 ## 1. Inserting a battery
 Only 18650 Li-Ion cells are supported by this device. The 18650 cell can either include battery protection circuitry or not - there is a battery protection circuit on-board the StepUp! device which is configured specifically for the device.
 
