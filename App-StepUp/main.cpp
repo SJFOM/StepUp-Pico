@@ -573,7 +573,6 @@ void core1_usb_service()
                     }
                     else
                     {
-                        LOG_INFO("LED notification!");
                         led_control.setLEDFunction(led_notify);
                     }
                 }
