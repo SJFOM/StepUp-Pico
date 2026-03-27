@@ -48,15 +48,24 @@ It is inherently low power - giving just enough juice to get a motor going but w
 
 ## How much does it cost to build?
 ### Short answer
-Around **50 (or $60)** per unit
+Around **€50 (or $60)** per unit
 
 ### *Longer answer...*
 A core goal from the outset was to make this _as_ cheap as I possibly could. Totting up my most recent order for 5 PCB's with 3 assembled PCBA's and including the additional through-hole components I hand solder to the PCBA's (to reduce cost) works out to around $50 per PCB as per my last order in March 2025.
 
-# Prerequisites
+## Tech specs
+- **CPU:** Dual-core Arm Cortex-M0+ processor, flexible clock running up to 133 MHz
+- **RAM:** 264kB on-chip SRAM
+- **Flash:** 2MB on-board QSPI flash
+- **Battery:** 18650 Li-Ion, single cell
+- **Charge current:** 300mA
+- **Motor control current:** 500mA (default)
+- **Battery life:** ~3 hours 
+
+# Pre-requisites
 
 ## Assembling a StepUp! device
-All documentation for creating your own StepUp! PCB and enclosure can be found in the [Hardware README file](./Hardware/README.md).
+All documentation and pre-requisites for creating your own StepUp! PCB and enclosure can be found in the [Hardware README file](./Hardware/README.md).
 
 ## IDEs
 
