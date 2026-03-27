@@ -60,7 +60,7 @@ A core goal from the outset was to make this _as_ cheap as I possibly could. Tot
 - **Battery:** 18650 Li-Ion, single cell
 - **Charge current:** 300mA
 - **Motor control current:** 500mA (default)
-- **Battery life:** ~3 hours 
+- **Battery life:** ~2 hours 
 
 # Pre-requisites
 
