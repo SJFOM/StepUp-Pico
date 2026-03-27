@@ -385,7 +385,7 @@ void core1_usb_service()
                         tmc_notify = ControllerNotification::NOTIFY_DATA;
 
                         enum LEDColourNames led_colour =
-                            LEDColourNames::LED_COLOUR_MAGENTA;
+                            LEDColourNames::LED_COLOUR_WHITE;
                         xQueueSendToBack(queue_led_colour_data, &led_colour, 0);
                     }
                     if (tmc_data.diag.open_circuit ||

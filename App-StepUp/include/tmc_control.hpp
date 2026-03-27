@@ -66,7 +66,7 @@ extern "C"
 
 // If SG_VALUE falls below 2x SGTHRS_VALUE then a stall detection is triggered
 // SG_VALUE = 0..510 (higher number, lighter loading)
-// 90% loading = 510 - 0.9*510 = 0.1*510 - 51
+// 90% loading = 510 - 0.9*510 = 0.1*510 = 51
 // SGTHRS = 51/2 ~= 25
 constexpr uint16_t CX_DEFAULT_SGTHRS_VALUE = 25U;
 

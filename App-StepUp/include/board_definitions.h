@@ -29,13 +29,13 @@ constexpr bool CX_RESUME_PREVIOUS_VELOCITY_ENABLED = true;
 // motor is not under load, which can help to reduce power consumption and heat
 // generation. However, it can also lead to reduced performance in some cases,
 // so it is disabled by default.
-constexpr bool CX_COOLSTEP_ENABLED = false;
+constexpr bool CX_COOLSTEP_ENABLED = true;
 
 // Experimental: This is not a robust feature for all motor types and should be
 // used with caution
 // NOTE: This feature will only function if CoolStep is enabled, as it relies on
 // the SG_VALUE to determine when to reduce the velocity
-constexpr bool CX_HIGH_SPEED_AUTO_REDUCTION_ENABLED = true;
+constexpr bool CX_HIGH_SPEED_AUTO_REDUCTION_ENABLED = false;
 
 /************************/
 /* TMC2300 config - END */

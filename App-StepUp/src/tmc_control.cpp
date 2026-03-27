@@ -241,9 +241,10 @@ void TMCControl::defaultConfiguration()
      * What: Lower threshold velocity for switching on CoolStep and Stallgaurd.
      * Use: Velocity in steps/second at which to switch on this feature
      */
-    // NOTE: If using, update with sane velocity at which to switch mode.
     if (m_coolstep_enabled)
     {
+        // Value in 1/steps per second, so convert from steps per second to the
+        // register value
         m_tcoolthrs.sr = 150U;  // Experimental value
     }
     else
@@ -390,7 +391,7 @@ void TMCControl::updateMovementDynamics(int32_t velocity_delta,
     if (direction == 0)
     {
         enableFunctionality(false);
-        if (!CX_RESUME_PREVIOUS_VELOCITY_ENABLED)
+        if (false == CX_RESUME_PREVIOUS_VELOCITY_ENABLED)
         {
             resetMovementDynamics();
         }
@@ -551,9 +552,9 @@ TMCDiagnostics TMCControl::readTMCDiagnostics()
         // state
         tmc_diag.normal_operation = false;
         tmc_diag.stall_detected = true;
-        m_auto_peak_velocity_detected = true;
         if (CX_HIGH_SPEED_AUTO_REDUCTION_ENABLED)
         {
+            m_auto_peak_velocity_detected = true;
             if (m_target_velocity > 0)
             {
                 m_target_velocity -=
