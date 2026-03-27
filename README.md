@@ -138,13 +138,57 @@ The device should evaluate as a USB drive mounted to your PC. From here, you can
 Once firmware has been loaded successfully - press and hold the **POWER** button on the side of the device until a the LED flashes GREEN several times and an audible tone of increasing frequencies plays (like a step-up sequence).
 
 ## 4. Controlling the Motor
-Connect the stepper motor using the connector labelled with `A1, A2, B1, B2` to match the coils of the given motor. The Joystick is used to control the motor direction and speed with the joystick button (click while centered) resetting the motor speed to its default configuration.
+### Connection
+Connect the stepper motor using the connector labelled with `A1, A2, B1, B2` to match the coils of the given motor, lifting the 4 black tabs of the connector 
+
+### Joystick control
+The Joystick is used to control the motor direction and speed. If you increase or decrease the speed of the motor and then return the joystick to the center, the next time you move the motor the device will attempt to ramp up to the previous speed the motor was running at. To reset this behaviour, press the joystick button.
 
 <img src="./images/StepUp_fully_assembled_top_view_lines.png" alt="Motor joystick control diagram" width="400" />
 
+### Motor current
 By default, the StepUp! device drives the supplied stepper motor with `~500mA` of current. While this _can_ be increased by modifying the firmware (see `DEFAULT_IRUN_VALUE` in [`tmc_control.hpp`](./App-StepUp/include/tmc_control.hpp)) it is not recommended given the limited power available from the provided 18650 battery.
 
 ## 5. Status Codes
+
+### USB Connection
+The StepUp! device emits a stream of serial messages over USB which can be read while the device is operating - especially if any error message needs to be further diagnosed. The following is an example output stream when the device boots:
+```
+[INFO] App: StepUp 1.0.0 (9134303:2)
+[INFO] Setting up peripherals...
+[INFO] Watchdog setup...
+[INFO] Watchdog setup... OK
+[INFO] Buzzer setup...
+[INFO] Buzzer setup... OK
+[INFO] LED setup...
+[INFO] LED setup... OK
+[INFO] TMC2300 setup...
+[INFO] TMC - UART pins enable
+[INFO] TMC2300 silicon version: 0x40
+[INFO] Configure TMC2300 default values...
+[INFO] TMC2300 GSTAT register diagnostics:
+[INFO]  - Reset?: 1
+[INFO]  - Driver shutdown due to error?: 0
+[INFO]  - Low supply voltage?: 0
+[DATA] Run current: 515 mA
+[INFO] Configure TMC2300 default values - OK!
+[INFO] TMC2300 setup... OK
+[INFO] Boost converter setup...
+[INFO] Boost converter setup... OK
+[INFO] Voltage monitoring setup...
+[DATA] Battery voltage: 4.15V
+[INFO] Battery voltage monitoring setup... OK
+[DATA] Motor voltage: 10.25V
+[INFO] Boost/Motor voltage monitoring setup... OK
+[INFO] Voltage monitoring setup...OK
+[INFO] Joystick setup...
+[DATA] X - Raw value: 2048 - voltage: 1.65V
+[DATA] Y - Raw value: 2048 - voltage: 1.65V
+[INFO] Joystick setup... OK
+[INFO] Setting up peripherals... OK!
+[INFO] FreeRTOS timer started successfully!
+[INFO] TMC is ready for use
+```
 
 ### `STANDBY` - When not controlling a stepper motor
 | Status | Color: Pattern | Buzzer Pattern | Meaning |
