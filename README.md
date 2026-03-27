@@ -27,7 +27,6 @@ Working a lot with stepper motors, I often find myself wanting to test a single 
 
 - Is there an issue with my driving circuit or the motor itself?
 - Is the cabling damaged or do the coils contain open or short circuits?
-- Is it pulling too much/little current?
 - Does it have a hold current or is it jammed?
 
 I found that, to really answer these questions required power supplies and oscilloscopes with expensive current probes attached to really get useful measurements. While this would give me the results I was looking for, the setup was a pain and the measurements were generic and required at least some knowledge of how steppers worked to be interpreted.
