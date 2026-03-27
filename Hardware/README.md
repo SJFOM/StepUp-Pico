@@ -1,0 +1,52 @@
+# StepUp! Assembly guide
+
+## Folder Structure
+```
+/Hardware/3D print files
+|
+|___/3D print files         // Files for 3D printing the StepUp! project enclosure
+|
+|___/PCBA files             // Files for re-creating the StepUp! PCBA
+|
+|___README.md
+```
+
+## Prerequisites
+To fully assembly 1 x StepUp! device - you will need the following
+- 1 x StepUp! PCBA
+- 1 x 3D printer
+  - ~50g of PLA or PETG filament for the Top and Bottom sections of the enclosure
+  - ~5g of translucent PLA or PETG filament
+- 1 x soldering iron & spool of solder
+- 1 x 18650 Li-Ion battery
+- 1 x Joystick rubber head piece
+- 4 x M3x5.7 threaded inserts
+- 4 x M3x5 bolts (hex-head preferable)
+
+## PCBA Assembly
+The PCBA comes with one side populated with SMD components but still requires some assembly by hand - this is in an effort to reduce overall build costs by doing some of the through-hole assembly in person. The diagram below shows where the through-hole components are located on the PCB.
+
+<img src="..//images/StepUp_PCBA_assembly_drawing.png" alt="PCBA Drawing" width="800" />
+
+## LED Box assembly
+With the aid of a small drop of cyanacrolyte (a.k.a super-glue), slide the translucent LED Box onto the Top section of the enclosure housing so that the LED Box is flush to the part.
+
+<img src="..//images/3D print/3D_Top_with_LED_Box.png" alt="LED Box assembly" width="800" />
+
+
+## Threaded inserts
+
+<img src="..//images/StepUp_btm_enclosure_top_view.png" alt="Threaded insert locations" width="800" />
+
+## Attaching PCB to Bottom enclosure
+Using 4 x M3x5 screws, attach the PCB to the bottom housing assembly as shown in the image below.
+
+<img src="..//images/StepUp_PCBA_bolt_locations.png" alt="PCBA Drawing" width="800" />
+
+
+## 3D printed housing assembly
+
+Once the PCBA is attached to the bottom assembly, the top piece should just click into place.
+
+<img src="..//images/StepUp_assembly_drawing.png" alt="StepUp exploded assembly view" width="800" />
+

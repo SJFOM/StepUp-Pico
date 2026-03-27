@@ -177,4 +177,18 @@ namespace Utils
 
 }  // namespace Utils
 
+/*
+ * EXTERNAL WEAK FUNCTIONS
+ */
+extern "C"
+{
+    /**
+     * @brief Weak error handler function that can be overridden by the user.
+     *        Default implementation enters an infinite loop.
+     *
+     * @param msg: The error message.
+     */
+    __attribute__((weak)) void on_error_handler(const char *msg);
+}
+
 #endif  // UTILS_HEADER_H_

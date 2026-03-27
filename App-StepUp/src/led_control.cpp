@@ -154,6 +154,8 @@ void LEDControl::enableLED(bool enable)
     pwm_set_enabled(s_rgb_led.led_red_pwm_slice, enable);
     pwm_set_enabled(s_rgb_led.led_green_pwm_slice, enable);
     pwm_set_enabled(s_rgb_led.led_blue_pwm_slice, enable);
+
+    enableFunctionality(enable);
 }
 
 enum ControllerState LEDControl::processJob(uint32_t tick_count)
@@ -168,7 +170,8 @@ enum ControllerState LEDControl::processJob(uint32_t tick_count)
         // Re-instate LED colour
         setLEDColour(m_active_colour_name);
 
-        // Update state to represent this
+        // Update state to represent the fact we have completed the LED effect
+        // transition
         m_control_state = ControllerState::STATE_READY;
     }
     return m_control_state;

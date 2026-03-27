@@ -131,6 +131,14 @@ namespace PicoUtils
                                     divider_16 & 0xF);
             pwm_set_wrap(pwm_slice_num, wrap);
             pwm_set_gpio_level(pwm_pin, wrap * duty_cycle_percentage / 100);
+
+            // Enable the PWM output
+            pwm_set_enabled(pwm_slice_num, true);
+        }
+        else
+        {
+            // Disable the PWM output
+            pwm_set_enabled(pwm_slice_num, false);
         }
     }
 
