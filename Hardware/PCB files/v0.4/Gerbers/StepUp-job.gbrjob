@@ -1,0 +1,178 @@
+{
+  "Header": {
+    "GenerationSoftware": {
+      "Vendor": "KiCad",
+      "Application": "Pcbnew",
+      "Version": "9.0.7"
+    },
+    "CreationDate": "2026-03-27T14:11:07+00:00"
+  },
+  "GeneralSpecs": {
+    "ProjectId": {
+      "Name": "StepUp",
+      "GUID": "53746570-5570-42e6-9b69-6361645f7063",
+      "Revision": "v0.4"
+    },
+    "Size": {
+      "X": 55.3766,
+      "Y": 80.3766
+    },
+    "LayerNumber": 4,
+    "BoardThickness": 1.561,
+    "Finish": "HAL lead-free"
+  },
+  "DesignRules": [
+    {
+      "Layers": "Outer",
+      "PadToPad": 0.1524,
+      "PadToTrack": 0.1524,
+      "TrackToTrack": 0.1524,
+      "MinLineWidth": 0.1524,
+      "TrackToRegion": 0.1524,
+      "RegionToRegion": 0.1524
+    },
+    {
+      "Layers": "Inner",
+      "PadToPad": 0.0,
+      "PadToTrack": 0.0,
+      "TrackToTrack": 0.1524,
+      "TrackToRegion": 0.2,
+      "RegionToRegion": 0.2
+    }
+  ],
+  "FilesAttributes": [
+    {
+      "Path": "StepUp-L1_TopLayer_Cu.gtl",
+      "FileFunction": "Copper,L1,Top",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "StepUp-L2_InnerLayer1_Cu.g1",
+      "FileFunction": "Copper,L2,Inr",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "StepUp-L3_InnerLayer1_Cu.g2",
+      "FileFunction": "Copper,L3,Inr",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "StepUp-L4_BottomLayer_Cu.gbl",
+      "FileFunction": "Copper,L4,Bot",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "StepUp-TopLayer_Paste_Paste.gtp",
+      "FileFunction": "SolderPaste,Top",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "StepUp-BottomLayer_Paste_Paste.gbp",
+      "FileFunction": "SolderPaste,Bot",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "StepUp-TopLayer_Silk_Silkscreen.gto",
+      "FileFunction": "Legend,Top",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "StepUp-BottomLayer_Silk_Silkscreen.gbo",
+      "FileFunction": "Legend,Bot",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "StepUp-TopLayer_Mask_Mask.gts",
+      "FileFunction": "SolderMask,Top",
+      "FilePolarity": "Negative"
+    },
+    {
+      "Path": "StepUp-BottomLayer_Mask_Mask.gbs",
+      "FileFunction": "SolderMask,Bot",
+      "FilePolarity": "Negative"
+    },
+    {
+      "Path": "StepUp-User_Eco1.gbr",
+      "FileFunction": "Other,User",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "StepUp-Edge_Cuts.gm1",
+      "FileFunction": "Profile",
+      "FilePolarity": "Positive"
+    }
+  ],
+  "MaterialStackup": [
+    {
+      "Type": "Legend",
+      "Color": "White",
+      "Name": "Top Silk Screen"
+    },
+    {
+      "Type": "SolderPaste",
+      "Name": "Top Solder Paste"
+    },
+    {
+      "Type": "SolderMask",
+      "Color": "Green",
+      "Thickness": 0.01,
+      "Name": "Top Solder Mask"
+    },
+    {
+      "Type": "Copper",
+      "Thickness": 0.035,
+      "Name": "L1_TopLayer.Cu"
+    },
+    {
+      "Type": "Dielectric",
+      "Thickness": 0.1855,
+      "Material": "FR4",
+      "Name": "L1_TopLayer.Cu/L2_InnerLayer1.Cu",
+      "Notes": "Type: dielectric layer 1 (from L1_TopLayer.Cu to L2_InnerLayer1.Cu)"
+    },
+    {
+      "Type": "Copper",
+      "Thickness": 0.035,
+      "Name": "L2_InnerLayer1.Cu"
+    },
+    {
+      "Type": "Dielectric",
+      "Thickness": 1.03,
+      "Material": "FR4",
+      "Name": "L2_InnerLayer1.Cu/L3_InnerLayer1.Cu",
+      "Notes": "Type: dielectric layer 2 (from L2_InnerLayer1.Cu to L3_InnerLayer1.Cu)"
+    },
+    {
+      "Type": "Copper",
+      "Thickness": 0.035,
+      "Name": "L3_InnerLayer1.Cu"
+    },
+    {
+      "Type": "Dielectric",
+      "Thickness": 0.1855,
+      "Material": "FR4",
+      "Name": "L3_InnerLayer1.Cu/L4_BottomLayer.Cu",
+      "Notes": "Type: dielectric layer 3 (from L3_InnerLayer1.Cu to L4_BottomLayer.Cu)"
+    },
+    {
+      "Type": "Copper",
+      "Thickness": 0.035,
+      "Name": "L4_BottomLayer.Cu"
+    },
+    {
+      "Type": "SolderMask",
+      "Color": "Green",
+      "Thickness": 0.01,
+      "Name": "Bottom Solder Mask"
+    },
+    {
+      "Type": "SolderPaste",
+      "Name": "Bottom Solder Paste"
+    },
+    {
+      "Type": "Legend",
+      "Color": "White",
+      "Name": "Bottom Silk Screen"
+    }
+  ]
+}

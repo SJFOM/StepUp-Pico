@@ -10,6 +10,8 @@
 <a href="https://github.com/SJFOM/StepUp-Pico/graphs/contributors"><img alt="GitHub contributors" src="https://img.shields.io/github/contributors/SJFOM/StepUp-Pico?color=2b9348"></a>
 <a href="https://github.com/SJFOM/StepUp-Pico/blob/master/LICENSE"><img src="https://img.shields.io/github/license/SJFOM/StepUp-Pico?color=2b9348" alt="License Badge"/></a>
 
+
+<img src="./images/StepUp_fully_assembled_with_motor.jpg" alt="StepUp device with motor" width="800" />
 <img src="./images/StepUp_PCB_v0_3.png" alt="PCB" width="800" />
 
 
@@ -60,7 +62,6 @@ A core goal from the outset was to make this _as_ cheap as I possibly could. Tot
 - **Battery:** 18650 Li-Ion, single cell
 - **Charge current:** 300mA
 - **Motor control current:** 500mA (default)
-- **Battery life:** ~3 hours 
 
 # Pre-requisites
 
