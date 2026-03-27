@@ -124,7 +124,10 @@ Only 18650 Li-Ion cells are supported by this device. The 18650 cell can either 
 >**NOTE:** When first inserting the battery, you must also plug in a USB C cable to power up the device. This is a known quirk of the battery protection circuit which prohibits using the battery until external power is first applied.
 
 ## 2. Uploading code to the device
-Once a battery has been inserted, plug the device into your PC using a USB C data cable. Follow these steps to upload code
+
+Once a battery has been inserted, plug the device into your PC using a USB C data cable. 
+
+Due to a small hardware quirk, you need to ensure that the `POWER` button (on the side) is held down for the duration of the programming process. Follow these steps to upload code:
 1. The `POWER` button on the side of the PCB (or Enclosure box) and
 2. The `PROGRAM` button on the bottom of the PCB (or Enclosure box)
 3. Press once the `RESET` button to reboot the device into program mode.
@@ -206,10 +209,10 @@ The StepUp! device emits a stream of serial messages over USB which can be read 
 |--------|:----------------:|:---------:|---------|
 | Joystick button press | Blue: Fast blinking | Two quick beeps | Reset motor speed to initial starting value |
 | Motor moving | Red: Rapid Blinking | Three long beeps | Error detected - issue could be any of the following: Short circuit in motor coils, Open circuit, TMC Overheating, battery voltage out of bounds, motor voltage out of bounds |
-| Motor moving | Magenta: Solid for ~1 second | None | **Note:** Stall detection is an experimental feature, not enabled by default. When enabled: Device detected a motor stall event, unable to provide full power due to excessive motor speed. |
+| Motor moving | White: Solid for ~1 second | None | **Note:** Stall detection is an experimental feature, not enabled by default. When enabled: Device detected a motor stall event, unable to provide full power due to excessive motor speed. |
 
 ## 6. Powering OFF
-Press and hold the **POWER** button on the side of the device until a the LED flashes RED several times and an audible tone of decreasing frequencies plays (like a step-down sequence).
+Press and hold the **POWER** button on the side of the device for 5 seconds until the LED flashes RED several times and an audible tone of decreasing frequencies plays (like a step-down sequence).
 
 >**NOTE:** The device will automatically power OFF after 10 minutes of inactivity
 
