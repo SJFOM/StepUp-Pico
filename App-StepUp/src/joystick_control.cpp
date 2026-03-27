@@ -17,9 +17,6 @@
 // Static non-class-member callback variables
 static volatile bool s_button_press_event = false;
 
-// Button debounce control
-static volatile uint32_t s_time_of_last_button_press;
-
 /*********************************/
 /* Joystick button control - END */
 /*********************************/
@@ -101,6 +98,8 @@ bool JoystickControl::init()
     {
         m_joystick.control_state = ControllerState::STATE_READY;
         m_joystick_pin_event_manager.init();
+
+        enableFunctionality(true);
     }
 
     return m_init_success;
@@ -118,6 +117,8 @@ void JoystickControl::deinit()
     gpio_disable_pulls(JOYSTICK_BUTTON_PIN);
 
     m_joystick.control_state = ControllerState::STATE_IDLE;
+
+    enableFunctionality(false);
 
     m_init_success = false;
 }

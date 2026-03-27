@@ -55,7 +55,7 @@ enum LEDDuration
 // NOTE: This will keep the LED ON only by virtue of the fact that the length
 // of the array is LED_MAX_TRANSITION_COUNT. Otherwise, the effect will be empty
 // (0) and turn the LED off
-static struct LEDEffect effect_fade_to_on = {
+[[maybe_unused]] static struct LEDEffect effect_fade_to_on = {
     .effect = {0, 4000, 8000, 0, 4000, 8000, 0, 4000, 8000, 4000},
     .duration = {LEDDuration::LED_FAST,
                  LEDDuration::LED_FAST,
@@ -68,20 +68,21 @@ static struct LEDEffect effect_fade_to_on = {
                  LEDDuration::LED_FAST,
                  LEDDuration::LED_FAST}};
 
-static struct LEDEffect effect_blink = {.effect = {LED_BASE_PWM_FREQ_IN_HZ,
-                                                   0,
-                                                   LED_BASE_PWM_FREQ_IN_HZ,
-                                                   0,
-                                                   LED_BASE_PWM_FREQ_IN_HZ,
-                                                   0},
-                                        .duration = {LEDDuration::LED_FAST,
-                                                     LEDDuration::LED_FAST,
-                                                     LEDDuration::LED_FAST,
-                                                     LEDDuration::LED_FAST,
-                                                     LEDDuration::LED_FAST,
-                                                     LEDDuration::LED_FAST}};
+[[maybe_unused]] static struct LEDEffect effect_blink = {
+    .effect = {LED_BASE_PWM_FREQ_IN_HZ,
+               0,
+               LED_BASE_PWM_FREQ_IN_HZ,
+               0,
+               LED_BASE_PWM_FREQ_IN_HZ,
+               0},
+    .duration = {LEDDuration::LED_FAST,
+                 LEDDuration::LED_FAST,
+                 LEDDuration::LED_FAST,
+                 LEDDuration::LED_FAST,
+                 LEDDuration::LED_FAST,
+                 LEDDuration::LED_FAST}};
 
-static struct LEDEffect effect_rapid_blink = {
+[[maybe_unused]] static struct LEDEffect effect_rapid_blink = {
     .effect = {LED_BASE_PWM_FREQ_IN_HZ,
                0,
                LED_BASE_PWM_FREQ_IN_HZ,

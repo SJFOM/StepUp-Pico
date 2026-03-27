@@ -1,5 +1,21 @@
 cmake_minimum_required(VERSION 3.14)
 
+######################################
+# USER CONFIGURATION SECTION - START #
+######################################
+
+# EDIT THESE VARIABLES TO CUSTOMIZE YOUR BUILD
+
+# Enable Serial comms over USB (1) or UART (0)
+set(SERIAL_OVER_USB 0)
+
+# Enable/Disable buzzer output (useful to disable when debugging to avoid noise)
+set(ENABLE_BUZZER_OUTPUT 1)
+
+####################################
+# USER CONFIGURATION SECTION - END #
+####################################
+
 # Should we set app-level debugging?
 if(${DO_DEBUG})
     message(STATUS "App-side debugging enabled for ${APP_NAME}")
@@ -32,10 +48,8 @@ target_link_libraries(${APP_NAME} LINK_PUBLIC
     ControlInterface
     PicoUtils
     Utils)
-
+    
 # Enable/disable STDIO via USB and UART
-set(SERIAL_OVER_USB 0)
-
 if(SERIAL_OVER_USB)
     pico_enable_stdio_usb(${APP_NAME} 1)
     pico_enable_stdio_uart(${APP_NAME} 0)
@@ -46,10 +60,6 @@ endif()
 
 add_compile_definitions(SERIAL_OVER_USB=${SERIAL_OVER_USB})
 
-# Enable/Disable buzzer output (useful to disable when debugging to avoid noise)
-set(ENABLE_BUZZER_OUTPUT 1)
-add_compile_definitions(ENABLE_BUZZER_OUTPUT=${ENABLE_BUZZER_OUTPUT})
-
 # Enable extra build products
 pico_add_extra_outputs(${APP_NAME})
 
@@ -58,3 +68,7 @@ message(STATUS "Build revision ${BUILD_NUMBER_OUTPUT}")
 # Increase the amount of available shared IRQ handlers to support more peripherals (e.g. ADC, USB, TMC UART)
 # Default is 4 which is not enough when we enable USB interrupts alongside the existing program IRQ handlers.
 add_compile_definitions(PICO_MAX_SHARED_IRQ_HANDLERS=8)
+
+# Forward the ENABLE_BUZZER_OUTPUT definition to the compiler so it can be used in code to conditionally
+# compile out buzzer output when disabled
+add_compile_definitions(ENABLE_BUZZER_OUTPUT=${ENABLE_BUZZER_OUTPUT})

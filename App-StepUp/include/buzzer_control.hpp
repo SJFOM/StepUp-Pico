@@ -28,8 +28,8 @@
 
 #define MELODY_MAX_NOTE_COUNT      (10U)
 #define BUZZER_BASE_PWM_FREQ_IN_HZ (8000U)
-#define BUZZER_PWM_WRAP_VALUE      (65535U)                      // 2^16 - 1
-#define BUZZER_PWM_DUTY_CYCLE      (BUZZER_PWM_WRAP_VALUE / 2U)  // 50% duty cycle
+#define BUZZER_PWM_WRAP_VALUE      (65535U)                 // 2^16 - 1
+#define BUZZER_PWM_DUTY_CYCLE (BUZZER_PWM_WRAP_VALUE / 2U)  // 50% duty cycle
 
 enum NoteDuration
 {
@@ -82,22 +82,23 @@ struct Melody
     uint16_t duration[MELODY_MAX_NOTE_COUNT];
 };
 
-static struct Melody melody_off = {.note = {NotePitch::NOTE_OFF},
-                                   .duration = {NoteDuration::NOTE_EIGHT}};
+[[maybe_unused]] static struct Melody melody_off = {
+    .note = {NotePitch::NOTE_OFF},
+    .duration = {NoteDuration::NOTE_EIGHT}};
 
-static struct Melody melody_sweep_up = {
+[[maybe_unused]] static struct Melody melody_sweep_up = {
     .note = {NotePitch::NOTE_B6, NotePitch::NOTE_D7, NotePitch::NOTE_E7},
     .duration = {NoteDuration::NOTE_EIGHT,
                  NoteDuration::NOTE_EIGHT,
                  NoteDuration::NOTE_EIGHT}};
 
-static struct Melody melody_sweep_down = {
+[[maybe_unused]] static struct Melody melody_sweep_down = {
     .note = {NotePitch::NOTE_E7, NotePitch::NOTE_D7, NotePitch::NOTE_B6},
     .duration = {NoteDuration::NOTE_EIGHT,
                  NoteDuration::NOTE_EIGHT,
                  NoteDuration::NOTE_EIGHT}};
 
-static struct Melody melody_short_double_beep = {
+[[maybe_unused]] static struct Melody melody_short_double_beep = {
     .note = {NotePitch::NOTE_C7,
              NotePitch::NOTE_OFF,
              NotePitch::NOTE_C7,
@@ -107,7 +108,7 @@ static struct Melody melody_short_double_beep = {
                  NoteDuration::NOTE_SIXTEENTH,
                  NoteDuration::NOTE_SIXTEENTH}};
 
-static struct Melody melody_short_quadruple_beep = {
+[[maybe_unused]] static struct Melody melody_short_quadruple_beep = {
     .note = {NotePitch::NOTE_C7,
              NotePitch::NOTE_OFF,
              NotePitch::NOTE_C7,
@@ -127,7 +128,7 @@ static struct Melody melody_short_quadruple_beep = {
         NoteDuration::NOTE_SIXTEENTH,
     }};
 
-static struct Melody melody_long_quadruple_beep = {
+[[maybe_unused]] static struct Melody melody_long_quadruple_beep = {
     .note = {NotePitch::NOTE_C7,
              NotePitch::NOTE_OFF,
              NotePitch::NOTE_C7,

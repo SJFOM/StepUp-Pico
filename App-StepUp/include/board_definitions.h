@@ -115,7 +115,10 @@ constexpr bool CX_HIGH_SPEED_AUTO_REDUCTION_ENABLED = true;
 /* Voltage threshold definitions - START */
 /*****************************************/
 
-constexpr float CX_BATTERY_VOLTAGE_THRESHOLD_LOW = 3.3f;
+// N.B: We CANNOT measure voltages below 3.3V with the ADC as the ADC reference
+// voltage is also 3.3V. We would need an external reference voltage to measure
+// voltages below this threshold.
+constexpr float CX_BATTERY_VOLTAGE_THRESHOLD_LOW = 3.4f;
 constexpr float CX_BATTERY_VOLTAGE_THRESHOLD_MID_LOW = 3.6f;
 constexpr float CX_BATTERY_VOLTAGE_THRESHOLD_MID_HIGH = 3.8f;
 constexpr float CX_BATTERY_VOLTAGE_THRESHOLD_HIGH = 4.3f;

@@ -29,11 +29,12 @@ enum ControllerState
     STATE_COUNT,
 };
 
-static const char *ControllerStateString[ControllerState::STATE_COUNT] = {
-    "STATE_IDLE",
-    "STATE_READY",
-    "STATE_BUSY",
-    "STATE_NEW_DATA",
+[[maybe_unused]] static const char
+    *ControllerStateString[ControllerState::STATE_COUNT] = {
+        "STATE_IDLE",
+        "STATE_READY",
+        "STATE_BUSY",
+        "STATE_NEW_DATA",
 };
 
 enum ControllerNotification
@@ -47,7 +48,7 @@ enum ControllerNotification
     NOTIFY_FUNC_MAX_COUNT
 };
 
-static const char *ControllerNotificationString
+[[maybe_unused]] static const char *ControllerNotificationString
     [ControllerNotification::NOTIFY_FUNC_MAX_COUNT] = {"NOTIFY_BOOT",
                                                        "NOTIFY_INFO",
                                                        "NOTIFY_DATA",

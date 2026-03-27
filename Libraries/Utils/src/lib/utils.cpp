@@ -181,12 +181,7 @@ namespace Utils
     void log_error(const string msg)
     {
         printf("[ERROR] %s\n", msg.c_str());
-        // printf("[POWER] Powering down...\n");
-        // PowerControl::powerDown();
-        while (true)
-        {
-            ;
-        }
+        on_error_handler(msg.c_str());
     }
 
     /**************************
@@ -202,3 +197,25 @@ namespace Utils
      *************************/
 
 }  // namespace Utils
+
+/*
+ * EXTERNAL WEAK FUNCTIONS
+ */
+extern "C"
+{
+    /**
+     * @brief Weak error handler function that can be overridden by the user.
+     *        Default implementation enters an infinite loop.
+     *
+     * @param msg: The error message.
+     */
+    __attribute__((weak)) void on_error_handler(const char *msg)
+    {
+        (void)msg;  // Suppress unused parameter warning
+        printf("Not the one!!!\n");
+        while (true)
+        {
+            ;
+        }
+    }
+}
