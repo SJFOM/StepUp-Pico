@@ -1,0 +1,13 @@
+"","Sourced","Placed","References","Value","Footprint","Quantity"
+1,"","","SW3","1825027-8","1825027-8",1
+2,"","","BT1",54,54,1
+3,"","","BT2",54,"54_SLOT",1
+4,"","","BZ1","PS1240P02CT3","PS1240P02BT",1
+5,"","","JOY1","THB001P","THB001P",1
+6,"","","LED2","MP008267","MP008267",1
+7,"","","LOGO1","Zip-tie","LOGO",1
+8,"","","J2","Conn_01x05_Pin","PinHeader_1x05_P2.54mm_Vertical",1
+9,"","","J3","Conn_01x04_Pin","PinHeader_1x04_P2.54mm_Vertical",1
+10,"","","J4","Conn_02x03_Odd_Even","PinHeader_2x03_P2.54mm_Vertical",1
+11,"","","J5","AST0250404","AST250404",1
+12,"","","J6","Conn_01x05","PinHeader_1x05_P2.54mm_Vertical",1

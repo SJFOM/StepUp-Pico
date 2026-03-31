@@ -43,7 +43,7 @@
 
 /* Scheduler Related */
 #define configUSE_PREEMPTION     1
-#define configUSE_TICKLESS_IDLE  0
+#define configUSE_TICKLESS_IDLE  1 /* Lower power consumption when enabled*/
 #define configUSE_IDLE_HOOK      0
 #define configUSE_TICK_HOOK      0
 #define configTICK_RATE_HZ       ((TickType_t)1000)
