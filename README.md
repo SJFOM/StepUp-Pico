@@ -142,9 +142,8 @@ Only 18650 Li-Ion cells are supported by this device. The 18650 cell can either 
 
 Once a battery has been inserted, plug the device into your PC using a USB C data cable. 
 
-Due to a small hardware quirk, you need to ensure that the **POWER** button (on the side) is held down for the duration of the programming process. Follow these steps to upload code:
-1. The `POWER` button on the side of the PCB (or Enclosure box) and
-2. The `PROGRAM` button on the bottom of the PCB (or Enclosure box)
+Due to a small hardware quirk, you need to ensure that the `POWER` button (on the side) is held down for the duration of the programming process. Follow these steps to upload code:
+1. Press and hold the `POWER` button on the side of the PCB (or Enclosure box) and the `PROGRAM` button on the bottom of the PCB (or Enclosure box)
 3. Press once the `RESET` button to reboot the device into program mode.
 4. You can now release the `PROGRAM` button but keep the `POWER` button held down
 
@@ -152,15 +151,17 @@ The device should evaluate as a USB drive mounted to your PC. From here, you can
 - By grabbing the latest copy of [Release firmware](https://github.com/SJFOM/StepUp-Pico/releases) available in the GitHub repo
 - _OR_ - locating it in the `build/App-StepUp` directory once you have compiled this repository
 
+Only _now_, once the device has been successfully programmed can you release the `POWER` button.
+
 ## 3. Powering ON
-Once firmware has been loaded successfully - press and hold the **POWER** button on the side of the device until a the LED flashes GREEN several times and an audible tone of increasing frequencies plays (like a step-up sequence).
+Once firmware has been loaded successfully - press and hold the `POWER` button on the side of the device until the LED flashes GREEN several times and an audible tone of increasing frequencies plays (like a step-up sequence).
 
 ## 4. Controlling the Motor
 ### Connection
-Connect the stepper motor using the connector labelled with `A1, A2, B1, B2` to match the coils of the given motor, lifting the 4 black tabs of the connector 
+Connect the stepper motor using the connector labelled with `A1, A2, B1, B2` to match the coils of the given motor, lifting the 4 black tabs of the connector to allow insertion of the wires and then closing each of the 4 black tabs down with an audible "click" once the wires are in place. The wires should ideally have at least 5mm of exposed wire to ensure a good connection.
 
 ### Joystick control
-The Joystick is used to control the motor direction and speed. If you increase or decrease the speed of the motor and then return the joystick to the center, the next time you move the motor the device will attempt to ramp up to the previous speed the motor was running at. To reset this behaviour, press the joystick button.
+The Joystick is used to control the motor direction and speed. If you increase or decrease the speed of the motor and then return the joystick to the center, the next time you move the motor the device will attempt to ramp up to the previous speed the motor was running at. To reset this behaviour to the original starting speed, press the joystick button.
 
 <img src="./images/Assembly/StepUp_fully_assembled_top_view_lines.png" alt="Motor joystick control diagram" width="400" />
 
@@ -229,12 +230,12 @@ The StepUp! device emits a stream of serial messages over USB which can be read 
 |--------|:----------------:|:---------:|---------|
 | Joystick button press | Blue: Fast blinking | Two quick beeps | Reset motor speed to initial starting value |
 | Motor moving | Red: Rapid Blinking | Three long beeps | Error detected - issue could be any of the following: Short circuit in motor coils, Open circuit, TMC Overheating, battery voltage out of bounds, motor voltage out of bounds |
-| Motor moving | White: Solid for ~1 second | None | **Note:** Stall detection is an experimental feature, not enabled by default. When enabled: Device detected a motor stall event, unable to provide full power due to excessive motor speed. |
+| Motor moving | White: Solid for ~1 second | None | Momentary motor stall event, unable to provide full power due to excessive motor speed. **Note:** A stall event may occur and the motor will happily continue spinning, it is purely indicative of the loading on the motor driver circuitry |
 
 ## 6. Powering OFF
-Press and hold the **POWER** button on the side of the device for 5 seconds until the LED flashes RED several times and an audible tone of decreasing frequencies plays (like a step-down sequence).
+Press and hold the `POWER` button on the side of the device for 5 seconds until the LED flashes RED several times and an audible tone of decreasing frequencies plays (like a step-down sequence).
 
->**NOTE:** The device will automatically power OFF after 10 minutes of inactivity
+>**NOTE:** The device has an auto power-down feature and will automatically power OFF after 10 minutes of inactivity.
 
 
 ## Charging
