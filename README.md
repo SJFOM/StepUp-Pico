@@ -11,12 +11,32 @@
 <a href="https://github.com/SJFOM/StepUp-Pico/blob/master/LICENSE"><img src="https://img.shields.io/github/license/SJFOM/StepUp-Pico?color=2b9348" alt="License Badge"/></a>
 
 
-<img src="./images/StepUp_fully_assembled_with_motor.jpg" alt="StepUp device with motor" width="800" />
-<img src="./images/StepUp_PCB_v0_3.png" alt="PCB" width="800" />
+<div style="display: flex; gap: 20px; justify-content: center;">
+    <div>
+        <img src="./images/Assembly/StepUp_fully_assembled_with_motor.jpg" alt="StepUp device with motor" width="545" />
+    </div>
+    <div>
+        <img src="./images/PCB image renders/PCB_Render_BTM.png" alt="PCB - TOP" width="400" />
+    </div>
+    <div>
+        <img src="./images/PCB image renders/PCB_Render_TOP.png" alt="PCB - BOTTOM" width="400" />
+    </div>
+</div>
+
+
+<div style="display: flex; gap: 0px; justify-content: center;">
+    <div>
+        <img src="./images/Assembly/StepUp_PCBA_assembly_drawing.png" alt="StepUp device with motor" width="625" />
+    </div>
+    <div>
+        <img src="./images/Assembly/StepUp_assembly_drawing.png" alt="StepUp device with motor" width="750" />
+    </div>
+</div>
+
 
 
 ## What is it?
-StepUp! is a low-cost, battery powered handheld device for quick testing and development work with stepper motors - all you need is:
+StepUp! is a low-cost, battery powered handheld device for quick testing and development work with any sized stepper motor - all you need is:
 
 - A stepper motor
 - A motor cable
@@ -58,9 +78,10 @@ A core goal from the outset was to make this _as_ cheap as I possibly could. Tot
 - **CPU:** Dual-core Arm Cortex-M0+ processor, flexible clock running up to 133 MHz
 - **RAM:** 264kB on-chip SRAM
 - **Flash:** 2MB on-board QSPI flash
-- **Battery:** 18650 Li-Ion, single cell
+- **Battery:** 18650 Li-Ion, single cell (protected or non)
 - **Charge current:** 300mA
 - **Motor control current:** 500mA (default)
+- **Battery life:** ~5.5 hours in testing using a `3400mAh` 18650 Li-Ion battery
 
 # Pre-requisites
 
@@ -158,7 +179,7 @@ Connect the stepper motor using the connector labelled with `A1, A2, B1, B2` to 
 ### Joystick control
 The Joystick is used to control the motor direction and speed. If you increase or decrease the speed of the motor and then return the joystick to the center, the next time you move the motor the device will attempt to ramp up to the previous speed the motor was running at. To reset this behaviour, press the joystick button.
 
-<img src="./images/StepUp_fully_assembled_top_view_lines.png" alt="Motor joystick control diagram" width="400" />
+<img src="./images/Assembly/StepUp_fully_assembled_top_view_lines.png" alt="Motor joystick control diagram" width="400" />
 
 ### Motor current
 By default, the StepUp! device drives the supplied stepper motor with `~500mA` of current. While this _can_ be increased by modifying the firmware (see `DEFAULT_IRUN_VALUE` in [`tmc_control.hpp`](./App-StepUp/include/tmc_control.hpp)) it is not recommended given the limited power available from the provided 18650 battery.
