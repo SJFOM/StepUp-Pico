@@ -11,28 +11,11 @@
 <a href="https://github.com/SJFOM/StepUp-Pico/blob/master/LICENSE"><img src="https://img.shields.io/github/license/SJFOM/StepUp-Pico?color=2b9348" alt="License Badge"/></a>
 
 
-<div style="display: flex; gap: 20px; justify-content: center;">
-    <div>
-        <img src="./images/Assembly/StepUp_fully_assembled_with_motor.jpg" alt="StepUp device with motor" width="545" />
-    </div>
-    <div>
-        <img src="./images/PCB image renders/PCB_Render_BTM.png" alt="PCB - TOP" width="400" />
-    </div>
-    <div>
-        <img src="./images/PCB image renders/PCB_Render_TOP.png" alt="PCB - BOTTOM" width="400" />
-    </div>
-</div>
+
+<img src="./images/Assembly/StepUp_with_motor_and_PCB_images.png" alt="StepUp device  with motor and PCBs" />
 
 
-<div style="display: flex; gap: 0px; justify-content: center;">
-    <div>
-        <img src="./images/Assembly/StepUp_PCBA_assembly_drawing.png" alt="StepUp device with motor" width="625" />
-    </div>
-    <div>
-        <img src="./images/Assembly/StepUp_assembly_drawing.png" alt="StepUp device with motor" width="750" />
-    </div>
-</div>
-
+<img src="./images/Assembly/StepUp_assembly_drawing_ALL.png" alt="StepUp device with motor" />
 
 
 ## What is it?

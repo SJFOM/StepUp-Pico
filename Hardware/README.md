@@ -58,38 +58,18 @@ When soldering in the negative polarity battery clip, you have the choice of pos
 # LED Box assembly
 With the aid of a small drop of cyanacrolyte (a.k.a super-glue), slide the translucent LED Box onto the Top section of the enclosure housing so that the LED Box is flush to the part.
 
-<div style="display: flex; gap: 20px; justify-content: center;">
-  <div>
-    <img src="../images/3D print/3D_Top_with_LED_Box.png" alt="LED Box assembly" width="700" />
-  </div>
-  <div>
-    <img src="../images/Assembly/Gluing the LED Box.jpg" alt="LED Box gluing" width="400" />
-  </div>
-</div>
+<img src="../images/3D print/3D_Top_with_LED_Box.png" alt="LED Box assembly" width="700" />
+<img src="../images/Assembly/Gluing the LED Box.png" alt="LED Box gluing" width="700" />
 
 # Threaded inserts
 
-<div style="display: flex; gap: 20px; justify-content: center;">
-  <div>
-    <img src="..//images/Assembly/StepUp_btm_enclosure_top_view.png" alt="Threaded insert locations" width="400" />
-  </div>
-  <div>
-    <img src="..//images/Assembly/Enclosure bottom piece - without inserts.jpg" alt="Threaded inserts - before assembly" width="400" />
-  </div>
-  <div>
-    <img src="..//images/Assembly/Enclosure bottom piece - with inserts.jpg" alt="Threaded inserts - assembled" width="400" />
-  </div>
-</div>
+<img src="..//images/Assembly/StepUp_btm_enclosure_top_view.png" alt="Threaded insert locations" width="400" />
+<img src="..//images/Assembly/Enclosure bottom piece - without inserts.png" alt="Threaded inserts - before assembly" width="400" />
+<img src="..//images/Assembly/Enclosure bottom piece - with inserts.png" alt="Threaded inserts - assembled" width="400" />
 
 ## Important - ensure the inserts are set flush
-<div style="display: flex; gap: 20px; justify-content: center;">
-  <div>
-    <img src="../images/Assembly/Threaded inserts - not flush.jpg" alt="Threaded inserts - incorrect" width="400" />
-  </div>
-  <div>
-    <img src="../images/Assembly/Threaded inserts - flush.jpg" alt="Threaded inserts - correct" width="400" />
-  </div>
-</div>
+<img src="../images/Assembly/Threaded inserts - not flush.png" alt="Threaded inserts - incorrect" width="400" />
+<img src="../images/Assembly/Threaded inserts - flush.png" alt="Threaded inserts - correct" width="400" />
 
 
 # Attaching PCB to Bottom enclosure
