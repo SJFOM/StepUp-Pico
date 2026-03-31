@@ -75,6 +75,7 @@ Around **€50 (or $60)** per unit
 A core goal from the outset was to make this _as_ cheap as I possibly could. Totting up my most recent order for 5 PCB's with 3 assembled PCBA's and including the additional through-hole components I hand solder to the PCBA's (to reduce cost) works out to around $50 per PCB as per my last order in March 2025.
 
 ## Tech specs
+- **Firmware:** Pico-SDK `v2.2.0` running FreeRTOS `v11.2.0`
 - **CPU:** Dual-core Arm Cortex-M0+ processor, flexible clock running up to 133 MHz
 - **RAM:** 264kB on-chip SRAM
 - **Flash:** 2MB on-board QSPI flash
@@ -91,7 +92,6 @@ All documentation and pre-requisites for creating your own StepUp! PCB and enclo
 ## IDEs
 
 This project was developed using [Microsoft Visual Studio Code](https://code.visualstudio.com/) and all instructions which follow mention use of its code extensions for working with the StepUp! project. Workspace files are included herein - see [rp2040.code-workspace](./rp2040.code-workspace).
-
 
 ## Quick-start - cloning the repo and uploading code
 
@@ -151,7 +151,7 @@ Steps `1` -> `3` below should be followed in the order provided to give best cha
 If helpful, all PCB schematics for this project can be found in the [Releases section of my KiCad repository](https://github.com/SJFOM/KiCad/releases).
 
 ## 1. Inserting a battery
-Only 18650 Li-Ion cells are supported by this device. The 18650 cell can either include battery protection circuitry or not - there is a battery protection circuit on-board the StepUp! device which is configured specifically for the device.
+Only 18650 Li-Ion cells are supported by this device. The 18650 cell can either include battery protection circuitry or not - there is a battery protection circuit on-board the StepUp! device which is configured specifically for the device and will prevent device power-on if reverse polarity is detected. See the [Hardware README file](./Hardware/README.md) for reference on assembly process.
 
 >**NOTE:** When first inserting the battery, you must also plug in a USB C cable to power up the device. This is a known quirk of the battery protection circuit which prohibits using the battery until external power is first applied.
 
@@ -159,7 +159,7 @@ Only 18650 Li-Ion cells are supported by this device. The 18650 cell can either 
 
 Once a battery has been inserted, plug the device into your PC using a USB C data cable. 
 
-Due to a small hardware quirk, you need to ensure that the `POWER` button (on the side) is held down for the duration of the programming process. Follow these steps to upload code:
+Due to a small hardware quirk, you need to ensure that the **POWER** button (on the side) is held down for the duration of the programming process. Follow these steps to upload code:
 1. The `POWER` button on the side of the PCB (or Enclosure box) and
 2. The `PROGRAM` button on the bottom of the PCB (or Enclosure box)
 3. Press once the `RESET` button to reboot the device into program mode.
@@ -167,7 +167,7 @@ Due to a small hardware quirk, you need to ensure that the `POWER` button (on th
 
 The device should evaluate as a USB drive mounted to your PC. From here, you can copy the `StepUp.uf2` file to the mounted device either:
 - By grabbing the latest copy of [Release firmware](https://github.com/SJFOM/StepUp-Pico/releases) available in the GitHub repo
-- OR - locating it in the `build/App-StepUp` directory once you have compiled this repository
+- _OR_ - locating it in the `build/App-StepUp` directory once you have compiled this repository
 
 ## 3. Powering ON
 Once firmware has been loaded successfully - press and hold the **POWER** button on the side of the device until a the LED flashes GREEN several times and an audible tone of increasing frequencies plays (like a step-up sequence).
@@ -187,7 +187,11 @@ By default, the StepUp! device drives the supplied stepper motor with `~500mA` o
 ## 5. Status Codes
 
 ### USB Connection
-The StepUp! device emits a stream of serial messages over USB which can be read while the device is operating - especially if any error message needs to be further diagnosed. The following is an example output stream when the device boots:
+The StepUp! device emits a stream of serial messages over USB which can be read while the device is operating - especially if any error message needs to be further diagnosed. The following is an example output stream when the device boots - see drop-down item below.
+
+<details open=true>
+<summary>StepUp! USB boot-up serial logs</summary>
+
 ```
 [INFO] App: StepUp 1.0.0 (9134303:2)
 [INFO] Setting up peripherals...
@@ -224,6 +228,7 @@ The StepUp! device emits a stream of serial messages over USB which can be read 
 [INFO] FreeRTOS timer started successfully!
 [INFO] TMC is ready for use
 ```
+</details>
 
 ### `STANDBY` - When not controlling a stepper motor
 | Status | Color: Pattern | Buzzer Pattern | Meaning |
