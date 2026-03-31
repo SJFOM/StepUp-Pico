@@ -37,13 +37,13 @@ The PCBA comes with one side populated with SMD components but still requires so
 
 ## Part 1 - PCB creation and SMD component placement
 
-Using your own preference of PCB manufacturer, upload the manufacturing files located in the `Manufacturing files` folder within this directory. This design uses a 4-layer - if prompted for the layer stackup, the following reference can be used:
+Using your own preference of PCB manufacturer, upload the manufacturing files located in the `Manufacturing files` folder within this directory. This design uses a 4-layer PCB - if prompted for the layer stackup, the following reference can be used:
 
 <img src="..//images/Assembly/PCB_layer_stackup.png" alt="PCBA Drawing" width="400" />
 
 ## Part 2 - Hand Assembly of Bottom side components
 
-The bottom side of the PCB is solely populated by through-hole components which are to be assembled by hand. The `BoM - Hand Assembly components.csv` file can be found in the `Hand Assembly` folder and the components therein should be purchased prior to assembly (as per the pre-requisites section above).
+The bottom side of the PCB is solely populated by through-hole components which are to be assembled by hand. The `BoM - Hand Assembly components.csv` file can be found in the `Hand Assembly` folder and the components there-in should be purchased prior to assembly (as per the pre-requisites section above).
 
 Once you have the components and PCBA to hand, you may reference the `Interactive BoM.html` file as a handy guide for placing the components on the PCB. Additionally, the diagram below shows a 3D perspective of where the through-hole components are located on the PCB.
 
@@ -52,11 +52,8 @@ Once you have the components and PCBA to hand, you may reference the `Interactiv
 ### Note on Battery clip positioning
 When soldering in the negative polarity battery clip, you have the choice of positioning the clip to suit your own 18650 battery as these do not always come in at `65mm` in length. Often, a battery has built-in protection circuitry included will measure around `67mm` (or longer) and so the user may adjust the position of this negative terminal battery clip and solder it in place for their own use case.
 
-
-
-
 # LED Box assembly
-With the aid of a small drop of cyanacrolyte (a.k.a super-glue), slide the translucent LED Box onto the Top section of the enclosure housing so that the LED Box is flush to the part.
+With the aid of a small drop of cyanoacrylate (a.k.a super-glue), slide the translucent LED Box onto the Top section of the enclosure housing so that the LED Box is flush to the part.
 
 <img src="../images/3D print/3D_Top_with_LED_Box.png" alt="LED Box assembly" width="700" />
 <img src="../images/Assembly/Gluing the LED Box.png" alt="LED Box gluing" width="700" />
@@ -73,7 +70,7 @@ With the aid of a small drop of cyanacrolyte (a.k.a super-glue), slide the trans
 
 
 # Attaching PCB to Bottom enclosure
-Using 4 x M3x5 screws, attach the PCB to the bottom housing assembly as shown in the image below.
+Using 4 x M3x5 screws, attach the PCB to the bottom housing assembly as shown in the image below - do not overtighten these screws as they may damage the PCB.
 
 <img src="..//images/Assembly/StepUp_PCBA_bolt_locations.png" alt="Enclosure bolt locations" width="800" />
 
