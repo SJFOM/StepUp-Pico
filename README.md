@@ -294,7 +294,7 @@ This work makes heavy usage of Tony Smith's (a.k.a [smittytone](https://github.c
 
 ## Copyright and Licences
 
-StepUp! application source © 2023, Sam O'Mahony (a.k.a [SJFOM](https://github.com/SJFOM)) and licensed under the terms of the [MIT Licence](./LICENSE.md).
+StepUp! application source © 2026, Sam O'Mahony (a.k.a [SJFOM](https://github.com/SJFOM)) and licensed under the terms of the [MIT Licence](./LICENSE.md).
 
 Original template source code © 2022, Tony Smith (a.k.a. [smittytone](https://github.com/smittytone)) and licensed under the terms of the [MIT Licence](./LICENSE.md).
 
