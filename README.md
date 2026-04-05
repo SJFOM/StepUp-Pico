@@ -2,7 +2,7 @@
 # *StepUp!* - A no-code tool for instant stepper motor testing
 
 
-<a href="https://hits.dwyl.com/SJFOM/StepUp-Pico"><img src="https://hits.dwyl.com/SJFOM/StepUp-Pico.svg" alt="Hits Badge"/></a>
+![Badge](https://hitscounter.dev/api/hit?url=https%3A%2F%2Fgithub.com%2FSJFOM%2FStepUp-Pico&label=Repo+visits&icon=bell-fill&color=%233d8bfd&message=&style=flat&tz=UTC)
 <a href="https://github.com/SJFOM/StepUp-Pico/stargazers"><img src="https://img.shields.io/github/stars/SJFOM/StepUp-Pico" alt="Stars Badge"/></a>
 <a href="https://github.com/SJFOM/StepUp-Pico/network/members"><img src="https://img.shields.io/github/forks/SJFOM/StepUp-Pico" alt="Forks Badge"/></a>
 <a href="https://github.com/SJFOM/StepUp-Pico/pulls"><img src="https://img.shields.io/github/issues-pr/SJFOM/StepUp-Pico" alt="Pull Requests Badge"/></a>
@@ -64,7 +64,7 @@ A core goal from the outset was to make this _as_ cheap as I possibly could. Tot
 - **Flash:** 2MB on-board QSPI flash
 - **Battery:** 18650 Li-Ion, single cell (protected or non)
 - **Charge current:** 300mA
-- **Motor control current:** 500mA (default)
+- **Motor control:** ~10.2V at 500mA (default) -> 5.1 Watts
 - **Battery life:** ~5.5 hours in testing using a `3400mAh` 18650 Li-Ion battery
 
 # Pre-requisites
