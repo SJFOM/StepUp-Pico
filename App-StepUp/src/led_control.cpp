@@ -133,6 +133,12 @@ void LEDControl::setLEDFunction(
 
 void LEDControl::setLEDColour(enum LEDColourNames led_colour)
 {
+    if (m_active_colour_name == led_colour)
+    {
+        // No need to update the LED colour if it's already set to the desired
+        // colour
+        return;
+    }
     for (const auto &colour : LEDColours)
     {
         if (colour.led_colour_name == led_colour)
@@ -173,7 +179,16 @@ enum ControllerState LEDControl::processJob(uint32_t tick_count)
         // Update state to represent the fact we have completed the LED effect
         // transition
         m_control_state = ControllerState::STATE_READY;
+
+        enableLED(false);
     }
+    else if (m_control_state == ControllerState::STATE_READY &&
+             isFunctionalityEnabled())
+    {
+        // LED effect is still ongoing, ensure the LED remains enabled
+        enableFunctionality(false);
+    }
+
     return m_control_state;
 }
 
