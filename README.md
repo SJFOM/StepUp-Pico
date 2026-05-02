@@ -30,7 +30,7 @@ Working a lot with stepper motors, I often find myself wanting to test a single 
 - Is the cabling damaged or do the coils contain open or short circuits?
 - Does it have a hold current or is it jammed?
 
-I found that, to really answer these questions required power supplies and oscilloscopes with expensive current probes attached to really get useful measurements. While this would give me the results I was looking for, the setup was a pain and the measurements were generic and required at least some knowledge of how steppers worked to be interpreted.
+I found that, to really answer these questions required power supplies, microcontrollers, stepper motor driving circuitry, a PC to compile and upload firmware and a programmatic approach to moving a motor. What I needed was a simpler way to control motors that felt intuitive - something battery powered and ideally joystick controlled.
 
 I came to the realisation that this problem was two-fold:
 
